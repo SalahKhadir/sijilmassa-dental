@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isCalendarDate } from "../patients/dates.ts";
 import {
   insuranceProviders,
   beneficiaryRelationships,
@@ -48,7 +49,7 @@ export const dentalInsuranceActSchema = z.object({
   id: z.string().optional(),
   treatmentDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "La date de soin doit être au format AAAA-MM-JJ."),
+    .refine(isCalendarDate, "Saisissez une date de soin valide au format AAAA-MM-JJ."),
   toothReference: z.string().trim().max(20).optional().default(""),
   description: z
     .string()
@@ -58,7 +59,7 @@ export const dentalInsuranceActSchema = z.object({
   actCode: z.string().trim().max(50).optional().default(""),
   ngapKeyLetter: z.string().trim().max(10).optional().default(""),
   ngapCoefficient: z.number().nonnegative().optional(),
-  amountMinor: z.number().int().nonnegative().optional(),
+  amountMinor: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
   sourceTreatmentId: z.string().optional(),
 });
 
@@ -72,7 +73,7 @@ export const cnssDetailsSchema = z.object({
   confirmedTeeth: confirmedTeethSchema,
   careTypes: z.array(z.enum(cnssCareTypes)).default([]),
   priorAuthorizationNumber: z.string().trim().max(50).optional().default(""),
-  accidentDate: z.string().trim().max(20).optional().default(""),
+  accidentDate: z.string().trim().max(20).refine(v => !v || isCalendarDate(v), "Saisissez une date d’accident valide.").optional().default(""),
 });
 
 export const cnopsDetailsSchema = z.object({
@@ -80,7 +81,7 @@ export const cnopsDetailsSchema = z.object({
   practitionerInpe: z.string().trim().max(9).optional().default(""),
   careTypes: z.array(z.enum(cnopsCareTypes)).default([]),
   priorAuthorizationNumber: z.string().trim().max(50).optional().default(""),
-  accidentDate: z.string().trim().max(20).optional().default(""),
+  accidentDate: z.string().trim().max(20).refine(v => !v || isCalendarDate(v), "Saisissez une date d’accident valide.").optional().default(""),
   accidentCauses: z.string().trim().max(250).optional().default(""),
   diagnosisCodeCIM10: z.string().trim().max(30).optional().default(""),
 });
@@ -101,10 +102,10 @@ export const farDetailsSchema = z.object({
 });
 
 export const manualFieldsSchema = z.object({
-  totalFeesMinor: z.number().int().nonnegative().optional(),
-  attachmentCount: z.number().int().nonnegative().optional(),
+  totalFeesMinor: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+  attachmentCount: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
   declarationPlace: z.string().trim().max(100).optional().default(""),
-  declarationDate: z.string().trim().max(20).optional().default(""),
+  declarationDate: z.string().trim().max(20).refine(v => !v || isCalendarDate(v), "Saisissez une date de déclaration valide.").optional().default(""),
 });
 
 export const insuranceDraftSchema = z.object({
@@ -116,8 +117,14 @@ export const insuranceDraftSchema = z.object({
   status: z.enum(["BROUILLON", "VALIDE"]).default("BROUILLON"),
   documentPurpose: z.enum(documentPurposes).default("EXECUTION"),
   selectedConsultationId: z.string().optional(),
-  selectedTreatmentIds: z.array(z.string()).default([]),
-  acts: z.array(dentalInsuranceActSchema).default([]),
+  selectedTreatmentIds: z.array(z.string()).refine(ids => new Set(ids).size === ids.length, "Un soin ne peut être importé qu’une fois.").default([]),
+  acts: z.array(dentalInsuranceActSchema).refine(acts => {
+    const sources = acts.flatMap(act => act.sourceTreatmentId ? [act.sourceTreatmentId] : []);
+    return new Set(sources).size === sources.length;
+  }, "Un soin ne peut être importé qu’une fois.").refine(acts =>
+    (!acts.every(act => act.amountMinor === undefined || Number.isSafeInteger(act.amountMinor)) ||
+      acts.reduce((total, act) => total + BigInt(act.amountMinor ?? 0), 0n) <= BigInt(Number.MAX_SAFE_INTEGER)),
+    "Le total dépasse la précision monétaire autorisée.").default([]),
   cnssDetails: cnssDetailsSchema.optional(),
   cnopsDetails: cnopsDetailsSchema.optional(),
   farDetails: farDetailsSchema.optional(),
@@ -125,4 +132,13 @@ export const insuranceDraftSchema = z.object({
     declarationPlace: "",
     declarationDate: "",
   }),
+}).superRefine((draft, context) => {
+  if (draft.manualFields.totalFeesMinor !== undefined && Number.isSafeInteger(draft.manualFields.totalFeesMinor) && draft.acts.every(act =>
+    act.amountMinor !== undefined && Number.isSafeInteger(act.amountMinor))) {
+    const sum = draft.acts.reduce((total, act) => total + BigInt(act.amountMinor!), 0n);
+    if (sum !== BigInt(draft.manualFields.totalFeesMinor)) context.addIssue({
+      code: "custom", path: ["manualFields", "totalFeesMinor"],
+      message: "Le total des frais diffère des actes. Corrigez les montants.",
+    });
+  }
 });

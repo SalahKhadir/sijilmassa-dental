@@ -6,6 +6,8 @@ import type { InsurancePdfInput } from "./overlay.ts";
 export function validateFarInput({ draft, patient, policy }: InsurancePdfInput) {
   const parsed = insuranceDraftSchema.safeParse(draft);
   if (!parsed.success) {
+    if (parsed.error.issues.some(issue => issue.path.includes("totalFeesMinor")))
+      throw new FarPdfError("Le total des frais est invalide ou diffère des actes. Corrigez les montants.");
     if (parsed.error.issues.some(issue => issue.path.includes("toothMarks")))
       throw new FarPdfError("Vérifiez les dents FAR : références FDI uniques et symboles explicites uniquement.");
     throw new FarPdfError("Vérifiez les champs du brouillon FAR avant de générer le PDF.");

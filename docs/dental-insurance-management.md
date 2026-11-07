@@ -1,4 +1,4 @@
-# Gestion des feuilles de soins dentaires (CNSS, CNOPS, FAR) — Phase 9.1
+# Gestion des feuilles de soins dentaires (CNSS, CNOPS, FAR) — Phases 9.1 à 9.3
 
 Ce document formalise la fondation de données et la vérification des gabarits pour les feuilles de soins dentaires marocaines (CNSS, CNOPS, FAR) dans l’ERP de cabinet dentaire Sijilmassa Dental.
 
@@ -105,11 +105,11 @@ La Phase 9.1 a formellement validé les dimensions physiques et orientations des
 - **CNOPS** : 799,44 × 574,08 pt en paysage naturel.
 - **FAR** : 842,25 × 595,50 pt avec décalage de boîte `y0 = 8,58 pt`.
 
-La future **Phase 9.2** exploitera ces coordonnées calibrées pour superposer le texte vectoriel et les coches sur les gabarits officiels à l'aide de `pdf-lib`, sans altérer les fichiers modèles sous `docs/references/pdf-templates/`.
+Les générateurs de la **Phase 9.2** exploitent les coordonnées calibrées pour superposer le texte vectoriel et les coches sur les gabarits officiels à l'aide de `pdf-lib`, sans altérer les fichiers modèles sous `docs/references/pdf-templates/`.
 
 ## 6. Phase 9.2A — PDF CNSS
 
-Le formulaire CNSS propose **Prévisualiser**, **Télécharger le PDF** et **Imprimer**. L’aperçu utilise le PDF officiel de deux pages avec une surcouche, à partir des valeurs actuelles du formulaire, y compris les modifications non enregistrées. Générer un PDF n’enregistre ni ne valide le brouillon. CNOPS et FAR ne proposent pas ces actions.
+Le formulaire CNSS propose **Prévisualiser**, **Télécharger le PDF** et **Imprimer**. L’aperçu utilise le PDF officiel de deux pages avec une surcouche, à partir des valeurs actuelles du formulaire, y compris les modifications non enregistrées. Générer un PDF n’enregistre ni ne valide le brouillon. Les actions CNOPS et FAR sont décrites dans leurs sections 9.2B et 9.2C.
 
 Le PDF reprend les identités distinctes de l’assuré et du patient, l’immatriculation, les CIN disponibles, l’adresse de l’assuré, la naissance et le sexe disponibles, le lien de parenté, l’objet, les types de soins sélectionnés, l’INP du dentiste, les informations manuelles d’accord/accident/déclaration et jusqu’à trois actes. Chaque acte reprend seulement les dents FDI explicites, les codes et cotations saisis, la date et les honoraires disponibles. Les signatures et cachets sont toujours à apposer manuellement. La mention précédente annonçant l’apposition automatique du cachet est remplacée dans l’interface.
 
@@ -136,7 +136,7 @@ Décocher une dent retire sa marque ; **Effacer les marques** retire toutes les 
 
 Les marques confirmées sont reprises sur la page 2 du PDF. Toute modification de la sélection invalide l’aperçu précédent. Sans confirmation, le dessin reste vierge. Les deux pages, les dimensions, la rotation, les signatures et les cachets restent préservés. Les anciens brouillons restent compatibles sans migration.
 
-Les contrôles restent ceux du prototype frontend ; cette confirmation manuelle ne constitue pas une autorisation serveur du rôle dentiste. Les symboles propres aux procédures et l’acceptation d’une convention de marquage par l’organisme nécessitent encore une validation métier. Aucun support CNOPS/FAR n’est ajouté.
+Les contrôles restent ceux du prototype frontend ; cette confirmation manuelle ne constitue pas une autorisation serveur du rôle dentiste. Les symboles propres aux procédures et l’acceptation d’une convention de marquage par l’organisme nécessitent encore une validation métier. La phase 9.2A.1 ne couvrait que la CNSS ; les deux autres organismes sont décrits ci-dessous.
 
 ### Fichiers de la phase 9.2A.1
 
@@ -226,3 +226,75 @@ Adaptations :
 - `docs/dental-insurance-form-mapping.md`, `docs/dental-insurance-management.md` : inventaire et fonctionnement FAR.
 
 Les coordonnées CNSS/CNOPS et les modules de facturation et d’ordonnance ne sont pas modifiés par cette phase. Aucun commit ni push automatique.
+
+
+## 10. Phase 9.3 — Audit et stabilisation des trois organismes
+
+### Matrice d’audit
+
+Les constats ci-dessous portent sur le frontend et les modèles fournis. La sévérité décrit le risque avant correction ; elle ne constitue pas un incident sur des données réelles. Toutes les données de contrôle sont fictives.
+
+| Organisme | Comportement vérifié | P0 corrigé | P1 corrigé | Couverture ajoutée | Confirmation du dentiste |
+| --- | --- | --- | --- | --- | --- |
+| CNSS | Immatriculation de l’assuré, liens de parenté, catégories explicites, trois actes, INP du cabinet, deux pages à 270°, 52 centres propres | Changer de patient conservait les actes et déclarations ; les écrans d’assuré distinct pouvaient recopier des données du bénéficiaire | Liens de dépôt insuffisamment vérifiés ; confirmations conservées après modification des actes ; dates impossibles et sommes excessives enregistrables ; tableau de catégories absent pouvant faire échouer le rendu | Isolation, sources, retrait des confirmations, montants, catégorie absente, parcours complet | Acceptation du carré neutre, INP du cabinet, contrôle papier |
+| CNOPS | Assuré et bénéficiaire distincts, affiliation/immatriculation séparées, INPE neuf chiffres distinct de l’INP, CIM-10 sur trois cases, neuf actes, 52 centres indépendants | Mêmes risques de changement de patient et de copie d’identité | Mêmes liens, dates, limites monétaires et confirmations après modification d’actes | Même couverture ; régression INPE/CIM-10 et schéma conservée | Carré provisoire ; repérage des temporaires sans chiffres locaux lisibles |
+| FAR | Compte, grade, unité, CIN et contact ; cinq actes sur deux volets ; total exact ; deux pages avec origine décalée ; 52 cellules ; cercle/croix approuvés | Mêmes risques d’isolation et d’identité ; la fixture FAR indiquait « lui-même » pour deux identités distinctes | Mêmes liens, dates et limites monétaires ; l’approbation pouvait redevenir active si un texte d’acte était modifié puis rétabli | Même couverture ; persistance, retrait d’approbation et absence de transmission vérifiés | Couronne/prothèse, nature du compte, composition du dossier papier et champs manuels |
+
+### Constats et corrections
+
+- **P0 — Isolation du bénéficiaire.** Le changement de patient d’un nouveau brouillon efface actes, imports, catégories, références d’accord, diagnostic, données de déclaration et marques. Les identifiants de praticien, propres au cabinet, restent disponibles. Les anciennes polices sont retirées immédiatement, et toute police affichée est filtrée par patient et organisme. Revenir au premier patient ne restaure pas le contenu effacé. Le patient d’un brouillon existant reste non modifiable.
+- **P0 — Assuré distinct.** Passer du bénéficiaire à un autre assuré dans le dialogue vide son identité et ses coordonnées. Une valeur vide d’un assuré existant ne reprend plus celle du patient. La saisie rapide exige prénom et nom distincts, et ne recopie plus les coordonnées du bénéficiaire. La fixture FAR utilise désormais un conjoint explicitement distinct, sans modifier les deux identités.
+- **P1 — Liens et imports.** Création et modification vérifient l’existence du patient, la cohérence patient/organisme de la police, l’appartenance de la consultation et des soins importés. Les deux sources déjà proposées par l’interface sont prises en charge : consultations et historique synthétique de la fiche patient. Les copies d’actes restent éditables sans changement de la source. Une source disparue bloque un nouvel enregistrement ; le brouillon existant reste lisible. Un même identifiant de source ne peut être importé deux fois dans le même brouillon. Supprimer la ligne importée permet de l’importer à nouveau. Aucun rapprochement approximatif entre deux sources différentes n’est inventé.
+- **P1 — Entités liées.** Une police ne change pas de patient. Si elle est liée à un brouillon, son organisme ne peut pas changer et sa suppression est bloquée avec un message affiché. La délier permet sa suppression. L’archivage reste possible : il n’efface ni la police ni le brouillon. Une autre couverture du même organisme peut être choisie lorsqu’il en existe plusieurs. Le dépôt refuse aussi l’écrasement d’un brouillon par réutilisation de son identifiant.
+- **P1 — Confirmation du schéma.** Ajouter, importer, modifier ou retirer un acte efface les confirmations CNSS/CNOPS et retire l’approbation FAR. Changer de police ou d’organisme retire également la confirmation. Revenir au texte précédent ne rétablit jamais l’approbation FAR. Les gardes du dépôt retirent les confirmations conservées implicitement ; une liste explicitement renvoyée constitue une nouvelle confirmation par l’appelant, sans authentifier son rôle. L’interface exige de cocher à nouveau les dents neutres ou d’approuver à nouveau les symboles FAR.
+- **P1 — Dates et argent.** Les dates de soin, d’accident et de déclaration saisies sont des dates calendaires valides. Une date absente lors de l’import n’est plus remplacée par celle du jour. Les montants et quantités sont bornés aux entiers sûrs. Les sommes utilisent des entiers exacts ; un dépassement affiche une erreur et bloque l’enregistrement/génération au lieu de faire échouer l’écran. Lorsque tous les honoraires sont renseignés, un total manuel différent est refusé dès le schéma du brouillon. Le coefficient explicite zéro est préservé à l’enregistrement. Les limites physiques des cellules peuvent bloquer un grand montant pourtant valide mathématiquement.
+- **P1 — Catégories CNSS.** Un objet de détails sans tableau de catégories produit les cases vides et un avertissement, sans exception. Les régressions de catégories explicites des trois organismes restent actives.
+- **P2 — Données de démonstration et avertissements.** Le faux lien `demo-treatment-001-1`, absent du dossier clinique, est retiré de la fixture CNSS ; son acte reste une saisie manuelle fictive. Une référence de dent CNSS qui n’est pas une FDI unique est signalée explicitement et la cellule reste vide. Aucun numéro n’est deviné.
+
+### Exigences du modèle et validation technique
+
+| Organisme | Minimum technique de génération | Mentions imprimées à prendre en compte | Intervention manuelle / exigence non vérifiée |
+| --- | --- | --- | --- |
+| CNSS | Patient, identités, police CNSS liée, immatriculation, lien représentable, un à trois actes, dates et montants valides lorsqu’ils sont saisis | Cocher la mention utile ; la feuille demande l’identité du malade, les actes, les dates et les interventions des signataires | Données absentes signalées sans valeur inventée ; codes/cotations à vérifier ; cachets, signatures, remboursements et autres professionnels manuels. Aucune obligation générale de remplir toutes les rubriques n’est déduite des astérisques |
+| CNOPS | Patient, identités, police liée, affiliation, immatriculation, lien représentable, INPE neuf chiffres, un à neuf actes ; CIM-10 absent ou catégorie explicite sur trois cases | Notice demandant feuille renseignée/signée, identifiant du praticien et dates ; téléphone explicitement optionnel | Les champs absents sont signalés avant impression ; cachets et signatures manuels. Aucun code détaillé n’est abrégé, aucun diagnostic n’est inventé |
+| FAR | Patient, naissance, police liée, identité/CIN/contact/adresse de l’adhérent, compte, grade, unité, lien représentable, objet/nature/contexte explicites, INPE neuf chiffres, quantités, déclaration, un à cinq actes avec honoraires | Le volet maladie indique que tous les champs sont à renseigner ; les champs automatisables identifiés sont contrôlés, et les espaces réservés restent manuels | Signature adhérent, identité/signature du correspondant, contrôle médical, ordonnance manuscrite et cachets avec INPE à compléter selon leur destinataire. La portée de la note aux soins sans objet et la composition papier restent à confirmer |
+
+Un avertissement n’est pas une validation de recevabilité. Les actions PDF présentent les éléments à vérifier avant impression. Le statut `VALIDE` reste celui du prototype : il ne certifie ni rôle dentiste, ni complétude administrative, ni autorisation de l’assureur. Une copie téléchargée ne peut pas être révoquée par les modifications ultérieures ; l’application révoque uniquement son URL d’aperçu temporaire.
+
+### Confidentialité et préparation du backend
+
+Le contrôle du code d’assurance et les parcours navigateur ne montrent ni journalisation des données, ni identifiant d’assurance dans les URL, ni appel externe, ni écriture localStorage/sessionStorage. Les PDF générés restent temporaires ; `public/` ne contient que les modèles vierges et les ressources statiques. Le téléchargement explicite crée la copie demandée sur le poste. Les fixtures sont synthétiques. Ces contrôles du prototype ne valent pas preuve de conformité juridique ou d’acceptation par un organisme.
+
+Le backend devra assurer : authentification et sessions sécurisées ; autorisations serveur par rôle et patient sur chaque ressource ; cloisonnement des données cliniques du secrétariat ; contraintes de clés étrangères et de précision monétaire ; gestion transactionnelle et contrôle de concurrence des modifications ; version et empreinte des modèles ; instantané durable des identités, actes et confirmations au moment de la finalisation ; métadonnées et historique d’audit sans données médicales inutiles dans les journaux ; génération/téléchargement autorisés avec politique de cache adaptée ; rétention, suppression, sauvegardes et restauration testée. Les déclarations de confirmation du frontend ne sont pas une preuve d’identité ou d’habilitation. Aucune de ces fonctions serveur n’est implémentée dans cette phase.
+
+### Contrôle physique avant utilisation
+
+1. Utiliser une feuille fictive par organisme, vérifier les deux pages et le format natif ; ne pas forcer les trois modèles en A4.
+2. Vérifier l’échelle, les marges, l’absence de rognage, la rotation CNSS, le décalage FAR et la lisibilité des petits champs.
+3. Contrôler les identités, cases, codes, dates, centimes et total ; vérifier les dents permanentes/temporaires dans chaque quadrant.
+4. Tester le retournement recto verso et le pliage FAR avec l’imprimante du cabinet.
+5. Confirmer les symboles et les pièces attendues avec le dentiste ; compléter les zones manuscrites, signatures et cachets par les personnes concernées.
+
+### Fichiers de la phase 9.3
+
+- `frontend/src/components/insurance/insurance-draft-form.tsx` : isolation, choix de couverture, invalidation des confirmations, imports et sommes exactes.
+- `frontend/src/components/insurance/insurance-policy-dialog.tsx`, `patient-insurance-section.tsx` : identité distincte et erreur de suppression liée.
+- `frontend/src/lib/insurance/repository.ts`, `schema.ts` : validation des liens, dates, doublons, montants et confirmations.
+- `frontend/src/lib/insurance/pdf/overlay.ts` : somme exacte et contrôle des montants.
+- `frontend/src/lib/insurance/pdf/cnss-renderer.ts`, `cnops-validation.ts`, `far-validation.ts` : catégories absentes, avertissement FDI et erreurs de total.
+- `frontend/src/data/insurance.ts` : correction des liens et de la relation des fixtures uniquement.
+- `frontend/tests/insurance-audit.test.mjs`, `frontend/tests/browser/insurance-audit.test.mjs` : nouveaux contrôles transversaux et parcours complets.
+- `frontend/tests/insurance-chart.test.mjs`, `cnops-pdf.test.mjs`, `far-pdf.test.mjs` : dépôts de test avec leurs polices liées et identifiant neuf lors d’une création.
+- Les deux documents d’assurance : constats, exigences, résultats et limites.
+
+Les modèles officiels, coordonnées dentaires, facturation et PDF d’ordonnance restent inchangés. Aucun backend, dépendance, commit ou push n’est ajouté.
+
+
+### Résultats de validation de la phase 9.3
+
+- **56 tests d’assurance réussis**, dont dix nouveaux tests transversaux. Commande depuis `frontend/` : `INSURANCE_AUDIT_QA_DIR=/tmp/insurance-audit node --import tsx --test --experimental-test-isolation=none tests/insurance-audit.test.mjs tests/insurance.test.mjs tests/insurance-pdf.test.mjs tests/insurance-chart.test.mjs tests/cnops-pdf.test.mjs tests/far-pdf.test.mjs`.
+- **Huit scénarios navigateur réussis** : quatre régressions existantes, trois nouveaux parcours complets, puis un test ciblé de bascule entre deux couvertures du même patient et de récupération après dépassement de total. Les sept premiers tournent ensemble ; le dernier est lancé seul avec `--test-name-pattern='switching same-patient policies'`. Seule la suite d’assurance est exécutée, sans relancer toute la suite navigateur du dépôt.
+- `pnpm exec tsc --noEmit`, `pnpm lint` et build de production (`node node_modules/next/dist/bin/next build`) réussis. `git diff --check` ne signale aucune erreur d’espacement.
+- Un PDF fictif marqué par organisme, soit **six pages rendues et inspectées**, avec vérification complémentaire des modèles octet par octet et de leurs empreintes SHA-256. Les résultats visuels détaillés figurent dans le document de cartographie.
+
+Les constats vérifiés P0/P1 décrits ci-dessus sont corrigés dans le périmètre frontend testé. Les conventions cliniques, l’essai papier, l’acceptation administrative et les protections serveur restent les validations distinctes décrites plus haut.

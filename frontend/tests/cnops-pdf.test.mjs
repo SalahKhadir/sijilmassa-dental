@@ -174,7 +174,7 @@ test("confirmations remain provider-specific, persist in memory and remove only 
   assert.deepEqual(planCnopsPdf(value).chartMarks, []);
   value.draft.cnopsDetails.confirmedTeeth = ["11", "26", "55", "85"];
   assert.deepEqual(planCnopsPdf(value).chartMarks.map(m => m.tooth), ["11", "26", "55", "85"]);
-  const repository = createInMemoryInsuranceRepository([], [value.draft]);
+  const repository = createInMemoryInsuranceRepository([value.policy], [value.draft]);
   await repository.updateDraft(value.draft.id, { cnopsDetails: { ...value.draft.cnopsDetails, confirmedTeeth: ["26"] } });
   let saved = await repository.getDraftById(value.draft.id);
   assert.deepEqual(planCnopsPdf({ ...value, draft: saved }).chartMarks.map(m => m.tooth), ["26"]);

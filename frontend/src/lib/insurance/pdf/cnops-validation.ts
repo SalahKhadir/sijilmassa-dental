@@ -6,6 +6,8 @@ import type { InsurancePdfInput } from "./overlay.ts";
 export function validateCnopsInput({ draft, patient, policy }: InsurancePdfInput) {
   const parsed = insuranceDraftSchema.safeParse(draft);
   if (!parsed.success) {
+    if (parsed.error.issues.some(issue => issue.path.includes("totalFeesMinor")))
+      throw new CnopsPdfError("Le total des frais est invalide ou diffère des actes. Corrigez les montants.");
     if (parsed.error.issues.some(issue => issue.path.includes("practitionerInpe")))
       throw new CnopsPdfError("L’INPE doit comporter neuf chiffres. Corrigez l’identifiant du médecin dentiste.");
     throw new CnopsPdfError("Vérifiez les champs du brouillon CNOPS avant de générer le PDF.");

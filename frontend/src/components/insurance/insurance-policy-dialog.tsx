@@ -65,22 +65,19 @@ function InsurancePolicyForm({
     existingPolicy ? existingPolicy.insuredPerson.isPatient : true,
   );
   const [firstName, setFirstName] = useState(
-    existingPolicy?.insuredPerson.firstName || patient.identity.firstName,
+    existingPolicy ? existingPolicy.insuredPerson.firstName : patient.identity.firstName,
   );
   const [lastName, setLastName] = useState(
-    existingPolicy?.insuredPerson.lastName || patient.identity.lastName,
+    existingPolicy ? existingPolicy.insuredPerson.lastName : patient.identity.lastName,
   );
   const [cin, setCin] = useState(
-    existingPolicy?.insuredPerson.cin || patient.identity.cin || "",
+    existingPolicy ? existingPolicy.insuredPerson.cin : patient.identity.cin || "",
   );
   const [address, setAddress] = useState(
-    existingPolicy?.insuredPerson.address || patient.identity.address || "",
+    existingPolicy ? existingPolicy.insuredPerson.address : patient.identity.address || "",
   );
   const [phone, setPhone] = useState(
-    existingPolicy?.insuredPerson.phone ||
-      patient.identity.gsm ||
-      patient.identity.landline ||
-      "",
+    existingPolicy ? existingPolicy.insuredPerson.phone : patient.identity.gsm || patient.identity.landline || "",
   );
   const [relationship, setRelationship] = useState<BeneficiaryRelationship>(
     existingPolicy?.insuredPerson.relationship || "LUI_MEME",
@@ -102,6 +99,7 @@ function InsurancePolicyForm({
       setPhone(patient.identity.gsm || patient.identity.landline || "");
       setRelationship("LUI_MEME");
     } else {
+      setFirstName(""); setLastName(""); setCin(""); setAddress(""); setPhone("");
       if (relationship === "LUI_MEME") {
         setRelationship("CONJOINT");
       }

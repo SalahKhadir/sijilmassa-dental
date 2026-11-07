@@ -220,7 +220,7 @@ test("FAR symbols need explicit choice and dentist approval; no automatic or cro
 test("in-memory repository persists approval, removes individual marks and clears without changing clinical acts", async () => {
   const value = input(); value.draft.farDetails.toothMarks = [{tooth:"16",symbol:"CERCLE"},{tooth:"11",symbol:"CROIX"}];
   value.draft.farDetails.markingApproved = true;
-  const repository = createInMemoryInsuranceRepository([], [value.draft]);
+  const repository = createInMemoryInsuranceRepository([value.policy], [value.draft]);
   let saved = await repository.getDraftById(value.draft.id);
   assert.deepEqual(saved.farDetails.toothMarks,value.draft.farDetails.toothMarks);
   saved.farDetails.toothMarks.pop();
@@ -279,7 +279,7 @@ test("FAR rings fit the independently measured right-side cell boundaries and co
 test("repository invalidates FAR approval after an act or mark change unless approval is explicitly renewed", async () => {
   const value=input(); value.draft.farDetails.toothMarks=[{tooth:"16",symbol:"CERCLE"}];
   value.draft.farDetails.markingApproved=true;
-  const repository=createInMemoryInsuranceRepository([], [value.draft]);
+  const repository=createInMemoryInsuranceRepository([value.policy], [value.draft]);
   await repository.updateDraft(value.draft.id,{acts:[{...value.draft.acts[0], description:"Acte fictif corrigé"}]});
   let saved=await repository.getDraftById(value.draft.id);
   assert.equal(saved.farDetails.markingApproved,false);

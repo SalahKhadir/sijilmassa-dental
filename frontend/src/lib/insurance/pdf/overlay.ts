@@ -163,11 +163,14 @@ export async function renderInsuranceOverlay(
 
 export function insuranceTotal(draft: CreateInsuranceDraftInput, ErrorClass: typeof InsurancePdfError) {
   const complete = draft.acts.every(a => a.amountMinor !== undefined);
-  const sum = draft.acts.reduce((n, a) => n + (a.amountMinor ?? 0), 0);
-  if (!Number.isSafeInteger(sum) || !draft.acts.every(a => a.amountMinor === undefined || Number.isSafeInteger(a.amountMinor)))
+  if (!draft.acts.every(a => a.amountMinor === undefined || (Number.isSafeInteger(a.amountMinor) && a.amountMinor >= 0)))
     throw new ErrorClass("Les honoraires dépassent la précision monétaire autorisée.");
+  const exact = draft.acts.reduce((n, a) => n + BigInt(a.amountMinor ?? 0), 0n);
+  if (exact > BigInt(Number.MAX_SAFE_INTEGER))
+    throw new ErrorClass("Le total dépasse la précision monétaire autorisée.");
+  const sum = Number(exact);
   const total = draft.manualFields.totalFeesMinor ?? (complete ? sum : undefined);
-  if (total !== undefined && !Number.isSafeInteger(total))
+  if (total !== undefined && (!Number.isSafeInteger(total) || total < 0))
     throw new ErrorClass("Le total dépasse la précision monétaire autorisée.");
   if (complete && total !== sum)
     throw new ErrorClass("Le total des frais diffère des actes. Corrigez les montants avant de générer le PDF.");

@@ -69,7 +69,7 @@ test("invalid notation and duplicates are rejected at the schema and renderer bo
   }
 });
 test("in-memory repository stores, clones, removes and clears confirmations without changing acts", async () => {
-  const repository=createInMemoryInsuranceRepository([],insuranceDraftFixtures);
+  const repository=createInMemoryInsuranceRepository(insurancePolicyFixtures,insuranceDraftFixtures);
   const before=await repository.getDraftById(insuranceDraftFixtures[0].id);
   await repository.updateDraft(before.id,{cnssDetails:{...before.cnssDetails,confirmedTeeth:["16","11"]}});
   const saved=await repository.getDraftById(before.id);
@@ -81,7 +81,8 @@ test("in-memory repository stores, clones, removes and clears confirmations with
   assert.deepEqual((await repository.getDraftById(before.id)).cnssDetails.confirmedTeeth,["11"]);
   await repository.updateDraft(before.id,{cnssDetails:{...before.cnssDetails,confirmedTeeth:[]}});
   assert.deepEqual((await repository.getDraftById(before.id)).cnssDetails.confirmedTeeth,[]);
-  const created=await repository.createDraft(input(["51"]).draft);
+  const newDraft=input(["51"]).draft; delete newDraft.id;
+  const created=await repository.createDraft(newDraft);
   assert.deepEqual(created.cnssDetails.confirmedTeeth,["51"]);
 });
 test("selected 16/11 and all eight quadrants preserve two pages and the 270 degree transform", async () => {

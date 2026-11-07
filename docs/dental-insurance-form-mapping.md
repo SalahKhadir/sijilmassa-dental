@@ -750,3 +750,44 @@ Le générateur exige les identités cohérentes avec la couverture FAR, la nais
 Trois exemples fictifs (simple, multi-actes, marqué) ont été produits, leurs deux pages rendues avec Poppler et inspectées : identité militaire, deux tableaux, coches, comptages, total, limites de pages et espaces vierges. Un rendu supplémentaire des 52 marques vérifie toutes les cellules et l’absence de miroir. Les tests contrôlent aussi les images originales incorporées, les cinq boîtes, le décalage propre à chaque page, les catégories explicites de chaque organisme et les différences de pixels limitées aux dents choisies.
 
 Le scan est proche d’A4 paysage, à environ 122 ppp. Le lecteur reçoit une préférence sans redimensionnement ; le pilote peut la remplacer. Vérifier sur l’imprimante du cabinet le papier, l’échelle, les marges, le pliage, le recto verso et la lisibilité des petits caractères. La composition papier évoquant une quatrième page, l’acceptation des symboles et les références attendues par la mutuelle demandent une validation du dentiste/organisme. Aucune signature, cachet, autorisation, transmission ou approbation d’assurance n’est généré.
+
+
+## Phase 9.3 — Audit transversal des modèles et des validations
+
+La matrice P0/P1/P2, les corrections et les exigences du futur backend figurent dans la section Phase 9.3 de `dental-insurance-management.md`. L’audit conserve les coordonnées et conventions des trois générateurs ; aucune nouvelle cartographie ni aucun modèle n’est introduit.
+
+| Organisme | Pages | Dimensions natives (pt) | Rotation | Origine MediaBox/CropBox | Actes maximum | Schéma confirmé |
+| --- | ---: | --- | ---: | --- | ---: | --- |
+| CNSS | 2 | 728,40 × 1031,76 | 270° | (0 ; 0), chaque page | 3 | 52 dents, page 2 ; carré neutre provisoire |
+| CNOPS | 2 | 799,44 × 574,08 | 0° | (0 ; 0), chaque page | 9 | 52 dents, page 2 ; carré neutre provisoire |
+| FAR | 2 | 842,25 × 595,499986 | 0° | (0 ; 8,580014), chaque page | 5 | 52 cellules numérotées, page 1 ; cercle/croix explicitement choisis et approuvés |
+
+Les cinq boîtes et la rotation de chaque page sont comparées après génération. Les copies publiques correspondent octet par octet aux trois références officielles ; les tests existants comparent aussi les flux d’images incorporés et les pixels avant/après marquage. Les différences de pixels restent dans les empreintes des dents choisies, avec séparation des quatre quadrants permanents et des quatre quadrants temporaires. Les images et positions CNSS, CNOPS et FAR sont distinctes ; aucune orientation commune n’est supposée.
+
+### Gardes et décisions conservées
+
+- Les liens patient/police/organisme et la provenance clinique sont vérifiés au dépôt lors des écritures. Le rendu PDF vérifie la cohérence de l’instantané fourni ; il n’interroge pas de registre clinique ou de serveur. La vérification d’existence et d’accès devra être faite côté serveur lors de l’intégration backend.
+- Les cases n’utilisent que leurs catégories explicites. Les détails CNSS sans tableau de catégories ne cochent rien. Les champs FAR sans objet/nature/contexte sélectionnés bloquent la génération. Les deux autres modèles conservent leurs avertissements de catégories absentes ; aucune obligation administrative supplémentaire n’est inventée.
+- Toutes les dates saisies sont calendaires ; les imports ne substituent plus la date du jour à une date inconnue. Les honoraires et totaux sont des centimes entiers sûrs, avec sommation exacte. Le schéma refuse un total différent des actes lorsque tous les montants sont connus. L’absence d’honoraires CNSS/CNOPS reste distincte de zéro et produit un avertissement ; la FAR exige les honoraires pour ses volets obligatoires.
+- Une modification des actes retire les confirmations CNSS/CNOPS et l’approbation FAR. Une correction suivie d’un retour au texte précédent ne réactive aucune approbation. Changer de patient efface les données du brouillon ; changer de couverture ou d’organisme retire les confirmations. Les URL d’aperçu sont révoquées lors des modifications et à la fermeture du composant.
+- Une référence CNSS qui n’est pas une dent FDI unique est signalée, sans choix d’une dent de remplacement. Les textes de référence libres acceptés par les autres tableaux restent des textes ; ils ne sélectionnent jamais une dent du schéma.
+- Les cellules trop étroites bloquent le rendu ; elles ne tronquent pas les nombres, codes ou identités. Le format natif est conservé au lieu de convertir les trois modèles en A4. Les zones de signature, cachet, remboursement et organisme restent vierges.
+
+### Vérification visuelle après corrections
+
+Un document fictif marqué par organisme est généré par `tests/insurance-audit.test.mjs` lorsque `INSURANCE_AUDIT_QA_DIR` est défini. Les fichiers de revue de cette phase sont temporaires dans `/tmp/insurance-audit/`. Les six pages sont rendues par Poppler à 1600 px, puis inspectées :
+
+| Organisme | Résultat de lecture |
+| --- | --- |
+| CNSS | Identité/immatriculation, cases, INP, dates et total 700,00 DH cohérents ; actes 16 et 11 sur deux lignes distinctes ; marques des huit quadrants dans le dessin tourné ; rubriques de signature vierges |
+| CNOPS | Adhérent et bénéficiaire distincts, affiliation/immatriculation et INPE séparés ; total 1500,00 DH, acte 24 et CIM-10 K02 lisibles ; marques permanentes et temporaires dans les centres propres au modèle ; zones manuelles vierges |
+| FAR | Compte, grade, unité et relation Conjoint dans le volet administratif ; 600,00 DH cohérents sur les deux tableaux et la déclaration ; cercles/croix dans les cellules choisies ; comptages séparés des libellés arabes ; ordonnance, contrôle et signatures vierges |
+
+Cette lecture ne valide pas une convention clinique ni la recevabilité d’un dossier réel. Restent à confirmer : carrés neutres CNSS/CNOPS, repérage des temporaires CNOPS sans numéros locaux lisibles, choix FAR quand couronne et prothèse se recouvrent, référence de compte FAR attendue et composition/pliage du dossier papier. Les mentions manuscrites FAR restent manuelles. Les champs signalés manquants, ainsi que les signatures, cachets et pièces, doivent être vérifiés avant l’impression finale.
+
+### Contrôle d’impression
+
+Sur l’imprimante du cabinet, tester séparément les trois formats, l’échelle réelle, les marges, l’absence de rognage et le retournement recto verso. Vérifier les huit quadrants, les petits chiffres et les centimes sur le papier. Contrôler le pliage FAR et les espaces des interventions manuelles. Le réglage sans mise à l’échelle fourni au lecteur ne garantit pas celui du pilote. Aucune conformité juridique ou acceptation par l’assureur n’est déduite des tests.
+
+
+Validation de la phase 9.3 : 56 tests d’assurance, huit scénarios navigateur (sept regroupés et une vérification ciblée supplémentaire), TypeScript, ESLint et build de production réussis. Le détail des commandes et le manifeste des fichiers figurent dans `dental-insurance-management.md`. Les modèles officiels et leurs coordonnées restent inchangés.

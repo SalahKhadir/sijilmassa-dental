@@ -30,6 +30,7 @@ export function PatientInsuranceSection({ patientId }: { patientId: string }) {
     Awaited<ReturnType<typeof patientsRepo.getById>> | null
   >(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // Modal dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -65,7 +66,7 @@ export function PatientInsuranceSection({ patientId }: { patientId: string }) {
     };
   }, [patientId, revision, patientsRepo, insuranceRepo]);
 
-  if (loading || !patient) {
+  if (loading || !patient || patient.id !== patientId) {
     return null;
   }
 
@@ -77,7 +78,8 @@ export function PatientInsuranceSection({ patientId }: { patientId: string }) {
         "Êtes-vous sûr de vouloir supprimer cette police d'assurance ?",
       )
     ) {
-      await deletePolicy(id);
+      try { await deletePolicy(id); setError(""); }
+      catch (cause) { setError(cause instanceof Error ? cause.message : "La couverture n’a pas pu être supprimée."); }
     }
   };
 
@@ -136,6 +138,7 @@ export function PatientInsuranceSection({ patientId }: { patientId: string }) {
         </CardHeader>
 
         <CardContent className="pt-6 space-y-6">
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           {/* Policy Information */}
           {activePolicy ? (
             <div className="rounded-lg border bg-surface p-4 shadow-2xs">

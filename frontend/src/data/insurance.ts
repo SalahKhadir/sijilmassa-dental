@@ -59,13 +59,13 @@ export const insurancePolicyFixtures: readonly PatientInsurancePolicy[] = [
     militaryRank: "Adjudant-chef",
     militaryUnit: "1er B.I.M.",
     insuredPerson: {
-      isPatient: true,
+      isPatient: false,
       firstName: "Rachid",
       lastName: "Démo-Bennani",
       cin: "EF345678",
       address: "Caserne militaire fictive, Salé",
       phone: "+212 6XX XX 00 03",
-      relationship: "LUI_MEME",
+      relationship: "CONJOINT",
     },
     active: true,
     createdAt: "2026-10-03T11:00:00.000Z",
@@ -83,7 +83,7 @@ export const insuranceDraftFixtures: readonly InsuranceDocumentDraft[] = [
     status: "BROUILLON",
     documentPurpose: "EXECUTION",
     selectedConsultationId: "consultation-demo-001",
-    selectedTreatmentIds: ["demo-treatment-001-1"],
+    selectedTreatmentIds: [],
     acts: [
       {
         id: "act-demo-001-1",
@@ -94,7 +94,6 @@ export const insuranceDraftFixtures: readonly InsuranceDocumentDraft[] = [
         ngapKeyLetter: "SC",
         ngapCoefficient: 12,
         amountMinor: 40000,
-        sourceTreatmentId: "demo-treatment-001-1",
       },
       {
         id: "act-demo-001-2",

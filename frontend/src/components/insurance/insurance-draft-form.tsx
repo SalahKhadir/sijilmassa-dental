@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -59,7 +59,7 @@ import {
   relationshipLabels,
 } from "@/lib/insurance/types";
 import { clinicDate } from "@/lib/patients/dates";
-import { formatMinor, minorInput, parseMinor } from "@/lib/billing/money";
+import { formatMinor, minorInput, parseMinor, sumMinor } from "@/lib/billing/money";
 import type { Patient } from "@/lib/patients/types";
 import type { Consultation } from "@/lib/consultations/types";
 
@@ -81,10 +81,11 @@ export function InsuranceDraftForm({
   presetPatientId,
 }: InsuranceDraftFormProps) {
   const router = useRouter();
-  const { repository: patientsRepo } = usePatients();
-  const { repository: consultationsRepo } = useConsultations();
+  const { repository: patientsRepo, revision: patientsRevision } = usePatients();
+  const { repository: consultationsRepo, revision: consultationsRevision } = useConsultations();
   const {
     repository: insuranceRepo,
+    revision: insuranceRevision,
     createDraft,
     updateDraft,
     createPolicy,
@@ -98,6 +99,7 @@ export function InsuranceDraftForm({
   const [patientPolicies, setPatientPolicies] = useState<
     PatientInsurancePolicy[]
   >([]);
+  const [selectedPolicyId, setSelectedPolicyId] = useState(initialDraft?.policyId ?? "");
   const [provider, setProvider] = useState<InsuranceProvider>(
     initialDraft?.provider || "CNSS",
   );
@@ -244,7 +246,9 @@ export function InsuranceDraftForm({
     return () => {
       cancelled = true;
     };
-  }, [patientsRepo, consultationsRepo, selectedPatientId]);
+  }, [patientsRepo, consultationsRepo, selectedPatientId, patientsRevision, consultationsRevision]);
+
+  const lastPolicyPatient = useRef<string | undefined>(undefined);
 
   // Load policies for selected patient
   useEffect(() => {
@@ -262,9 +266,10 @@ export function InsuranceDraftForm({
         if (!cancelled) {
           setPatientPolicies(pols);
           // If draft does not already have a provider and a policy exists, pick matching provider
-          if (!initialDraft && pols.length > 0) {
+          if (!initialDraft && lastPolicyPatient.current !== selectedPatientId && pols.length > 0) {
             setProvider(pols[0].provider);
           }
+          lastPolicyPatient.current = selectedPatientId;
         }
       } catch {
         if (!cancelled) setPatientPolicies([]);
@@ -275,20 +280,17 @@ export function InsuranceDraftForm({
     return () => {
       cancelled = true;
     };
-  }, [selectedPatientId, insuranceRepo, initialDraft]);
+  }, [selectedPatientId, insuranceRepo, initialDraft, insuranceRevision]);
 
   const selectedPatient = useMemo(
     () => patients.find((p) => p.id === selectedPatientId),
     [patients, selectedPatientId],
   );
 
-  const matchedPolicy = useMemo(
-    () =>
-      initialDraft?.policyId && initialDraft.patientId === selectedPatientId && initialDraft.provider === provider
-        ? patientPolicies.find((p) => p.id === initialDraft.policyId)
-        : patientPolicies.find((p) => p.provider === provider && p.active),
-    [patientPolicies, provider, initialDraft, selectedPatientId],
-  );
+  const availablePolicies = patientPolicies.filter(p => p.patientId === selectedPatientId && p.provider === provider);
+  const matchedPolicy = selectedPolicyId
+    ? availablePolicies.find(p => p.id === selectedPolicyId)
+    : availablePolicies.find(p => p.active);
 
   const patientConsultations = useMemo(
     () => consultations.filter((c) => c.patientId === selectedPatientId),
@@ -296,7 +298,10 @@ export function InsuranceDraftForm({
   );
 
   const totalCalculatedMinor = useMemo(
-    () => acts.reduce((sum, act) => sum + (act.amountMinor || 0), 0),
+    () => {
+      try { return sumMinor(acts.map(act => act.amountMinor ?? 0)); }
+      catch { return undefined; }
+    },
     [acts],
   );
 
@@ -306,7 +311,7 @@ export function InsuranceDraftForm({
     draft: {
       patientId: selectedPatientId, provider, policyId: matchedPolicy?.id,
       status: initialDraft?.status ?? "BROUILLON", documentPurpose,
-      selectedTreatmentIds, acts,
+      selectedConsultationId: selectedConsultationId || undefined, selectedTreatmentIds, acts,
       cnssDetails: { confirmedTeeth, careTypes: cnssCareTypesSelected, priorAuthorizationNumber: cnssPriorAuth, accidentDate: cnssAccidentDate },
       cnopsDetails: {
         careTypes: cnopsCareTypesSelected, practitionerInpe: cnopsInpe, confirmedTeeth: cnopsConfirmedTeeth,
@@ -325,8 +330,34 @@ export function InsuranceDraftForm({
     },
   } : undefined;
 
+  function invalidateChartConfirmation() {
+    setChartSelection({ patientId: selectedPatientId, teeth: [] });
+    setCnopsChartSelection({ patientId: selectedPatientId, teeth: [] });
+    setFarChartSelection(prev => ({ ...prev, approvalBasis: "" }));
+  }
+
+  function changePatient(patientId: string) {
+    setSelectedPatientId(patientId);
+    setSelectedPolicyId(""); setPatientPolicies([]);
+    setActs([{ id: "act-new-1", treatmentDate: clinicDate(), description: "" }]);
+    setSelectedConsultationId(""); setSelectedTreatmentIds([]);
+    setChartSelection({ patientId, teeth: [] });
+    setCnopsChartSelection({ patientId, teeth: [] });
+    setFarChartSelection({ patientId, marks: [], approvalBasis: "" });
+    setDocumentPurpose("EXECUTION");
+    setCnssCareTypesSelected([]); setCnssPriorAuth(""); setCnssAccidentDate("");
+    setCnopsCareTypesSelected([]); setCnopsPriorAuth(""); setCnopsAccidentDate("");
+    setCnopsAccidentCauses(""); setCnopsCim10("");
+    setFarDentalPurpose(""); setFarCareType(""); setFarCareContext(""); setFarPriorAuth("");
+    setFarProspectusCount(undefined);
+    setDeclarationPlace(""); setDeclarationDate(""); setAttachmentCount(undefined);
+    setQuickRegNum(""); setQuickAffiliationNum(""); setQuickInsuredName("");
+    setQuickInsuredIsPatient(true); setQuickInsuredRelationship("LUI_MEME"); setError(null);
+  }
+
   // Add / remove / update act lines
   const handleAddAct = () => {
+    invalidateChartConfirmation();
     setActs((prev) => [
       ...prev,
       {
@@ -343,6 +374,9 @@ export function InsuranceDraftForm({
   };
 
   const handleRemoveAct = (index: number) => {
+    invalidateChartConfirmation();
+    const source = acts[index]?.sourceTreatmentId;
+    if (source) setSelectedTreatmentIds(prev => prev.filter(id => id !== source));
     setActs((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -351,6 +385,7 @@ export function InsuranceDraftForm({
     field: keyof DentalInsuranceAct,
     value: unknown,
   ) => {
+    invalidateChartConfirmation();
     setActs((prev) => {
       const copy = [...prev];
       copy[index] = {
@@ -373,6 +408,7 @@ export function InsuranceDraftForm({
       return; // Already imported
     }
 
+    invalidateChartConfirmation();
     setSelectedTreatmentIds((prev) => [...prev, treatmentId]);
     setSelectedConsultationId(consultationId);
 
@@ -380,7 +416,7 @@ export function InsuranceDraftForm({
       ...prev,
       {
         id: `act-imp-${treatmentId}`,
-        treatmentDate: date || clinicDate(),
+        treatmentDate: date,
         toothReference: tooth || "",
         description: desc,
         actCode: "",
@@ -397,9 +433,10 @@ export function InsuranceDraftForm({
     if (!selectedPatient) return;
     try {
       const parts = quickInsuredName.trim().split(" ");
-      const fName = parts[0] || selectedPatient.identity.firstName;
-      const lName =
-        parts.slice(1).join(" ") || selectedPatient.identity.lastName;
+      const fName = parts[0];
+      const lName = parts.slice(1).join(" ");
+      if (!quickInsuredIsPatient && (!fName || !lName))
+        throw new Error("Saisissez le prénom et le nom de l’assuré distinct du bénéficiaire.");
 
       const newPol = await createPolicy({
         patientId: selectedPatient.id,
@@ -420,11 +457,8 @@ export function InsuranceDraftForm({
           cin: quickInsuredIsPatient
             ? selectedPatient.identity.cin || ""
             : "",
-          address: selectedPatient.identity.address || "",
-          phone:
-            selectedPatient.identity.gsm ||
-            selectedPatient.identity.landline ||
-            "",
+          address: quickInsuredIsPatient ? selectedPatient.identity.address || "" : "",
+          phone: quickInsuredIsPatient ? selectedPatient.identity.gsm || selectedPatient.identity.landline || "" : "",
           relationship: quickInsuredIsPatient
             ? "LUI_MEME"
             : quickInsuredRelationship,
@@ -433,6 +467,7 @@ export function InsuranceDraftForm({
       });
 
       setPatientPolicies((prev) => [...prev, newPol]);
+      setSelectedPolicyId(newPol.id);
       setQuickRegNum("");
       setQuickAffiliationNum("");
     } catch (e: unknown) {
@@ -450,6 +485,8 @@ export function InsuranceDraftForm({
         throw new Error("Veuillez sélectionner un patient.");
       }
 
+      if (totalCalculatedMinor === undefined)
+        throw new Error("Le total dépasse la précision monétaire autorisée. Corrigez les honoraires.");
       if (acts.length === 0) {
         throw new Error(
           "Veuillez ajouter au moins un acte dentaire sur la feuille de soins.",
@@ -481,9 +518,7 @@ export function InsuranceDraftForm({
           toothReference: act.toothReference?.trim() || undefined,
           actCode: act.actCode?.trim() || undefined,
           ngapKeyLetter: act.ngapKeyLetter?.trim() || undefined,
-          ngapCoefficient: act.ngapCoefficient
-            ? Number(act.ngapCoefficient)
-            : undefined,
+          ngapCoefficient: act.ngapCoefficient,
           amountMinor: act.amountMinor,
         })),
         cnssDetails:
@@ -636,7 +671,7 @@ export function InsuranceDraftForm({
                   <Select
                     id="draft-patient"
                     value={selectedPatientId}
-                    onChange={(e) => setSelectedPatientId(e.target.value)}
+                    onChange={(e) => changePatient(e.target.value)}
                     disabled={Boolean(initialDraft)}
                   >
                     {patients.map((p) => (
@@ -658,9 +693,10 @@ export function InsuranceDraftForm({
                   <Select
                     id="draft-provider"
                     value={provider}
-                    onChange={(e) =>
-                      setProvider(e.target.value as InsuranceProvider)
-                    }
+                    onChange={(e) => {
+                      setProvider(e.target.value as InsuranceProvider);
+                      setSelectedPolicyId(""); invalidateChartConfirmation();
+                    }}
                   >
                     {insuranceProviders.map((p) => (
                       <option key={p} value={p}>
@@ -673,6 +709,17 @@ export function InsuranceDraftForm({
                 </div>
               </div>
 
+              {availablePolicies.length > 1 && <div className="space-y-1.5">
+                <label htmlFor="draft-policy" className="block text-xs font-semibold">Couverture liée</label>
+                <Select id="draft-policy" value={matchedPolicy?.id ?? ""} onChange={event => {
+                  setSelectedPolicyId(event.target.value); invalidateChartConfirmation();
+                }}>
+                  <option value="">Choisir une couverture</option>
+                  {availablePolicies.map(policy => <option key={policy.id} value={policy.id}>
+                    {policy.insuredPerson.lastName} {policy.insuredPerson.firstName} — {policy.registrationNumber || policy.militaryAccountNumber || "Sans numéro"}
+                  </option>)}
+                </Select>
+              </div>}
               {/* Policy Status for Selected Patient */}
               {matchedPolicy ? (
                 <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-xs space-y-1">
@@ -1277,7 +1324,7 @@ export function InsuranceDraftForm({
                         Total calculé des honoraires :
                       </td>
                       <td className="p-2 text-right text-primary font-bold">
-                        {formatMinor(totalCalculatedMinor)}
+                        {totalCalculatedMinor === undefined ? "Total hors limite : corrigez les honoraires." : formatMinor(totalCalculatedMinor)}
                       </td>
                       <td></td>
                     </tr>
@@ -1503,7 +1550,7 @@ export function InsuranceDraftForm({
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">Total honoraires</span>
                 <span className="font-bold text-foreground">
-                  {formatMinor(totalCalculatedMinor)}
+                  {totalCalculatedMinor === undefined ? "Total hors limite : corrigez les honoraires." : formatMinor(totalCalculatedMinor)}
                 </span>
               </div>
               <div className="flex justify-between border-b pb-2">

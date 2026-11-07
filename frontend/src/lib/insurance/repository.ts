@@ -45,6 +45,33 @@ export function createInMemoryInsuranceRepository(
     seedDrafts.map((d) => [d.id, structuredClone(d)]),
   );
 
+  async function validateLinks(input: ReturnType<typeof insuranceDraftSchema.parse>) {
+    if (patients && !await patients.getById(input.patientId))
+      throw new InsuranceError("Le patient de ce brouillon est introuvable.", "patientId");
+    if (input.policyId) {
+      const policy = policiesMap.get(input.policyId);
+      if (!policy || policy.patientId !== input.patientId || policy.provider !== input.provider)
+        throw new InsuranceError("Choisissez une couverture du même patient et du même organisme.", "policyId");
+    }
+    if (consultations) {
+      if (input.selectedConsultationId) {
+        const consultation = await consultations.getById(input.selectedConsultationId);
+        if (!consultation || consultation.patientId !== input.patientId)
+          throw new InsuranceError("La consultation doit appartenir au bénéficiaire.", "acts");
+      }
+      const sources = new Set([...input.selectedTreatmentIds,
+        ...input.acts.flatMap(act => act.sourceTreatmentId ? [act.sourceTreatmentId] : [])]);
+      if (sources.size) {
+        const own = (await consultations.list()).filter(c => c.patientId === input.patientId);
+        const patient = patients ? await patients.getById(input.patientId) : undefined;
+        const available = new Set([...own.flatMap(c => c.treatments.map(t => t.id)),
+          ...(patient?.treatments.map(t => t.id) ?? [])]);
+        if ([...sources].some(id => !available.has(id)))
+          throw new InsuranceError("Un soin lié est introuvable dans le dossier de ce patient. Vérifiez les actes importés.", "acts");
+      }
+    }
+  }
+
   return {
     async listPolicies(): Promise<PatientInsurancePolicy[]> {
       return Array.from(policiesMap.values()).map((p) => structuredClone(p));
@@ -122,6 +149,12 @@ export function createInMemoryInsuranceRepository(
       };
 
       const parsed = policySchema.parse(merged);
+      if (parsed.patientId !== existing.patientId)
+        throw new InsuranceError("Une couverture ne peut pas changer de patient.", "patientId");
+      if (patients && !await patients.getById(existing.patientId))
+        throw new InsuranceError("Le patient de cette couverture est introuvable.", "patientId");
+      if (parsed.provider !== existing.provider && [...draftsMap.values()].some(d => d.policyId === id))
+        throw new InsuranceError("Cette couverture est liée à un brouillon. Créez une autre couverture pour changer d’organisme.", "provider");
 
       const now = clock().toISOString();
       const updated: PatientInsurancePolicy = {
@@ -143,6 +176,8 @@ export function createInMemoryInsuranceRepository(
     },
 
     async deletePolicy(id: string): Promise<boolean> {
+      if ([...draftsMap.values()].some(d => d.policyId === id))
+        throw new InsuranceError("Cette couverture est liée à un brouillon. Archivez-la ou changez le lien avant de la supprimer.", "policyId");
       return policiesMap.delete(id);
     },
 
@@ -173,26 +208,9 @@ export function createInMemoryInsuranceRepository(
     ): Promise<InsuranceDocumentDraft> {
       const parsed = insuranceDraftSchema.parse(input);
 
-      if (patients) {
-        const patient = await patients.getById(parsed.patientId);
-        if (!patient) {
-          throw new InsuranceError(
-            `Le patient spécifié (${parsed.patientId}) est introuvable.`,
-            "patientId",
-          );
-        }
-      }
-
-      if (consultations && parsed.selectedConsultationId) {
-        const consultation = await consultations.getById(
-          parsed.selectedConsultationId,
-        );
-        if (!consultation) {
-          throw new InsuranceError(
-            `La consultation spécifiée (${parsed.selectedConsultationId}) est introuvable.`,
-          );
-        }
-      }
+      await validateLinks(parsed);
+      if (input.id && draftsMap.has(input.id))
+        throw new InsuranceError("Un brouillon porte déjà cet identifiant.");
 
       const now = clock().toISOString();
       const id = input.id ?? generateId("draft-ins");
@@ -252,14 +270,26 @@ export function createInMemoryInsuranceRepository(
         },
       };
 
+      if (merged.patientId !== existing.patientId)
+        throw new InsuranceError("Un brouillon ne peut pas changer de patient.", "patientId");
+
       // A stored FAR approval cannot silently survive changes to acts or symbols.
       if (existing.provider === "FAR" && merged.farDetails &&
         input.farDetails?.markingApproved !== true &&
-        (JSON.stringify(existing.acts) !== JSON.stringify(merged.acts) ||
+        (existing.policyId !== merged.policyId || existing.provider !== merged.provider ||
+          JSON.stringify(existing.acts) !== JSON.stringify(merged.acts) ||
           JSON.stringify(existing.farDetails?.toothMarks) !== JSON.stringify(merged.farDetails.toothMarks))) {
         merged.farDetails = { ...merged.farDetails, markingApproved: false };
       }
+      // An explicit replacement list is a renewed neutral selection; otherwise act edits clear it.
+      if (JSON.stringify(existing.acts) !== JSON.stringify(merged.acts) || existing.provider !== merged.provider || existing.policyId !== merged.policyId) {
+        if (merged.cnssDetails && !input.cnssDetails?.confirmedTeeth)
+          merged.cnssDetails = { ...merged.cnssDetails, confirmedTeeth: [] };
+        if (merged.cnopsDetails && !input.cnopsDetails?.confirmedTeeth)
+          merged.cnopsDetails = { ...merged.cnopsDetails, confirmedTeeth: [] };
+      }
       const parsed = insuranceDraftSchema.parse(merged);
+      await validateLinks({ ...parsed, patientId: existing.patientId });
 
       const now = clock().toISOString();
 

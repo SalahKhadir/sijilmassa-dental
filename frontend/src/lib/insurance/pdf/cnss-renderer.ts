@@ -18,6 +18,8 @@ function requireValue(condition: unknown, message: string): asserts condition {
 /** Pure data plan. No diagnosis, cotation, tooth or reimbursement is inferred. */
 export function planCnssPdf({ draft, patient, policy }: CnssPdfInput) {
   const validDraft = insuranceDraftSchema.safeParse(draft);
+  if (!validDraft.success && validDraft.error.issues.some(issue => issue.path.includes("totalFeesMinor")))
+    throw new CnssPdfError("Le total des frais est invalide ou diffère des actes. Corrigez les montants.");
   requireValue(validDraft.success, "Vérifiez les champs du brouillon avant de générer le PDF.");
   requireValue(draft.provider === "CNSS", "Seule la feuille CNSS peut être générée.");
   requireValue(patient.id === draft.patientId, "Sélectionnez le patient correspondant au brouillon.");
@@ -43,7 +45,7 @@ export function planCnssPdf({ draft, patient, policy }: CnssPdfInput) {
   if (patient.identity.sex === "M" || patient.identity.sex === "F") put(cnssChecks[patient.identity.sex], "X");
   else warnings.push("Sexe du bénéficiaire : non renseigné, cases laissées vides.");
   put(cnssFields.inp, "084209071");
-  if (!draft.cnssDetails?.careTypes.length) warnings.push("Type de soins : aucune case sélectionnée.");
+  if (!draft.cnssDetails?.careTypes?.length) warnings.push("Type de soins : aucune case sélectionnée.");
   for (const type of draft.cnssDetails?.careTypes ?? []) put(cnssChecks[type], "X");
   put(cnssFields.priorAuth, draft.cnssDetails?.priorAuthorizationNumber);
   date(cnssFields.accidentDate, draft.cnssDetails?.accidentDate);
@@ -57,6 +59,8 @@ export function planCnssPdf({ draft, patient, policy }: CnssPdfInput) {
   draft.acts.forEach((act, index) => {
     requireValue(isCalendarDate(act.treatmentDate), `Acte ${index + 1} : saisissez une date de soin valide.`);
     const tooth = act.toothReference?.trim();
+    if (tooth && !fdi.test(tooth))
+      warnings.push(`Acte ${index + 1} : la référence « ${tooth} » ne correspond pas à une dent FDI unique ; vérifiez et complétez manuellement la cellule laissée vide.`);
     const values = {
       toothReference: tooth && fdi.test(tooth) ? tooth : undefined,
       actCode: act.actCode,
