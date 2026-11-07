@@ -1,8 +1,8 @@
 import { PDFDocument, PrintScaling, StandardFonts, degrees, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import type { Invoice, Payment } from "./types";
-import { settlement } from "./calculations";
-import { clinicIdentity, clinicFinancialIdentifiers } from "./pdf-config";
+import type { Invoice, InvoiceStatus, Payment } from "./types";
+import { invoiceStatus, settlement } from "./calculations";
+import { clinicFinancialIdentifiers } from "./pdf-config";
 import {
   invoicePage as area,
   tableColumns,
@@ -34,6 +34,21 @@ const pdfMoney = (minor: number) => {
   const whole = formatThousands(value / 100n);
   return `${whole},${String(value % 100n).padStart(2, "0")} DH`;
 };
+
+export function formatInvoicePdfStatus(status: InvoiceStatus): string {
+  switch (status) {
+    case "BROUILLON":
+      return "BROUILLON";
+    case "EMISE":
+      return "ÉMISE";
+    case "PARTIELLEMENT_PAYEE":
+      return "PARTIELLEMENT PAYÉE";
+    case "PAYEE":
+      return "PAYÉE";
+    case "ANNULEE":
+      return "ANNULÉE";
+  }
+}
 
 export async function renderInvoicePdf(
   invoice: Invoice,
@@ -77,12 +92,13 @@ export async function renderInvoicePdf(
     throw new InvoicePdfError("Le nom du patient est requis dans la facture.");
 
   const balance = settlement(invoice, payments);
+  const status = invoiceStatus(invoice, payments);
+  const statusLabel = formatInvoicePdfStatus(status);
+
   const textToCheck = [
     invoice.invoiceNumber || "BROUILLON",
     identity.name,
-    clinicIdentity.practitioner,
-    clinicIdentity.addressLine1,
-    clinicIdentity.city,
+    statusLabel,
     ...invoice.lines.flatMap((line) => [
       line.description,
       line.toothNumber ?? "",
@@ -120,6 +136,7 @@ export async function renderInvoicePdf(
   });
 
   // 1. Date aligned right: Témara, le : DD/MM/YYYY
+  // Target clear gap: 10–15 mm below the horizontal divider
   const dateText = `Témara, le : ${frenchDate(invoice.issueDate)}`;
   const dateWidth = font.widthOfTextAtSize(dateText, 8.5);
   page.drawText(dateText, {
@@ -144,87 +161,37 @@ export async function renderInvoicePdf(
     color: burgundy,
   });
 
-  // 3. Clinic and patient identification
-  // On the left: Clinic details
-  page.drawText(clinicIdentity.practitioner, {
-    x: area.left,
-    y: area.identityTop,
-    font: boldFont,
-    size: 8.5,
-    color: ink,
-  });
-  page.drawText(clinicIdentity.addressLine1, {
-    x: area.left,
-    y: area.identityTop - 12,
-    font,
-    size: 7.5,
-    color: ink,
-  });
-  page.drawText(clinicIdentity.city, {
-    x: area.left,
-    y: area.identityTop - 23,
-    font,
-    size: 7.5,
-    color: ink,
-  });
-
-  // On the right: Patient name (wrapping safely without patient reference ID)
+  // 3. Patient information only (no practitioner/address block, no patient reference ID)
   const patientLabel = "Patient : ";
   const labelWidth = boldFont.widthOfTextAtSize(patientLabel, 8.5);
-  const availablePatientWidth = area.right - area.patientColumnLeft;
-  const firstLineWidth = Math.max(0, availablePatientWidth - labelWidth);
+  const availablePatientWidth = area.right - area.left - labelWidth;
 
-  const nameWords = identity.name.trim().split(/\s+/);
-  let firstLine = "";
-  let restWords: string[] = [];
-
-  for (let i = 0; i < nameWords.length; i++) {
-    const candidate = firstLine ? `${firstLine} ${nameWords[i]}` : nameWords[i];
-    if (font.widthOfTextAtSize(candidate, 8.5) <= firstLineWidth) {
-      firstLine = candidate;
-    } else {
-      restWords = nameWords.slice(i);
-      break;
-    }
-  }
+  const patientNameLines = wrapInvoiceText(
+    identity.name.trim(),
+    font,
+    availablePatientWidth,
+    8.5,
+  );
 
   page.drawText(patientLabel, {
-    x: area.patientColumnLeft,
-    y: area.identityTop,
+    x: area.left,
+    y: area.patientBaseline,
     font: boldFont,
     size: 8.5,
     color: ink,
   });
 
-  if (firstLine) {
-    page.drawText(firstLine, {
-      x: area.patientColumnLeft + labelWidth,
-      y: area.identityTop,
+  patientNameLines.forEach((line, idx) => {
+    page.drawText(line, {
+      x: idx === 0 ? area.left + labelWidth : area.left + labelWidth,
+      y: area.patientBaseline - idx * 11,
       font,
       size: 8.5,
       color: ink,
     });
-  }
+  });
 
-  if (restWords.length > 0) {
-    const restLines = wrapInvoiceText(
-      restWords.join(" "),
-      font,
-      availablePatientWidth,
-      8.5,
-    );
-    restLines.forEach((rLine, idx) => {
-      page.drawText(rLine, {
-        x: area.patientColumnLeft,
-        y: area.identityTop - (idx + 1) * 11,
-        font,
-        size: 8.5,
-        color: ink,
-      });
-    });
-  }
-
-  // 4. Bordered dental acts table
+  // 4. Bordered dental treatment table
   // Header background
   page.drawRectangle({
     x: area.left,
@@ -388,19 +355,95 @@ export async function renderInvoicePdf(
 
   const tableBottom = currentY;
 
-  // 5. Bold total: TOTAL : 600,00 DH
-  const totalBaseline = tableBottom - 16;
-  const totalText = `TOTAL : ${pdfMoney(balance.total)}`;
-  const totalWidth = boldFont.widthOfTextAtSize(totalText, 9.5);
-  page.drawText(totalText, {
-    x: area.right - totalWidth,
-    y: totalBaseline,
+  // 5. Complete financial summary
+  // Layout: Left side shows invoice status; right side shows the 3 totals.
+  const summaryTop = tableBottom - 14;
+  const summaryX = 220;
+
+  // Left side: Invoice status
+  page.drawText("Statut : ", {
+    x: area.left,
+    y: summaryTop,
     font: boldFont,
-    size: 9.5,
+    size: 8,
+    color: ink,
+  });
+  const statusPromptWidth = boldFont.widthOfTextAtSize("Statut : ", 8);
+  page.drawText(statusLabel, {
+    x: area.left + statusPromptWidth,
+    y: summaryTop,
+    font: boldFont,
+    size: 8,
+    color: burgundy,
+  });
+
+  // Right side: TOTAL DE LA FACTURE
+  page.drawText("TOTAL DE LA FACTURE :", {
+    x: summaryX,
+    y: summaryTop,
+    font: boldFont,
+    size: 8,
+    color: ink,
+  });
+  const totalValText = pdfMoney(balance.total);
+  const totalValWidth = boldFont.widthOfTextAtSize(totalValText, 8);
+  page.drawText(totalValText, {
+    x: area.right - totalValWidth,
+    y: summaryTop,
+    font: boldFont,
+    size: 8,
     color: ink,
   });
 
-  // 6. Total amount written in French words
+  // MONTANT REÇU
+  const paidBaseline = summaryTop - 13;
+  page.drawText("MONTANT REÇU :", {
+    x: summaryX,
+    y: paidBaseline,
+    font: boldFont,
+    size: 8,
+    color: ink,
+  });
+  const paidValText = pdfMoney(balance.paid);
+  const paidValWidth = font.widthOfTextAtSize(paidValText, 8);
+  page.drawText(paidValText, {
+    x: area.right - paidValWidth,
+    y: paidBaseline,
+    font,
+    size: 8,
+    color: ink,
+  });
+
+  // Separator line before RESTE À PAYER
+  page.drawLine({
+    start: { x: summaryX, y: paidBaseline - 4 },
+    end: { x: area.right, y: paidBaseline - 4 },
+    thickness: 0.5,
+    color: ink,
+  });
+
+  // RESTE À PAYER (prominent, bold burgundy)
+  const remainingBaseline = summaryTop - 27;
+  page.drawText("RESTE À PAYER :", {
+    x: summaryX,
+    y: remainingBaseline,
+    font: boldFont,
+    size: 9,
+    color: burgundy,
+  });
+  const remainingValue =
+    invoice.lifecycle === "ANNULEE" ? 0 : balance.remaining;
+  const remainingValText = pdfMoney(remainingValue);
+  const remainingValWidth = boldFont.widthOfTextAtSize(remainingValText, 9.5);
+  page.drawText(remainingValText, {
+    x: area.right - remainingValWidth,
+    y: remainingBaseline,
+    font: boldFont,
+    size: 9.5,
+    color: burgundy,
+  });
+
+  // 6. Total amount written in French words (based on total)
   const sentence = invoiceAmountSentence(balance.total);
   const sentenceLines = wrapInvoiceText(
     sentence,
@@ -408,7 +451,7 @@ export async function renderInvoicePdf(
     area.right - area.left,
     7.8,
   );
-  const wordsTop = totalBaseline - 15;
+  const wordsTop = remainingBaseline - 15;
   sentenceLines.forEach((sLine, idx) => {
     page.drawText(sLine, {
       x: area.left,
@@ -438,9 +481,21 @@ export async function renderInvoicePdf(
     });
   };
 
-  drawIdentifier("IF : ", clinicFinancialIdentifiers.if, area.identifiers.ifBaseline);
-  drawIdentifier("ICE : ", clinicFinancialIdentifiers.ice, area.identifiers.iceBaseline);
-  drawIdentifier("INP : ", clinicFinancialIdentifiers.inp, area.identifiers.inpBaseline);
+  drawIdentifier(
+    "IF : ",
+    clinicFinancialIdentifiers.if,
+    area.identifiers.ifBaseline,
+  );
+  drawIdentifier(
+    "ICE : ",
+    clinicFinancialIdentifiers.ice,
+    area.identifiers.iceBaseline,
+  );
+  drawIdentifier(
+    "INP : ",
+    clinicFinancialIdentifiers.inp,
+    area.identifiers.inpBaseline,
+  );
 
   // Watermarks
   if (invoice.lifecycle === "BROUILLON") {

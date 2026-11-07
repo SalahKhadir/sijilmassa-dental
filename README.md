@@ -187,3 +187,27 @@ Le fond officiel PNG est intégré sans modification dans un PDF A5. Le détail 
 Les règles, les fichiers concernés, la validation et les exigences futures du backend sont détaillés dans [la documentation de facturation](docs/billing-management.md). Les changements restent propres à l’onglet et sont perdus au rechargement. Les droits sur les prix et les règlements devront être appliqués côté serveur. Aucune dépendance n’a été ajoutée pour cette phase.
 
 La validation de phase 7 passe avec `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build`, 104 tests via `pnpm test` et 12 parcours Chromium via `pnpm test:browser` avec le Chromium local configuré. Les captures de facturation bureau/mobile ont été inspectées. Les commandes exactes et les limites du PDF figurent dans la documentation de facturation.
+
+
+## Assurance dentaire : fondation de données et vérification des gabarits — phase 9.1
+
+La phase 9.1 établit la fondation de données et vérifie les gabarits officiels des feuilles de soins dentaires marocaines (**CNSS**, **CNOPS**, **FAR**) en amont du remplissage automatisé (Phase 9.2) et du backend Spring Boot (Phase 8).
+
+### Principes et modèle de données
+- **Séparation stricte** : Les dossiers patients, consultations et historiques cliniques demeurent la source primaire et ne sont pas altérés par les démarches d'assurance.
+- **Zéro inférence** : Le système ne déduit jamais arbitrairement de code NGAP, lettre clé, coefficient ou numéro de dent à partir de notes libres.
+- **Distinction assuré / bénéficiaire** : L'adhérent/assuré principal et le patient bénéficiaire des soins sont distincts avec lien de parenté explicite (`LUI_MEME`, `CONJOINT`, `ENFANT`, `AUTRE`).
+- **Modèles typés** : `InsuranceProvider`, `PatientInsurancePolicy`, `InsuranceDocumentDraft`, `DentalInsuranceAct`, avec schémas de validation Zod complets.
+
+### Écrans et flux utilisateur
+- **Dossier Patient (`/patients/[id]`)** : Section d'assurance intégrée avec affichage de la couverture active, dialogue de modification `InsurancePolicyDialog`, et liste des feuilles de soins préparées.
+- **Documents (`/documents`)** : Section feuilles de soins avec accès direct aux modèles CNSS, CNOPS et FAR, récapitulatif des brouillons du cabinet et bouton de création rapide.
+- **Formulaire de feuille de soins (`/documents/assurances/nouvelle` et `[id]`)** : Formulaire complet avec sélection du patient, détection de police, volet spécifique à chaque organisme (types de soins CNSS/CNOPS/FAR, accord préalable, diagnostic CIM-10, champs militaires FAR), tableau d'actes dentaires chiffré en DH, et import latéral sécurisé depuis les soins cliniques.
+
+### Vérification physique des gabarits
+- `feuille_dentaire_CNSS.pdf` : 2 pages, 728,40 × 1 031,76 pt (256,96 × 363,98 mm), rotation 270° (paysage visuel 1 031,76 × 728,40 pt).
+- `feuille_dentaire_CNOPS.pdf` : 2 pages, 799,44 × 574,08 pt (282,02 × 202,52 mm paysage).
+- `feuille_dentaire_FAR.pdf` : 2 pages, 842,25 × 595,50 pt (297,13 × 210,08 mm paysage A4), décalage de boîte `y0 = 8,58 pt`.
+- Tous les formulaires originaux sont des rasters plats (0 AcroForms interactifs).
+
+La documentation détaillée de la phase 9.1 est consultable dans [`docs/dental-insurance-management.md`](docs/dental-insurance-management.md) et la cartographie des gabarits dans [`docs/dental-insurance-form-mapping.md`](docs/dental-insurance-form-mapping.md).

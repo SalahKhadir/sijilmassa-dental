@@ -81,7 +81,23 @@ test("approved PNG is copied byte-for-byte and generates one A5 invoice page", a
   }
 });
 
-test("invoice PDF contains correct title, clinic block, patient, bordered table, total and amount in words", async (t) => {
+test("date clearance below letterhead divider is strictly between 10 mm and 15 mm", () => {
+  // Divider bottom in unscaled PDF points
+  const dividerBottom = invoicePage.dividerBottom; // 489.55 pt
+  const dateBaseline = invoicePage.dateBaseline; // 448.0 pt
+  const dateFontSize = 8.5;
+  // Font ascender for capital letters (T, DD, MM, YYYY) is ~0.75 * fontSize
+  const dateGlyphTop = dateBaseline + dateFontSize * 0.75;
+  const gapPt = dividerBottom - dateGlyphTop;
+  const gapMm = (gapPt * 25.4) / 72;
+
+  assert(
+    gapMm >= 10 && gapMm <= 15,
+    `Vertical gap below divider to date glyph top should be 10-15 mm, got ${gapMm.toFixed(2)} mm`,
+  );
+});
+
+test("practitioner/address block and patient reference are absent from dynamic PDF text", async (t) => {
   const bytes = await renderInvoicePdf(invoice, payments, patient, assets);
   const result = extract(bytes);
   if (result.error?.code === "ENOENT") {
@@ -90,55 +106,189 @@ test("invoice PDF contains correct title, clinic block, patient, bordered table,
   }
   assert.equal(result.status, 0);
 
-  // Date and Title
-  assert(result.stdout.includes("Témara, le : "), "Témara date prefix");
-  assert(result.stdout.includes("FACTURE N° : 2026-002"), "Centered invoice title");
-
-  // Clinic identification
-  assert(result.stdout.includes("SAMGHOULI Kaoutar"), "Practitioner name");
+  // Dynamic practitioner block must NOT be rendered
   assert(
-    result.stdout.includes("Lotissement Bourass N°22, 1er étage, App 04,"),
-    "Clinic address line 1",
+    !result.stdout.includes("SAMGHOULI Kaoutar"),
+    "Practitioner name must be removed from dynamic text",
   );
-  assert(result.stdout.includes("Témara"), "Clinic city");
+  assert(
+    !result.stdout.includes("Lotissement Bourass"),
+    "Address line must be removed from dynamic text",
+  );
 
-  // Patient name displayed without administrative reference
-  assert(result.stdout.includes("Patient : Mériem Démo-Idrissi"), "Patient name");
-  assert(!result.stdout.includes("DEMO-PAT-0003"), "Patient reference ID must not appear in printed PDF");
+  // Internal patient reference must NOT be printed
+  assert(
+    !result.stdout.includes("DEMO-PAT-0003"),
+    "Patient reference ID must not appear in printed PDF",
+  );
 
-  // Dental table column headers
-  assert(result.stdout.includes("DATE"), "DATE column header");
-  assert(result.stdout.includes("DENTS"), "DENTS column header");
-  assert(result.stdout.includes("DESCRIPTION"), "DESCRIPTION column header");
-  assert(result.stdout.includes("PRIX"), "PRIX column header");
+  // Patient name MUST be present
+  assert(
+    result.stdout.includes("Patient : Mériem Démo-Idrissi"),
+    "Patient name must be rendered below centered title",
+  );
+});
 
-  // Dental acts content
-  assert(result.stdout.includes("02/11/2026"), "Act date 1");
-  assert(result.stdout.includes("16"), "Tooth number 16");
-  assert(result.stdout.includes("Détartrage fictif"), "Act description 1");
-  assert(result.stdout.includes("450,00 DH"), "Act price 1");
-  assert(result.stdout.includes("03/11/2026"), "Act date 2");
-  assert(result.stdout.includes("Acte complémentaire fictif"), "Act description 2");
-  assert(result.stdout.includes("500,00 DH"), "Act price 2");
+test("invoice PDF renders complete financial summary with total, paid, and remaining balance", async (t) => {
+  const bytes = await renderInvoicePdf(invoice, payments, patient, assets);
+  const result = extract(bytes);
+  if (result.error?.code === "ENOENT") {
+    t.skip("Poppler unavailable");
+    return;
+  }
+  assert.equal(result.status, 0);
 
-  // Bold total
-  assert(result.stdout.includes("TOTAL : 950,00 DH"), "Invoice total");
+  // Centered title
+  assert(result.stdout.includes("FACTURE N° : 2026-002"));
 
-  // Total in French words
+  // Dental treatment table headers
+  assert(result.stdout.includes("DATE"));
+  assert(result.stdout.includes("DENTS"));
+  assert(result.stdout.includes("DESCRIPTION"));
+  assert(result.stdout.includes("PRIX"));
+
+  // Dental treatment items
+  assert(result.stdout.includes("02/11/2026"));
+  assert(result.stdout.includes("16"));
+  assert(result.stdout.includes("Détartrage fictif"));
+  assert(result.stdout.includes("450,00 DH"));
+  assert(result.stdout.includes("03/11/2026"));
+  assert(result.stdout.includes("Acte complémentaire fictif"));
+  assert(result.stdout.includes("500,00 DH"));
+
+  // Complete financial summary
+  assert(
+    result.stdout.includes("TOTAL DE LA FACTURE :"),
+    "Total invoice label",
+  );
+  assert(result.stdout.includes("950,00 DH"), "Total amount 950,00 DH");
+  assert(result.stdout.includes("MONTANT REÇU :"), "Amount received label");
+  assert(result.stdout.includes("700,00 DH"), "Paid amount 700,00 DH");
+  assert(result.stdout.includes("RESTE À PAYER :"), "Remaining balance label");
+  assert(result.stdout.includes("250,00 DH"), "Remaining balance 250,00 DH");
+
+  // Status for partially paid invoice
+  assert(result.stdout.includes("PARTIELLEMENT PAYÉE"));
+
+  // Amount in French words
   assert(
     result.stdout.includes(
       "Arrêtée la présente facture à la somme de neuf cent cinquante dirhams.",
     ),
-    "Invoice total in words",
   );
 
-  // Clinic financial identifiers on separate lines
+  // Financial identifiers
   for (const identifier of ["73149010", "003999044000004", "084209071"]) {
     assert.equal(
       result.stdout.split(identifier).length - 1,
       1,
       `Identifier ${identifier} should appear exactly once`,
     );
+  }
+});
+
+test("all five invoice statuses are derived and displayed accurately in the PDF", async () => {
+  // 1. BROUILLON
+  const draftInv = { ...invoiceFixtures[0] };
+  const draftBytes = await renderInvoicePdf(
+    draftInv,
+    [],
+    { name: "Patient Démo", reference: "DEMO-PAT-001" },
+    assets,
+  );
+  const draftRes = extract(draftBytes);
+  if (!draftRes.error) {
+    assert(draftRes.stdout.includes("BROUILLON"));
+    assert(draftRes.stdout.includes("FACTURE N° : BROUILLON"));
+  }
+
+  // 2. ÉMISE (unpaid)
+  const issuedInv = {
+    ...invoiceFixtures[2],
+    invoiceNumber: "2026-003",
+  };
+  const issuedBytes = await renderInvoicePdf(issuedInv, [], patient, assets);
+  const issuedRes = extract(issuedBytes);
+  if (!issuedRes.error) {
+    assert(issuedRes.stdout.includes("ÉMISE"));
+    assert(issuedRes.stdout.includes("RESTE À PAYER :"));
+    assert(issuedRes.stdout.includes("950,00 DH"));
+    assert(issuedRes.stdout.includes("MONTANT REÇU :"));
+    assert(issuedRes.stdout.includes("0,00 DH"));
+  }
+
+  // 3. PARTIELLEMENT PAYÉE
+  const partialInv = { ...invoiceFixtures[2] };
+  const partialPayments = [
+    {
+      id: "pay-1",
+      invoiceId: partialInv.id,
+      patientId: partialInv.patientId,
+      amountMinor: 40000,
+      paymentDate: "2026-11-03",
+      paymentMethod: "ESPECES",
+      recordedAt: "2026-11-03T10:00:00Z",
+    },
+  ];
+  const partialBytes = await renderInvoicePdf(
+    partialInv,
+    partialPayments,
+    patient,
+    assets,
+  );
+  const partialRes = extract(partialBytes);
+  if (!partialRes.error) {
+    assert(partialRes.stdout.includes("PARTIELLEMENT PAYÉE"));
+    assert(partialRes.stdout.includes("400,00 DH"));
+    assert(partialRes.stdout.includes("550,00 DH"));
+  }
+
+  // 4. PAYÉE
+  const paidInv = { ...invoiceFixtures[2] };
+  const fullPayments = [
+    {
+      id: "pay-2",
+      invoiceId: paidInv.id,
+      patientId: paidInv.patientId,
+      amountMinor: 95000,
+      paymentDate: "2026-11-03",
+      paymentMethod: "VIREMENT",
+      recordedAt: "2026-11-03T10:00:00Z",
+    },
+  ];
+  const paidBytes = await renderInvoicePdf(
+    paidInv,
+    fullPayments,
+    patient,
+    assets,
+  );
+  const paidRes = extract(paidBytes);
+  if (!paidRes.error) {
+    assert(paidRes.stdout.includes("PAYÉE"));
+    assert(paidRes.stdout.includes("950,00 DH"));
+    assert(paidRes.stdout.includes("0,00 DH"));
+  }
+
+  // 5. ANNULÉE
+  const cancelledInv = {
+    ...invoiceFixtures[2],
+    lifecycle: "ANNULEE",
+    cancellation: {
+      reason: "Erreur de saisie",
+      cancelledAt: "2026-11-04T12:00:00Z",
+    },
+  };
+  const cancelledBytes = await renderInvoicePdf(
+    cancelledInv,
+    [],
+    patient,
+    assets,
+  );
+  const cancelledRes = extract(cancelledBytes);
+  if (!cancelledRes.error) {
+    assert(cancelledRes.stdout.includes("ANNULÉE"));
+    assert(cancelledRes.stdout.includes("RESTE À PAYER :"));
+    assert(cancelledRes.stdout.includes("0,00 DH"));
   }
 });
 
@@ -164,7 +314,7 @@ test("French amount to words formatter handles zeros, singular/plural, hundreds,
   assert.equal(amountToFrenchWords(9000), "quatre-vingt-dix dirhams");
   assert.equal(amountToFrenchWords(9100), "quatre-vingt-onze dirhams");
 
-  // Hundreds (rule for terminal cents with 's')
+  // Hundreds
   assert.equal(amountToFrenchWords(60000), "six cents dirhams");
   assert.equal(
     invoiceAmountSentence(60000),

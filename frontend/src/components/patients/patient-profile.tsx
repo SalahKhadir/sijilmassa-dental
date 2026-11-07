@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PatientFinancialHistory } from "@/components/billing/patient-financial-history";
 import { PatientPrescriptions } from "@/components/prescriptions/patient-prescriptions";
+import { PatientInsuranceSection } from "@/components/insurance/patient-insurance-section";
 import { useEffect } from "react";
 import { ArrowLeft, Pencil, X } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -149,6 +150,7 @@ export function PatientProfile({
           </p>
           <PatientAppointments patientId={id} />
           <PatientFinancialHistory patientId={id} />
+          <PatientInsuranceSection patientId={id} />
         </>
       )}
     </>

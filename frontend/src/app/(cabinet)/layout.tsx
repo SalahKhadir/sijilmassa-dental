@@ -4,6 +4,7 @@ import { ConsultationProvider } from "@/components/consultations/consultation-pr
 import type { ReactNode } from "react";
 import { AppointmentProvider } from "@/components/appointments/appointment-provider";
 import { PatientProvider } from "@/components/patients/patient-provider";
+import { InsuranceProvider } from "@/components/insurance/insurance-provider";
 import { ApplicationShell } from "@/components/shell/application-shell";
 
 export default function CabinetLayout({ children }: { children: ReactNode }) {
@@ -13,7 +14,9 @@ export default function CabinetLayout({ children }: { children: ReactNode }) {
         <ConsultationProvider>
           <BillingProvider>
             <PrescriptionProvider>
-              <ApplicationShell>{children}</ApplicationShell>
+              <InsuranceProvider>
+                <ApplicationShell>{children}</ApplicationShell>
+              </InsuranceProvider>
             </PrescriptionProvider>
           </BillingProvider>
         </ConsultationProvider>

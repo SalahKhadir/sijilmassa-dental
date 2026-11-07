@@ -16,6 +16,7 @@ import {
   PrescriptionMissing,
   PrescriptionNotice,
 } from "./prescription-states";
+import { DocumentsInsuranceSection } from "@/components/insurance/documents-insurance-section";
 export function DocumentsPage({ patientId = "" }: { patientId?: string }) {
   const { state, retry } = usePrescriptionData();
   const [search, setSearch] = useState("");
@@ -192,28 +193,7 @@ export function DocumentsPage({ patientId = "" }: { patientId?: string }) {
           <PrescriptionList records={records} patients={patients} />
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Feuilles de soins dentaires</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="grid gap-3 text-sm md:grid-cols-3">
-            {[
-              "CNSS — Feuille de soins dentaires",
-              "CNOPS — Feuille de soins dentaires",
-              "FAR — Feuille de maladie / soins dentaires",
-            ].map((label) => (
-              <li key={label} className="rounded-lg border p-4 font-medium">
-                {label}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Le remplissage de ces formulaires sera disponible dans une phase
-            ultérieure.
-          </p>
-        </CardContent>
-      </Card>
+      <DocumentsInsuranceSection patientId={patientId} />
     </>
   );
 }
