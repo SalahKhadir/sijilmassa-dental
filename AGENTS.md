@@ -19,16 +19,16 @@ The product should make routine clinic work simpler, faster, and safer: patient 
 
 The intended stack is:
 
-| Layer | Technology |
-| --- | --- |
-| Frontend | Next.js (App Router), React, TypeScript, Tailwind CSS |
-| UI | Accessible reusable components; shadcn/ui may be adopted when requested |
-| Backend | Java, Spring Boot modular monolith, REST API |
-| Database | PostgreSQL, migrations with Flyway |
-| Authentication/authorization | Spring Security, secure sessions, server-enforced RBAC |
-| Documents | Reuse/adapt the existing TypeScript `pdf-lib` A5 invoice generator when that module is implemented |
-| Development package manager | `pnpm` for the frontend |
-| Future deployment | Self-hosted on the dentist's PC, accessed on the clinic LAN |
+| Layer                        | Technology                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| Frontend                     | Next.js (App Router), React, TypeScript, Tailwind CSS                                              |
+| UI                           | Accessible reusable components; shadcn/ui may be adopted when requested                            |
+| Backend                      | Java, Spring Boot modular monolith, REST API                                                       |
+| Database                     | PostgreSQL, migrations with Flyway                                                                 |
+| Authentication/authorization | Spring Security, secure sessions, server-enforced RBAC                                             |
+| Documents                    | Reuse/adapt the existing TypeScript `pdf-lib` A5 invoice generator when that module is implemented |
+| Development package manager  | `pnpm` for the frontend                                                                            |
+| Future deployment            | Self-hosted on the dentist's PC, accessed on the clinic LAN                                        |
 
 Do not introduce microservices, Kubernetes, cloud databases, hosted authentication, paid APIs, or other infrastructure without explicit approval. Do not add dependencies merely for convenience when an existing, well-maintained solution is sufficient.
 
@@ -88,7 +88,7 @@ Do not change the separate `kaoutar_facturation` repository. Its existing invoic
 - **Text/text-muted:** Main text and secondary metadata; check actual contrast before using muted text at small sizes.
 - **Success/warning/danger/info:** Semantic statuses only. Do not communicate status using color alone.
 
-The palette is a starting point, not proof of accessible contrast. Check contrast for actual text/background pairings against WCAG 2.2 AA. If a combination fails, change the *usage* (e.g., use a darker foreground, larger text, or a different token pairing) rather than modifying the canonical token values. Avoid low-contrast gold or warning text on white backgrounds.
+The palette is a starting point, not proof of accessible contrast. Check contrast for actual text/background pairings against WCAG 2.2 AA. If a combination fails, change the _usage_ (e.g., use a darker foreground, larger text, or a different token pairing) rather than modifying the canonical token values. Avoid low-contrast gold or warning text on white backgrounds.
 
 ### Visual direction
 
@@ -165,3 +165,33 @@ Before proposing a new feature, identify its real clinic workflow, who can acces
 - OWASP ASVS: https://owasp.org/www-project-application-security-verification-standard/
 - WCAG 2.2: https://www.w3.org/TR/WCAG22/
 - Stageshow: https://github.com/benjitaylor/skills/tree/main/stageshow
+
+## Writing Quality — Unslop
+
+The project includes the Unslop agent skill:
+`.agents/skills/unslop/SKILL.md`
+
+Use Unslop when creating or significantly revising:
+
+- User-facing interface copy
+- French labels, descriptions, and empty states
+- Validation and error messages
+- README and project documentation
+- Help text and onboarding content
+
+Guidelines:
+
+1. Read the skill instructions before using it.
+2. Prefer clear, natural, concise French for the clinic UI.
+3. Preserve medical terminology, factual accuracy, and meaning.
+4. Avoid generic marketing language and unnecessary filler.
+5. Never alter clinical facts or safety warnings for stylistic reasons.
+6. Do not rewrite code, identifiers, or structured data merely
+   to satisfy writing-style checks.
+7. Apply suggestions selectively; do not blindly accept every
+   scanner finding.
+8. If the skill does not support the content language, perform
+   a careful manual editorial review instead.
+
+Unslop supplements existing code quality, accessibility,
+security, and UI design requirements. It does not replace them.

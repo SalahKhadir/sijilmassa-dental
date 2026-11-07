@@ -6,6 +6,12 @@
       "sourceType": "github",
       "skillPath": "stageshow/SKILL.md",
       "computedHash": "92725a1d58ce8fbc9b80bd117b4a78feefa230e0feb24865b70c9ed1cfdb581b"
+    },
+    "unslop": {
+      "source": "theclaymethod/unslop",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "d72fb3b3f3ee5ff8007406910f789a278e6798ee1e90e966723bc5fe112f1bdf"
     }
   }
 }

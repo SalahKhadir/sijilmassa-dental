@@ -1,0 +1,120 @@
+
+# ==========================================
+# SIJILMASSA DENTAL — ROOT .gitignore
+# Next.js + Spring Boot Monorepo
+# ==========================================
+
+# --- Dependencies ---
+node_modules/
+.pnpm-store/
+.yarn/
+.pnp.*
+vendor/
+
+# --- Next.js / React / Build ---
+.next/
+out/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# --- Java / Spring Boot / Maven / Gradle ---
+target/
+.gradle/
+bin/
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+
+# Keep Gradle wrapper JAR if used
+!gradle/wrapper/gradle-wrapper.jar
+
+# --- Environment Variables / Secrets ---
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+credentials/
+
+# --- Local Databases ---
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# --- Runtime / Logs ---
+*.log
+logs/
+tmp/
+temp/
+.cache/
+*.pid
+
+# --- IDE / Editor ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.iml
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.Trash-*
+.directory
+
+# --- Python / Local Tools ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# --- Local Patient Data / Generated Documents ---
+data/
+storage/
+uploads/
+generated/
+backups/
+exports/
+
+# --- AI / Agent Local State ---
+.claude/settings.local.json
+.codex/
+.gemini/
+.antigravity/
+
+# ==========================================
+# IMPORTANT — KEEP TRACKED
+# ==========================================
+# docs/references/          Official blank PDF templates
+# frontend/public/          Branding assets
+# .agents/skills/           Project skills
+# AGENTS.md                 Agent instructions
+# README.md                 Documentation
+# pnpm-lock.yaml            Dependency lockfile
+# package-lock.json         If used
+# gradlew / mvnw            Build wrappers
