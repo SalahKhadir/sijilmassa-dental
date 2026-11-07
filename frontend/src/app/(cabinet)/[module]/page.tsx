@@ -12,7 +12,9 @@ const modules = navigation.filter(
     item.href !== "/" &&
     item.href !== "/patients" &&
     item.href !== "/rendez-vous" &&
-    item.href !== "/consultations",
+    item.href !== "/consultations" &&
+    item.href !== "/documents" &&
+    item.href !== "/facturation",
 );
 export const dynamicParams = false;
 export function generateStaticParams() {

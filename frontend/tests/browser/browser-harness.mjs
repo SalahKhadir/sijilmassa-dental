@@ -79,7 +79,10 @@ export function browserHarness({ port }) {
       const external = [];
       page.on("pageerror", (error) => errors.push(error.message));
       page.on("request", (request) => {
-        if (new URL(request.url()).origin !== new URL(baseURL).origin)
+        const url = new URL(request.url());
+        // The native PDF viewer loads browser-owned resources without network access.
+        if (["chrome:", "chrome-extension:"].includes(url.protocol)) return;
+        if (url.origin !== new URL(baseURL).origin)
           external.push(request.url());
       });
       return { value, page, errors, external };

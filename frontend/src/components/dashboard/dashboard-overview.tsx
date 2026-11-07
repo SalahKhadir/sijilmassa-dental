@@ -8,7 +8,11 @@ import {
   ArrowRight,
   Info,
 } from "lucide-react";
-import { dashboardDemo } from "@/data/dashboard";
+import { useFinancialData } from "@/components/billing/use-billing-data";
+import { financialSummary } from "@/lib/billing/calculations";
+import { formatMinor } from "@/lib/billing/money";
+import { DashboardFinances } from "@/components/billing/dashboard-finances";
+import { BillingErrorState } from "@/components/billing/billing-states";
 import { clinicDate } from "@/lib/patients/dates";
 import { clinicTime } from "@/lib/appointments/local-time";
 import { appointmentDashboardStats } from "@/lib/appointments/selectors";
@@ -17,7 +21,7 @@ import {
   AppointmentError,
   AppointmentLoading,
 } from "@/components/appointments/appointment-states";
-import { formatDemoDate, formatMAD } from "@/lib/format";
+import { formatDemoDate } from "@/lib/format";
 import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +30,14 @@ import { AppointmentList } from "@/components/dashboard/appointment-list";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 export function DashboardOverview() {
   const { state, retry } = useAppointmentData();
+  const financial = useFinancialData();
+  const amounts =
+    financial.state.status === "ready"
+      ? financialSummary(
+          financial.state.data.invoices,
+          financial.state.data.payments,
+        )
+      : null;
   const today = clinicDate();
   const statistics =
     state.status === "ready"
@@ -74,9 +86,9 @@ export function DashboardOverview() {
           icon={CalendarDays}
         />
         <StatCard
-          title="Paiements encaissés"
-          value={formatMAD(dashboardDemo.collectedCentimes)}
-          detail="Exemple financier du 07/11/2026"
+          title="Montant encaissé"
+          value={amounts ? formatMinor(amounts.collected) : "…"}
+          detail="Règlements enregistrés dans le prototype"
           icon={Wallet}
         />
         <StatCard
@@ -100,6 +112,11 @@ export function DashboardOverview() {
         )}
         <div className="space-y-6">
           <QuickActions />
+          {financial.state.status === "error" ? (
+            <BillingErrorState retry={financial.retry} />
+          ) : (
+            <DashboardFinances summary={amounts} />
+          )}
           <Card className="border-secondary/20 bg-secondary-tint">
             <CardContent className="pt-5 sm:pt-6">
               <Info className="mb-3 size-5 text-secondary" aria-hidden="true" />

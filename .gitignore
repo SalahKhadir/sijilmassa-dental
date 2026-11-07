@@ -118,3 +118,5 @@ exports/
 # pnpm-lock.yaml            Dependency lockfile
 # package-lock.json         If used
 # gradlew / mvnw            Build wrappers
+# Synthetic frontend fixtures belong to source control.
+!frontend/src/data/

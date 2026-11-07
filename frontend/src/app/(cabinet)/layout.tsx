@@ -1,3 +1,5 @@
+import { BillingProvider } from "@/components/billing/billing-provider";
+import { PrescriptionProvider } from "@/components/prescriptions/prescription-provider";
 import { ConsultationProvider } from "@/components/consultations/consultation-provider";
 import type { ReactNode } from "react";
 import { AppointmentProvider } from "@/components/appointments/appointment-provider";
@@ -9,7 +11,11 @@ export default function CabinetLayout({ children }: { children: ReactNode }) {
     <PatientProvider>
       <AppointmentProvider>
         <ConsultationProvider>
-          <ApplicationShell>{children}</ApplicationShell>
+          <BillingProvider>
+            <PrescriptionProvider>
+              <ApplicationShell>{children}</ApplicationShell>
+            </PrescriptionProvider>
+          </BillingProvider>
         </ConsultationProvider>
       </AppointmentProvider>
     </PatientProvider>

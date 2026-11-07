@@ -21,7 +21,7 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
             Pensé pour votre cabinet
           </p>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Prototype frontend · Phase 5
+            Prototype frontend · Phase 7
           </p>
         </div>
       </aside>

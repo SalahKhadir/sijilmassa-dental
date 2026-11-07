@@ -48,3 +48,20 @@ Les listes générales présentent l’identité, la date, le statut et le nombr
 Les formulaires et résumés deviennent monocolonnes sur mobile. Les statuts Brouillon et Terminée combinent texte et icône. Les transitions existantes et la réduction des mouvements sont conservées. Cette phase utilise les composants locaux et le dialogue existant.
 
 Le surtitre partagé utilise le bordeaux existant pour assurer le contraste des petits caractères sur le fond chaud. Les valeurs canoniques restent centralisées et identiques à celles du fichier AGENTS.md.
+
+## Phase 6 — ordonnances
+
+Les ordonnances réutilisent les contrôles existants et le dialogue de confirmation. Les médicaments sont regroupés dans des fieldsets numérotés. Des boutons nommés permettent le déplacement et le retrait confirmé des lignes au clavier. Les erreurs de date, de référence et de longueur sont associées aux champs. La finalisation présente le patient, la date et le contenu à relire sur l’écran de détail.
+
+L’aperçu utilise le PDF réel dans le lecteur du navigateur. Il possède un titre, des commandes explicites de téléchargement et d’impression et un lien vers un nouvel onglet. Les erreurs de génération sont lisibles et peuvent être réessayées. Les modèles de feuilles de soins dentaires apparaissent comme des catégories informatives.
+
+Les nouveaux libellés français ont été relus manuellement avec les principes Unslop. Les scanners installés ciblent la prose anglaise. La relecture conserve les libellés officiels, les instructions médicales et les limites du prototype.
+
+
+## Phase 7 — facturation
+
+Les contrôles locaux et les formulaires React Hook Form/Zod servent à la saisie des factures et des règlements. Les lignes de facture sont des fieldsets nommés, avec boutons de déplacement et retrait confirmé. Chaque montant possède une unité explicite. Les erreurs sont associées aux champs et le premier champ invalide reçoit le focus. Les statuts combinent texte et icône.
+
+Les dialogues existants encadrent l’émission, le règlement et l’annulation. Le prix reste modifiable sur le brouillon ; la vue émise présente les montants en lecture seule. Les tables de bureau deviennent des cartes sur les écrans étroits. Les historiques regroupent le reçu et le reste par facture pour éviter une fausse affectation des paiements aux soins.
+
+Le PDF indisponible est expliqué dans une carte avec la dépendance manquante. Aucun bouton ne simule sa génération. Aucun composant décoratif React Bits, Kinetics ou Stageshow n’est ajouté. Les transitions existantes respectent la réduction des mouvements. La relecture française manuelle applique les principes Unslop en conservant le sens des termes financiers.

@@ -28,7 +28,7 @@ export function StatCard({
             <Icon className="size-[18px]" aria-hidden="true" />
           </span>
         </div>
-        <p className="mt-3 text-3xl font-bold tracking-tight tabular-nums">
+        <p className="mt-3 text-3xl font-bold tracking-tight break-words tabular-nums">
           {value}
         </p>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</p>

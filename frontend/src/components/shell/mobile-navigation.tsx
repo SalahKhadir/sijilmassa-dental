@@ -39,7 +39,7 @@ export function MobileNavigation({ brand }: { brand: ReactNode }) {
         <div className="mt-14 mb-8">{brand}</div>
         <Navigation onNavigate={() => setOpen(false)} />
         <p className="mt-auto pt-8 text-xs text-muted-foreground">
-          Phase 5 · Démonstration
+          Phase 7 · Démonstration
         </p>
       </SheetContent>
     </Sheet>

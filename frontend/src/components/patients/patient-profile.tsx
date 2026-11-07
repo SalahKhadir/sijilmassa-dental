@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { PatientFinancialHistory } from "@/components/billing/patient-financial-history";
+import { PatientPrescriptions } from "@/components/prescriptions/patient-prescriptions";
 import { useEffect } from "react";
 import { ArrowLeft, Pencil, X } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -111,6 +113,7 @@ export function PatientProfile({
           </Link>
         </Button>
       </nav>
+      {clinical && <PatientPrescriptions patientId={id} />}
       {clinical ? (
         <PatientClinicalSections
           patient={patient}
@@ -145,6 +148,7 @@ export function PatientProfile({
             informations sera contrôlée côté serveur lors de l’intégration.
           </p>
           <PatientAppointments patientId={id} />
+          <PatientFinancialHistory patientId={id} />
         </>
       )}
     </>

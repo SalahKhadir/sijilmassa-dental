@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { PatientFinancialHistory } from "@/components/billing/patient-financial-history";
+import { PatientPrescriptions } from "@/components/prescriptions/patient-prescriptions";
 import { useEffect, useRef, useState } from "react";
 import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
@@ -171,6 +173,8 @@ export function ConsultationDetails({ id }: { id: string }) {
           )}
         </CardContent>
       </Card>
+      <PatientFinancialHistory patientId={patient.id} consultationId={id} />
+      <PatientPrescriptions patientId={patient.id} consultationId={id} />
       <ClinicalConfirmation
         open={confirming}
         title="Terminer cette consultation ?"

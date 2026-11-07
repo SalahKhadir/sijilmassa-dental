@@ -1,6 +1,6 @@
 # Sijilmassa Dental
 
-Application de gestion d’un cabinet dentaire au Maroc, destinée à fonctionner sur le réseau local du cabinet. **Phase 5 — espace clinique du dentiste, patients et agenda partagé, avec données fictives en mémoire.**
+Application de gestion d’un cabinet dentaire au Maroc, destinée à fonctionner sur le réseau local du cabinet. **Phase 7 — facturation, paiements et suivi financier sur données fictives.**
 
 ## Démarrer le frontend
 
@@ -32,7 +32,7 @@ pnpm start
 - Composants shadcn/ui installés manuellement et adaptés : `Button`, `Card` et `Sheet` (primitives Radix). Configuration dans `frontend/components.json` ; aucun kit Stageshow utilisé dans les écrans fonctionnels. Référence : [installation manuelle shadcn/ui](https://ui.shadcn.com/docs/installation/manual).
 - Navigation de bureau, tiroir modal sur mobile et tablette, barre supérieure, état actif et lien d’évitement au contenu.
 - Tableau de bord de démonstration, quatre indicateurs, liste de rendez-vous et accès rapides.
-- Pages d’attente pour les trois autres modules ; chargement, erreur récupérable, page 404 et état de liste vide réutilisable.
+- Page d’attente pour les paramètres ; chargement, erreur récupérable, page 404 et état de liste vide réutilisable.
 - Interface française, conventions `fr-MA`, montants affichés en MAD, typographie système.
 
 | Route | Écran |
@@ -44,7 +44,7 @@ pnpm start
 | `/consultations` | Annuaire clinique, brouillons et consultations terminées |
 | `/patients/[id]/clinique` | Questionnaire rapporté et historique clinique du patient |
 | `/facturation` | Facturation |
-| `/documents` | Documents |
+| `/documents` | Ordonnances, PDF A5 et information sur les feuilles de soins dentaires |
 | `/parametres` | Paramètres |
 
 ## Organisation
@@ -55,7 +55,7 @@ frontend/
 ├── src/components/ui/       # Primitives shadcn/ui adaptées au projet
 ├── src/components/shell/    # Identité, navigation et barre supérieure
 ├── src/components/dashboard/
-├── src/data/dashboard.ts    # Données entièrement fictives et typées
+├── src/data/                # Fixtures fictives, dont la facturation
 ├── src/lib/                 # Navigation, formatage et utilitaire de classes
 ├── components.json
 └── pnpm-lock.yaml
@@ -71,11 +71,11 @@ La typographie utilise Arial/Helvetica/sans-serif, sans téléchargement. Les co
 
 ## Données et limites
 
-Le montant financier dans `frontend/src/data/dashboard.ts` reste une illustration fixe datée du 7 novembre 2026. Les compteurs patients et rendez-vous ainsi que la liste du tableau de bord lisent les dépôts partagés. Les montants source sont des entiers en centimes et leur conversion sert uniquement à l’affichage.
+Les indicateurs patients, rendez-vous et financiers du tableau de bord lisent les dépôts mémoire partagés. Les charges, les encaissements et le reste à encaisser sont calculés séparément à partir des factures et des règlements. Les montants sont des entiers en centimes ; les calculs intermédiaires utilisent BigInt avec contrôle des limites. Le frontend cible ES2020 et nécessite un navigateur moderne.
 
 Les liens rapides ouvrent l’annuaire patients, l’agenda partagé et les modules en préparation. Le formulaire `/login` utilise React Hook Form et Zod pour valider des valeurs fictives. Son service typé renvoie l’état « indisponible » et un message explicite sur la future intégration Spring Boot. Le mot de passe est effacé après soumission. Le tableau de bord reste accessible comme aperçu de développement.
 
-Le répertoire `backend/` reste réservé aux phases futures. `docs/` contient les consignes de sélection des composants visuels. Aucun déploiement, Docker ou schéma de base de données n’est ajouté. Le dépôt distinct `kaoutar_facturation` reste inchangé. La phase 5 conserve des données fictives en mémoire.
+Le répertoire `backend/` reste réservé aux phases futures. `docs/` contient les consignes de sélection des composants visuels. Aucun déploiement, Docker ou schéma de base de données n’est ajouté. Le dépôt distinct `kaoutar_facturation` reste inchangé. La phase 7 conserve des données fictives en mémoire.
 
 ## Validation de la phase 1
 
@@ -155,3 +155,35 @@ Les 20 consultations synthétiques et les écritures restent dans la mémoire de
 Les références papier consultées, modèles, routes, choix de validation et fichiers concernés sont détaillés dans [la documentation clinique](docs/clinical-workspace.md). Les tableaux financiers fictifs existants restent en lecture seule et distincts des nouveaux soins.
 
 La validation de phase 5 passe pour le lint, TypeScript, la compilation de production, 60 tests de logique/rendu et sept parcours Chromium. Les parcours existants patients, agenda et connexion passent également. Les captures de l’espace clinique ont été inspectées sur bureau et mobile. Le harnais permet de sélectionner un Chromium installé avec `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`.
+
+
+## Ordonnances et PDF A5 — phase 6
+
+Documents propose la recherche patient, les filtres de statut et de dates, le tri et la création d’ordonnances. Un brouillon peut rester incomplet. La finalisation demande une confirmation, vérifie toutes les lignes et la mise en page PDF, puis place le document en lecture seule. Le formulaire permet d’ajouter, retirer et déplacer les lignes saisies par le dentiste.
+
+Les écrans dentiste du dossier patient affichent l’historique et présélectionnent le patient pour une nouvelle ordonnance. La consultation propose Créer une ordonnance et conserve son propre statut. Les données restent dans la mémoire de l’onglet jusqu’au rechargement.
+
+Le générateur utilise le PDF officiel `docs/references/pdf-templates/ordonnance-a5.pdf` avec une police française incorporée et locale. Les dimensions natives sont conservées, soit environ 147,90 × 210,08 mm. Le modèle vierge est une copie identique à la source. Les ordonnances numériques ajoutent les textes dans la zone d’écriture et les brouillons portent un indicateur visible. Un dépassement de la page A5 bloque la génération et la finalisation avec une erreur explicite.
+
+L’aperçu affiche le PDF réel et propose téléchargement, impression et ouverture dans un nouvel onglet. Le navigateur et le pilote déterminent les formats de papier disponibles. Une impression sur le matériel du cabinet reste à vérifier. Les ordonnances finalisées du prototype ne constituent pas des documents signés électroniquement.
+
+La section Feuilles de soins dentaires présente CNSS, CNOPS et FAR. Leur inventaire, les dimensions, les champs, les schémas et les données manquantes figurent dans [la cartographie d’assurance dentaire](docs/dental-insurance-form-mapping.md). Les formulaires généraux CNSS/CNOPS y sont classés comme références secondaires.
+
+Les modèles, routes, positions PDF, fichiers concernés et limites sont détaillés dans [la documentation des ordonnances](docs/prescription-management.md). Les bibliothèques ajoutées sont `pdf-lib` et `@pdf-lib/fontkit`. La licence de la police PDF est conservée avec la ressource locale.
+
+La validation de phase 6 passe avec `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build`, 81 tests via `pnpm test` et dix parcours via `pnpm test:browser`, exécutés avec le Chromium local configuré par `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. Les cinq exemples PDF ont été rendus et inspectés. Les références originales et leur copie vierge ont été vérifiées par empreinte. Les limites de mémoire, de régénération et d’impression figurent dans la documentation des ordonnances.
+
+
+## Facturation et règlements — phase 7
+
+`/facturation` propose recherche, filtres, tri et pagination. Les brouillons acceptent des prestations de catalogue facultatives et des lignes personnalisées. Le dentiste peut fixer chaque prix librement. Les suggestions sont fictives et restent modifiables avant émission.
+
+L’émission demande une confirmation, attribue un numéro `AAAA-NNN` selon la convention existante et verrouille les lignes. Les règlements successifs sont confirmés explicitement ; un montant supérieur au solde est refusé. Une facture sans règlement peut être annulée avec un motif. Les factures et les paiements restent dans l’historique, sans suppression ni modification des règlements.
+
+Le dossier patient regroupe Date, Traitements / prestations, Prix, Reçu et Reste par facture. Les paiements partiels ne sont pas répartis entre les lignes. La consultation présélectionne son patient et son identifiant pour créer une facture. Les compteurs financiers du tableau de bord utilisent le même dépôt.
+
+Le fond officiel PNG est intégré sans modification dans un PDF A5. Le détail d’une facture permet désormais de prévisualiser, télécharger et imprimer le document. Les brouillons portent un marquage visible. Les actes affichent leur date, la dent éventuelle, leur désignation et leur prix libre. Le projet distinct `kaoutar_facturation` reste inchangé.
+
+Les règles, les fichiers concernés, la validation et les exigences futures du backend sont détaillés dans [la documentation de facturation](docs/billing-management.md). Les changements restent propres à l’onglet et sont perdus au rechargement. Les droits sur les prix et les règlements devront être appliqués côté serveur. Aucune dépendance n’a été ajoutée pour cette phase.
+
+La validation de phase 7 passe avec `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build`, 104 tests via `pnpm test` et 12 parcours Chromium via `pnpm test:browser` avec le Chromium local configuré. Les captures de facturation bureau/mobile ont été inspectées. Les commandes exactes et les limites du PDF figurent dans la documentation de facturation.

@@ -28,14 +28,14 @@ export const navigation = [
     label: "Facturation",
     icon: "billing",
     description:
-      "Les factures et les paiements seront disponibles dans une prochaine phase.",
+      "Gérez les factures et les règlements du cabinet.",
   },
   {
     href: "/documents",
     label: "Documents",
     icon: "documents",
     description:
-      "La gestion des documents sera disponible dans une prochaine phase.",
+      "Retrouvez les ordonnances et préparez leur impression.",
   },
   {
     href: "/parametres",
