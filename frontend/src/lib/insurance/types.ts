@@ -155,6 +155,10 @@ export interface CNSSDetails {
 }
 
 export interface CNOPSDetails {
+  /** Explicit CNOPS chart selection, independent of CNSS confirmations. */
+  confirmedTeeth?: string[];
+  /** INPE verified by the practitioner; never copied from the clinic INP. */
+  practitionerInpe?: string;
   careTypes: CNOPSCareType[];
   priorAuthorizationNumber?: string;
   accidentDate?: string;
@@ -162,11 +166,20 @@ export interface CNOPSDetails {
   diagnosisCodeCIM10?: string;
 }
 
+export interface FARToothMark {
+  tooth: string;
+  /** Pending selections can be saved; the PDF requires an explicit symbol. */
+  symbol?: "CERCLE" | "CROIX";
+}
 export interface FARDetails {
-  dentalPurpose: FARDentalPurpose;
-  careType: FARCareType;
-  context: FARCareContext;
+  dentalPurpose?: FARDentalPurpose;
+  careType?: FARCareType;
+  context?: FARCareContext;
   priorAuthorizationNumber?: string;
+  practitionerInpe?: string;
+  prospectusCount?: number;
+  toothMarks?: FARToothMark[];
+  markingApproved?: boolean;
 }
 
 export interface InsuranceManualFields {

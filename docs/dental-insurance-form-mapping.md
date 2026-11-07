@@ -171,7 +171,7 @@ Les cases de soins sont disposées en deux colonnes. Sur le rendu 1600 px, leurs
 
 ### Schéma CNOPS, page 2
 
-Le dessin porte H en haut, B en bas, D à gauche du lecteur et G à droite. L’arcade externe porte les nombres de 1 à 8 par quadrant depuis la médiane. Les petites arcades internes comportent des dents dessinées mais aucun chiffre interne lisible sur le fichier fourni, contrairement au schéma CNSS. Une future cartographie devra conserver cette différence et ne pas ajouter des numéros au modèle. Le dessin et sa position ne peuvent pas être repris des coordonnées CNSS.
+Le dessin porte H en haut, B en bas, D à gauche du lecteur et G à droite. L’arcade externe porte les nombres de 1 à 8 par quadrant depuis la médiane. Les petites arcades internes comportent des dents dessinées mais aucun chiffre interne lisible sur le fichier fourni, contrairement au schéma CNSS. La cartographie de la phase 9.2B conserve cette différence : aucun numéro n’est ajouté au modèle, et les dents temporaires sont repérées par leur position depuis la médiane. Le dessin et sa position ne peuvent pas être repris des coordonnées CNSS.
 
 ## FAR dentaire
 
@@ -221,7 +221,7 @@ Source `feuille_dentaire_FAR.pdf`. Le volet droit de page 1 est une « Feuille d
 | 2 | Montants des Honoraires · `medicalActs[].fees` | colonne répétée / N | `UNKNOWN` | Acte réel et professionnel à identifier | `[672.2, 191.1, 720.7, 495.2]` |
 | 2 | Signature & Cachet du praticien avec INPE · `medicalActs[].signatureStamp` | colonne répétée / N | `MANUAL_ONLY` | SIGNATURE / CACHET et INPE | `[720.7, 191.1, 807.5, 495.2]` |
 
-La page 1 comporte les cases Soins/Prothèse à gauche, les cases Adhérent/Conjoint/Enfant et Maladie/Maternité/Accident à droite. Le tableau des travaux dentaires possède des lignes pointillées. Leur nombre et leur hauteur utilisable devront être recalibrés sur le fichier haute définition ou le papier avant toute saisie automatisée. La page 2 de droite distingue les bandes Médecin traitant ou chirurgien dentiste, Analyses du labo, Imagerie, Actes paramédicaux et Optique. Chaque bande reprend les colonnes date, nature et coefficients, honoraires, signature/cachet avec INPE. La zone inférieure restante est sans intitulé métier clairement lisible et doit rester `UNKNOWN`.
+La page 1 comporte les cases Soins/Prothèse à gauche, les cases Adhérent/Conjoint/Enfant et Maladie/Maternité/Accident à droite. Le tableau des travaux dentaires possède des lignes pointillées. La capacité commune et les positions mesurées sur le PDF fourni sont documentées en phase 9.2C ci-dessous ; la calibration sur papier reste à faire. La page 2 de droite distingue les bandes Médecin traitant ou chirurgien dentiste, Analyses du labo, Imagerie, Actes paramédicaux et Optique. Chaque bande reprend les colonnes date, nature et coefficients, honoraires, signature/cachet avec INPE. La zone inférieure restante est sans intitulé métier clairement lisible et doit rester `UNKNOWN`.
 
 La notice de page 2 demande que l’identité du malade soit portée de la main du médecin traitant et indique que l’apposition de l’INPE est obligatoire. Cette prescription de saisie manuelle devra être examinée avec l’organisme avant de proposer une saisie numérique. La zone médicale réservée à la mutuelle et les signatures ne peuvent pas être alimentées par un simple profil applicatif.
 
@@ -236,7 +236,7 @@ Les séquences imprimées se lisent de gauche à droite sur la feuille ainsi.
     85 84 83 82 81      71 72 73 74 75
 ```
 
-Le document demande une croix sur la dent objet de la prothèse ou de l’extraction et un cercle sur la dent soignée ou couronnée. Il demande aussi de renseigner une quatrième page du document papier. Les séquences à deux chiffres et les gestes graphiques sont distincts des schémas à quadrant H/B/D/G de la CNSS et de la CNOPS. Le terme FDI n’est pas imprimé sur ce tableau. Les repères devront être modélisés et validés explicitement avant toute conversion de notation.
+Le document demande une croix sur la dent objet de la prothèse ou de l’extraction et un cercle sur la dent soignée ou couronnée. Il demande aussi de renseigner une quatrième page du document papier. Les séquences à deux chiffres et les gestes graphiques sont distincts des schémas à quadrant H/B/D/G de la CNSS et de la CNOPS. Le terme FDI n’est pas imprimé sur ce tableau. La correspondance explicite avec le domaine FDI et sa calibration figurent en phase 9.2C ci-dessous.
 
 ## Données disponibles et données à recueillir
 
@@ -457,3 +457,296 @@ Décocher retire uniquement la dent choisie ; « Effacer les marques » vide la 
 Les exemples fictifs « 16 et 11 », « huit quadrants » (16,26,36,46,55,65,75,85) et « toutes les dents » ont été rendus avec Poppler. Les huit quadrants et les dents temporaires centrales ont été inspectés séparément ; les carrés restent à l’intérieur des dents et les chiffres restent lisibles. Le test de différence raster à 144 dpi vérifie l’absence de changement hors des empreintes des dents sélectionnées, ainsi que l’identité visuelle de la page 1. Il couvre aussi l’absence de changement des dents voisines, du tableau et des signatures/cachets.
 
 Le dentiste doit encore valider l’usage de cette marque neutre dans sa pratique et la lisibilité sur l’imprimante du cabinet. Les conventions de symboles selon la procédure et leur acceptation administrative ne sont pas implémentées. CNOPS et FAR ne sont pas concernés.
+
+
+## Phase 9.2B — Surcouche CNOPS
+
+Le modèle dentaire CNOPS a été revérifié avec `pdfinfo -box` et `pdffonts` : **deux pages, 799,44 × 574,08 pt chacune, rotation 0°, MediaBox/CropBox/TrimBox/BleedBox/ArtBox à l’origine (0,0), aucun AcroForm ni police incorporée dans l’original**. Le titre des métadonnées est `feuille_dentaire_CNOPS`. Les images originales sont conservées ; la copie publique vierge est testée octet pour octet contre la référence.
+
+### Coordonnées et moteur partagé
+
+La cartographie CNOPS est indépendante des modules CNSS. Le repère est visuel, origine en haut à gauche ; y est la ligne de base du texte. Pour cette rotation 0°, `visualToPdf` donne `xPDF=crop.x+xVisuel`, `yPDF=crop.y+crop.height-yVisuel`. Le moteur `overlay.ts`, extrait du renderer CNSS, charge les deux pages, vérifie leurs boîtes/rotation, incorpore Liberation Sans, mesure chaque texte puis dessine la surcouche. Les coordonnées CNSS restent inchangées. Les fonctions de dates, montants, coches et débordement sont partagées, ainsi que les contrôles de prévisualisation, téléchargement, impression et confirmation FDI.
+
+### Champs calibrés
+
+Les identités de l’assuré et du bénéficiaire restent distinctes. L’assuré fournit aussi le téléphone optionnel et l’adresse. Affiliation et immatriculation ne sont pas interchangées. Les identités, la couverture liée, ces deux numéros et l’INPE sont les minimums techniques de génération. Ce contrôle ne garantit pas la recevabilité administrative du dossier.
+
+Les champs facultatifs absents restent vides avec avertissement. Toutes les dates présentes doivent être calendaires et sont écrites `JJ/MM/AAAA`, ou `JJMMAAAA` dans les cases. Un dépassement mesuré bloque le PDF avec le libellé du champ ; aucune réduction de police ni troncature automatique n’est appliquée.
+
+| Page | Libellé imprimé / champ | Source | x | y | Largeur | Taille | Alignement | Format / contrôle |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
+| 1 | N° du Tél (optionnel) | `policy.insuredPerson.phone` | 579 | 69.5 | 100 | 8 | left | text ; facultatif |
+| 1 | Nom et prénom - assuré | `policy.insuredPerson` | 515 | 101.5 | 179 | 8 | left | text ; requis |
+| 1 | N° Affiliation | `policy.affiliationNumber` | 515 | 115.5 | 179 | 8 | left | text ; requis |
+| 1 | N° Immatriculation | `policy.registrationNumber` | 515 | 129.5 | 179 | 8 | left | text ; requis |
+| 1 | N° CIN - assuré | `policy.insuredPerson.cin` | 515 | 143.5 | 179 | 8 | left | text ; facultatif |
+| 1 | Adresse (ligne 1) | `policy.insuredPerson.address` | 478 | 191.5 | 233 | 8 | left | text ; facultatif |
+| 1 | Adresse (ligne 2) | `policy.insuredPerson.address` | 478 | 203 | 233 | 8 | left | text ; facultatif |
+| 1 | Montant des frais (Dhs) | `manualFields.totalFeesMinor / sum(acts.amountMinor)` | 530 | 214 | 165 | 8 | right | amount ; facultatif |
+| 1 | Nombre de pièces jointes | `manualFields.attachmentCount` | 535 | 228.4 | 160 | 8 | left | text ; facultatif |
+| 1 | Nom et prénom - bénéficiaire | `patient.identity` | 513 | 271.5 | 196 | 8 | left | text ; requis |
+| 1 | Date de naissance | `patient.identity.dateOfBirth` | 565 | 285.7 | 90 | 8 | left | date ; 8 cases ; facultatif |
+| 1 | N° CIN - bénéficiaire | `patient.identity.cin` | 570 | 299.5 | 83 | 8 | left | slots ; 8 cases ; facultatif |
+| 1 | INPE du médecin dentiste | `cnopsDetails.practitionerInpe` | 574 | 346 | 90 | 8 | left | slots ; 9 cases ; requis |
+| 1 | N° Entente Préalable | `cnopsDetails.priorAuthorizationNumber` | 575 | 413.8 | 83 | 8 | left | slots ; 8 cases ; facultatif |
+| 1 | La date de l’accident | `cnopsDetails.accidentDate` | 570 | 438.5 | 90 | 8 | left | date ; 8 cases ; facultatif |
+| 1 | Les causes de l’accident | `cnopsDetails.accidentCauses` | 531 | 450.8 | 212 | 8 | left | text ; facultatif |
+| 1 | Fait à - assuré | `manualFields.declarationPlace` | 474 | 468 | 92 | 8 | left | text ; facultatif |
+| 1 | Le - assuré | `manualFields.declarationDate` | 482 | 479.8 | 90 | 8 | left | date ; 8 cases ; facultatif |
+| 1 | Fait à - dentiste | `manualFields.declarationPlace` | 656 | 468 | 112 | 8 | left | text ; facultatif |
+| 1 | Le - dentiste | `manualFields.declarationDate` | 663 | 479.8 | 90 | 8 | left | date ; 8 cases ; facultatif |
+| 2 | CIM - 10 | `cnopsDetails.diagnosisCodeCIM10` | 581 | 236.5 | 54 | 8 | left | slots ; 3 cases ; facultatif |
+
+Les cases de naissance et d’accident utilisent les décalages `[0,9.8,23.4,33.2,47,56.8,66.6,76.4]` pt. Les dates de déclaration ont un groupement plus serré, mesuré séparément : `[0,9.8,21.6,31.4,43.2,53,62.8,72.6]` pt. Un test de placement extrait les huit chiffres et vérifie leurs limites contre les cases du rendu officiel. Les identifiants sont espacés de 9,8 pt, avec une largeur utile de caractère de 8 pt. Le CIN bénéficiaire et l’accord préalable disposent de huit cases ; une valeur plus longue bloque la génération sans être raccourcie. Les deux lignes d’adresse sont mesurées séparément. Le CIM-10 utilise trois cellules de 18,5 pt, largeur utile de 16 pt.
+
+### Coches propres à la CNOPS
+
+Chaque coche est un `X` de 7 pt, aligné à gauche dans une largeur de 7 pt. La sélection vient exclusivement du brouillon, de la police ou de l’identité patient.
+
+| Page | Libellé | Source | x | y |
+| --- | --- | --- | ---: | ---: |
+| 1 | Entente Préalable | `documentPurpose` | 607.4 | 52.9 |
+| 1 | Exécution | `documentPurpose` | 666.7 | 52.9 |
+| 1 | Conjoint | `policy.insuredPerson.relationship` | 581.8 | 164 |
+| 1 | Enfant | `policy.insuredPerson.relationship` | 651.7 | 164 |
+| 1 | Masculin | `patient.identity.sex` | 570.5 | 312 |
+| 1 | Féminin | `patient.identity.sex` | 651 | 312 |
+| 1 | Soins | `cnopsDetails.careTypes` | 513.7 | 381.2 |
+| 1 | Prothèse | `cnopsDetails.careTypes` | 686.8 | 381.2 |
+| 1 | Orthodontie et O.D.F | `cnopsDetails.careTypes` | 513.7 | 395.7 |
+| 1 | Autres | `cnopsDetails.careTypes` | 686.8 | 395.7 |
+
+Il n’existe pas de case « Lui-même ». Pour un assuré qui est le bénéficiaire, Conjoint et Enfant restent vides et cette représentation est rappelée dans les avertissements. Un lien AUTRE ou une contradiction avec `insuredPerson.isPatient` bloque le PDF.
+
+### INPE et CIM-10
+
+Le champ de page 1 porte le libellé développé **Identifiant National des Professionnels de santé et des Établissements de santé (INPE)** et neuf cases. Le format à neuf chiffres est confirmé par le [communiqué ANAM sur l’INPE](https://anam.ma/anam/wp-content/uploads/2024/02/CP-INPE-AR-ET-FR_230509_211409.pdf). La valeur vient exclusivement de `cnopsDetails.practitionerInpe`, saisie et vérifiée par le praticien ; aucun préremplissage depuis l’INP 084209071 du cabinet n’est effectué. Le format est contrôlé, sans prétendre authentifier l’identifiant auprès de l’ANAM. Un brouillon peut être enregistré sans INPE ; la génération du PDF demande ses neuf chiffres.
+
+Les champs **INP de page 2** se trouvent dans les volets pharmacie/fournisseurs, biologie/radiologie et paramédical. Ils ne sont pas des champs du dentiste et restent vides. Les autres volets, valeurs clés et remboursements ne sont pas remplis par les actes dentaires.
+
+Le **CIM-10 de page 2 comporte trois cellules**. La surcouche reprend seulement un code explicitement saisi sous la forme une majuscule et deux chiffres. Un code détaillé tel que `K02.1` est conservé dans le brouillon mais bloque le PDF : le praticien doit vérifier la valeur attendue sur le formulaire. Aucune catégorie n’est déduite ou tronquée à partir d’un code détaillé. L’absence de code laisse le champ vierge avec avertissement. Le contrôle de forme n’est pas une validation clinique du diagnostic.
+
+### Tableau des actes
+
+Le tableau comporte **neuf lignes**. Les lignes de base calibrées sont `73, 90.5, 108.5, 126.7, 145.2, 163.2, 180.5, 199, 216.5` pt. Tous les champs sont centrés, taille 6,5 pt. Les dates sont validées, les codes/cotations doivent être saisis explicitement et les montants restent en centimes entiers sûrs, affichés en DH avec deux décimales. Le total est la somme seulement si tous les honoraires sont connus, ou une valeur explicite du brouillon ; une contradiction avec une somme complète bloque la génération.
+
+| Colonne imprimée | Source par acte | x | Largeur | Format |
+| --- | --- | ---: | ---: | --- |
+| Dents traitées | `acts[index].toothReference` | 425 | 38 | text |
+| Code des actes | `acts[index].actCode` | 469 | 41 | text |
+| Dates des actes | `acts[index].treatmentDate` | 516 | 42 | date |
+| Lettre clé + Cotation NGAP | `acts[index].ngap` | 564 | 41 | text |
+| Montant facturé | `acts[index].amountMinor` | 651 | 40 | amount |
+
+La source `ngap` est la concaténation des seuls `ngapKeyLetter` et `ngapCoefficient` explicitement présents. Il n’existe pas de colonne de description clinique libre : la description reste dans le brouillon et n’est pas substituée au code. La référence de dent explicite est reprise telle que saisie dans la cellule, sous réserve de sa largeur ; elle ne sélectionne jamais une dent du schéma. Plus de neuf actes ou tout dépassement d’une cellule bloque le PDF, sans ajout de pages ni annexe.
+
+### Schéma dentaire CNOPS
+
+Le dessin montre H au-dessus, B au-dessous, D à gauche du lecteur et G à droite. Les permanentes portent les indices locaux 1–8. Les petites arcades internes comportent chacune cinq dents par quadrant, sans numéros locaux lisibles : le repérage FDI part de la médiane et suit les dents observées jusqu’à l’arrière. Le schéma ne porte pas directement une série FDI à deux chiffres. La correspondance est présentée au dentiste pour confirmation, sans ajouter de chiffres sur l’original.
+
+Les quadrants FDI 1/5 sont H/D, 2/6 H/G, 3/7 B/G et 4/8 B/D. Les 52 centres ci-dessous sont **mesurés sur le modèle CNOPS**, indépendamment de la CNSS, depuis un rendu Poppler de 4000 px de large. Le recadrage de contrôle est `(2550,1300,1000,1260)` px. Conversion : `xVisuel=(2550+xLocal)*799.44/4000`, `yVisuel=(1300+yLocal)*799.44/4000`. Les décimales sont un format de stockage, pas une précision anatomique au millième de point.
+
+| FDI | x | y |
+| --- | ---: | ---: |
+| 11 | 595.783 | 305.586 |
+| 12 | 586.589 | 308.584 |
+| 13 | 579.194 | 314.18 |
+| 14 | 574.398 | 323.773 |
+| 15 | 567.802 | 334.766 |
+| 16 | 564.804 | 347.157 |
+| 17 | 560.407 | 360.747 |
+| 18 | 558.209 | 375.337 |
+| 21 | 606.175 | 305.586 |
+| 22 | 616.568 | 308.584 |
+| 23 | 623.963 | 314.38 |
+| 24 | 627.76 | 323.573 |
+| 25 | 634.556 | 334.366 |
+| 26 | 637.953 | 347.157 |
+| 27 | 641.95 | 360.547 |
+| 28 | 644.548 | 375.337 |
+| 31 | 606.175 | 467.073 |
+| 32 | 614.37 | 465.474 |
+| 33 | 622.564 | 461.277 |
+| 34 | 626.961 | 452.483 |
+| 35 | 632.357 | 443.09 |
+| 36 | 637.553 | 432.497 |
+| 37 | 640.751 | 417.707 |
+| 38 | 644.948 | 402.118 |
+| 41 | 595.983 | 467.273 |
+| 42 | 586.589 | 465.074 |
+| 43 | 578.595 | 461.277 |
+| 44 | 573.198 | 452.083 |
+| 45 | 567.602 | 442.89 |
+| 46 | 562.406 | 432.497 |
+| 47 | 559.008 | 417.707 |
+| 48 | 554.611 | 402.118 |
+| 51 | 598.381 | 327.171 |
+| 52 | 592.785 | 328.97 |
+| 53 | 588.388 | 332.367 |
+| 54 | 585.99 | 337.564 |
+| 55 | 582.392 | 343.959 |
+| 61 | 603.777 | 327.171 |
+| 62 | 609.373 | 328.97 |
+| 63 | 613.97 | 332.767 |
+| 64 | 616.768 | 337.763 |
+| 65 | 620.166 | 343.959 |
+| 71 | 603.977 | 447.886 |
+| 72 | 609.573 | 446.487 |
+| 73 | 614.17 | 443.689 |
+| 74 | 617.567 | 439.692 |
+| 75 | 620.565 | 432.897 |
+| 81 | 598.181 | 447.886 |
+| 82 | 592.585 | 446.487 |
+| 83 | 587.588 | 443.889 |
+| 84 | 584.191 | 439.692 |
+| 85 | 581.393 | 432.897 |
+
+Seules les références uniques de `cnopsDetails.confirmedTeeth` sont marquées ; la sélection CNSS est indépendante. La même interface de confirmation affiche les actes et les numéros FDI, permet de décocher et d’effacer, puis conserve la liste dans le dépôt en mémoire lors de l’enregistrement. Chaque changement invalide le PDF temporaire. Sans confirmation, aucune marque n’est dessinée.
+
+La marque provisoire est le même carré bourgogne évidé de 2,4 pt, trait 0,6 pt, centré dans la dent. Aucune procédure n’est déduite du numéro FDI, du diagnostic ou du code d’acte. La convention reste à valider par le dentiste ; elle ne représente pas une instruction clinique officielle.
+
+### Validation visuelle et impression
+
+Les deux pages des exemples fictifs simple, multi-actes et marqué ont été rendues avec Poppler et inspectées, ainsi qu’un agrandissement des 52 centres. Les textes, coches, dates, colonnes, marques et espaces de signature sont vérifiés sur les images. Les tests comparent aussi les images originales incorporées, les cinq boîtes de chaque page et les pixels avant/après marquage : aucun changement n’est attendu hors des empreintes des dents sélectionnées.
+
+Le format natif est légèrement différent de l’A4 paysage. Le lecteur reçoit une préférence d’absence de mise à l’échelle, mais le pilote peut la remplacer. L’ajustement au papier peut agrandir ou réduire le formulaire. Vérifier format, échelle, marges, lisibilité des petits carrés et retournement recto verso sur l’imprimante du cabinet. Les signatures, cachets et approbations restent vierges. La phase 9.2B ne couvre que la CNOPS ; la FAR est décrite ci-dessous.
+
+
+## Phase 9.2C — Générateur FAR
+
+### Modèle et transformation vérifiés
+
+L’original `docs/references/pdf-templates/feuille_dentaire_FAR.pdf` est conservé, et sa copie publique est identique octet par octet. Il contient deux pages paysage sans champ AcroForm, avec un fond raster. Sur **chacune** des pages, MediaBox, CropBox, BleedBox, TrimBox et ArtBox ont l’origine `(0 ; 8,580014)` et les dimensions `842,25 × 595,499986 pt`, soit un bord supérieur à `604,08`. La rotation est 0°. Le moteur vérifie séparément les origines des deux pages, conserve les boîtes et ajoute seulement une surcouche.
+
+Toutes les coordonnées ci-dessous sont en points visuels, depuis le coin supérieur gauche de la page affichée. La transformation partagée donne ici `xPDF=xVisuel` et `yPDF=8,580014+595,499986-yVisuel`. Les positions de texte indiquent la ligne de base ; les chiffres de naissance ont des emplacements distincts. Le décalage n’est ni appliqué deux fois ni emprunté à la rotation CNSS.
+
+### Inventaire par page et volet
+
+Page 1 : volet dentaire à gauche, adhérent militaire puis bénéficiaire et déclaration à droite. Page 2 : ordonnance à gauche, prestations par profession à droite. Seule la première bande médecin/chirurgien-dentiste de ce dernier volet reçoit les actes. L’ordonnance entière reste vierge, car sa notice demande une rédaction manuscrite du médecin. Les autres professions, zones de pharmacie, contrôle, signatures et cachets restent vierges.
+
+Les champs de page 1 sont en corps 8 pt, alignés à gauche sauf les dirhams alignés à droite. Les largeurs sont des limites contrôlées, sans troncature.
+
+| Volet | Libellé | Source | x | y | Largeur |
+| --- | --- | --- | ---: | ---: | ---: |
+| ADHERENT | N° Carte Nationale d’Identité | `policy.insuredPerson.cin` | 585 | 169 | 110 |
+| ADHERENT | N° de Compte | `policy.militaryAccountNumber` | 539 | 189 | 164 |
+| ADHERENT | N° de Téléphone | `policy.insuredPerson.phone` | 549 | 208 | 177 |
+| ADHERENT | Nom et Prénom - adhérent | `policy.insuredPerson` | 525 | 237 | 190 |
+| ADHERENT | Grade | `policy.militaryRank` | 480 | 254 | 234 |
+| ADHERENT | Unité | `policy.militaryUnit` | 480 | 271 | 234 |
+| ADHERENT | Adresse | `policy.insuredPerson.address` | 490 | 287 | 240 |
+| BENEFICIAIRE | Nom et Prénom - bénéficiaire | `patient.identity` | 537 | 333 | 180 |
+| BENEFICIAIRE | Date de Naissance | `patient.identity.dateOfBirth` | 542 | 348 | 171 |
+| DECLARATION | N° INPE | `farDetails.practitionerInpe` | 548 | 437 | 114 |
+| DECLARATION | Frais engagés | `manualFields.totalFeesMinor / sum(acts.amountMinor)` | 447 | 495 | 28 |
+| DECLARATION | Frais engagés - centimes | `manualFields.totalFeesMinor / sum(acts.amountMinor)` | 484 | 495 | 18 |
+| DECLARATION | Nombre prospectus | `farDetails.prospectusCount` | 616 | 466 | 22 |
+| DECLARATION | Nombre pièces | `manualFields.attachmentCount` | 616 | 489 | 22 |
+| DECLARATION | Le | `manualFields.declarationDate` | 493 | 513 | 140 |
+
+La naissance utilise les décalages x `[17,23,62,68,116,122,128,134]` depuis x=542 pour les huit chiffres JJ MM AAAA. Les dates restent celles saisies, sans date du jour implicite. Le total reprend le total manuel explicite ou la somme exacte des honoraires ; les dirhams et les deux centimes sont séparés par division entière, de part et d’autre du séparateur imprimé. Les quantités de prospectus et de pièces acceptent zéro explicitement saisi et restent dans leurs espaces libres, avant les libellés arabes.
+
+Le N° de compte vient exclusivement de `militaryAccountNumber`, sans substitution de l’immatriculation. Sa nature bancaire ou d’adhésion n’est pas déduite. Aucun emplacement distinct d’immatriculation, de CIN du bénéficiaire ou de référence d’accord préalable n’est vérifié dans ces volets : ces valeurs ne sont pas reportées ailleurs par défaut. L’INPE de neuf chiffres vient de la saisie FAR, jamais de l’INP du cabinet. Le cachet avec INPE de page 2 reste à compléter à la main.
+
+| Case page 1 | Source explicite | x | y |
+| --- | --- | ---: | ---: |
+| Adhérent | `policy.insuredPerson.relationship = LUI_MEME` | 558 | 373 |
+| Conjoint | `policy.insuredPerson.relationship = CONJOINT` | 657 | 373 |
+| Enfant | `policy.insuredPerson.relationship = ENFANT` | 745 | 373 |
+| Maladie | `farDetails.context = MALADIE` | 507 | 397 |
+| Maternité | `farDetails.context = MATERNITE` | 632 | 397 |
+| Accident | `farDetails.context = ACCIDENT` | 752 | 397 |
+| Soins | `farDetails.careType = SOINS` | 184 | 206 |
+| Prothèse | `farDetails.careType = PROTHESE` | 293 | 206 |
+
+Les coches sont des X de 9 pt dans une largeur de 8 pt. Une seule valeur explicite choisit une case dans chaque groupe ; une valeur absente ne signifie jamais vrai. Les champs FAR objet, soins/prothèse et contexte restent sans valeur initiale. Leur absence bloque la génération. La relation AUTRE ne possède pas de case correspondante et bloque également. Le choix DEVIS barre REÇUS à `(177–221 ; 45,3)` ; le choix REÇUS barre DEVIS à `(126–166 ; 45,3)`. Le texte imprimé n’est pas remplacé.
+
+### Actes et capacité
+
+Le tableau dentaire de page 1 offre six lignes pointillées, mais la bande médecin/dentiste de page 2 n’en offre que cinq utilisables. Le générateur accepte donc **un à cinq actes** communs aux deux volets. Un sixième acte bloque avec un message demandant de réduire le brouillon. Il n’ajoute ni page ni annexe.
+
+| Page / volet | Colonne | Source par acte | x | Largeur | Corps |
+| --- | --- | --- | ---: | ---: | ---: |
+| 1 / dentaire | Date | `treatmentDate` | 39 | 63 | 7 |
+| 1 / dentaire | Position dent | `toothReference` | 108 | 40 | 7 |
+| 1 / dentaire | Nature des travaux | `description` | 154 | 137 | 7 |
+| 1 / dentaire | Coefficient | `coefficient` | 298 | 36 | 7 |
+| 1 / dentaire | Montant honoraires | `amountMinor` | 341 | 62 | 7 |
+| 2 / médecin-dentiste | Date des actes | `treatmentDate` | 509 | 49 | 6.5 |
+| 2 / médecin-dentiste | Natures des actes & coefficients | `description` | 564 | 105 | 6.5 |
+| 2 / médecin-dentiste | Montants des Honoraires | `amountMinor` | 675 | 43 | 6.5 |
+
+Lignes de base page 1 : `[94,110.2,126.3,142.5,158.7]`. Page 2 : `[115.5,128.5,140,151.8,163]`. Les cellules sont centrées. La page 1 porte la description et, s’il existe, le code manuel entre parenthèses. La page 2 porte le code manuel ou, à défaut, la description, suivi du coefficient uniquement s’il est saisi. Aucun code, lettre-clé ni coefficient n’est calculé à partir de la description. Une dent ou une cotation facultative absente reste vide avec avertissement. Chaque date et chaque honoraire doivent être renseignés ; zéro DH explicite est accepté. Les centimes restent des entiers exacts ; aucun remboursement n’est calculé.
+
+### Schéma FAR : 52 références imprimées
+
+Le tableau imprime directement les références à deux chiffres. Les rangées, de haut en bas, sont `55…51 / 61…65`, `18…11 / 21…28`, `48…41 / 31…38`, puis `85…81 / 71…75`. Les quadrants 1/5 et 4/8 occupent donc le côté droit du patient, à gauche du lecteur. Les quadrants 2/6 et 3/7 occupent le côté gauche du patient, à droite du lecteur. Les deux dentitions et les huit quadrants ont été vérifiés indépendamment sur les chiffres du modèle FAR.
+
+Les centres viennent d’un rendu Poppler de 4000 px de large, recadré à `(250,1240,1650,330)` px. La conversion est `x=(250+xLocal)*842.25/4000`, `y=(1240+yLocal)*842.25/4000`. Le recadrage vierge est celui de l’interface. Les décimales suivantes décrivent les centres de cellules, sans prétention à une précision anatomique au millième de point.
+
+| FDI | x | y |
+| --- | ---: | ---: |
+| 11 | 206.562 | 290.155 |
+| 12 | 186.769 | 290.155 |
+| 13 | 167.292 | 290.155 |
+| 14 | 147.815 | 290.155 |
+| 15 | 128.338 | 290.155 |
+| 16 | 109.387 | 290.155 |
+| 17 | 89.91 | 290.155 |
+| 18 | 70.328 | 290.155 |
+| 21 | 234.146 | 290.155 |
+| 22 | 253.833 | 290.155 |
+| 23 | 273.31 | 290.155 |
+| 24 | 292.577 | 290.155 |
+| 25 | 312.054 | 290.155 |
+| 26 | 331.636 | 290.155 |
+| 27 | 351.113 | 290.155 |
+| 28 | 370.801 | 290.155 |
+| 31 | 234.146 | 303.947 |
+| 32 | 253.833 | 303.947 |
+| 33 | 273.31 | 303.947 |
+| 34 | 292.577 | 303.947 |
+| 35 | 312.054 | 303.947 |
+| 36 | 331.636 | 303.947 |
+| 37 | 351.113 | 303.947 |
+| 38 | 370.801 | 303.947 |
+| 41 | 206.562 | 303.947 |
+| 42 | 186.769 | 303.947 |
+| 43 | 167.292 | 303.947 |
+| 44 | 147.815 | 303.947 |
+| 45 | 128.338 | 303.947 |
+| 46 | 109.387 | 303.947 |
+| 47 | 89.91 | 303.947 |
+| 48 | 70.328 | 303.947 |
+| 51 | 206.562 | 276.89 |
+| 52 | 186.769 | 276.89 |
+| 53 | 167.292 | 276.89 |
+| 54 | 147.815 | 276.89 |
+| 55 | 128.338 | 276.89 |
+| 61 | 234.146 | 276.89 |
+| 62 | 253.833 | 276.89 |
+| 63 | 273.31 | 276.89 |
+| 64 | 292.577 | 276.89 |
+| 65 | 312.054 | 276.89 |
+| 71 | 234.146 | 317.528 |
+| 72 | 253.833 | 317.528 |
+| 73 | 273.31 | 317.528 |
+| 74 | 292.577 | 317.528 |
+| 75 | 312.054 | 317.528 |
+| 81 | 206.562 | 317.528 |
+| 82 | 186.769 | 317.528 |
+| 83 | 167.292 | 317.528 |
+| 84 | 147.815 | 317.528 |
+| 85 | 128.338 | 317.528 |
+
+La légende imprimée demande une croix pour prothèse/extraction et un cercle pour dent soignée/couronnée. Le recouvrement possible entre couronne et prothèse reste une ambiguïté clinique : le logiciel n’arbitre pas. Pour chaque dent choisie, le dentiste sélectionne **Cercle** ou **Croix**, puis approuve explicitement les dents et symboles. Sans symbole ou sans cette approbation, le PDF marqué est bloqué ; sans sélection, aucun marquage n’est ajouté. Aucun geste n’est déduit des actes, codes ou numéros de dents.
+
+Les cercles sont des ellipses de demi-axes 8,6 × 5,8 pt ; les croix ont des demi-axes 7,2 × 4,6 pt. Le trait bourgogne de 0,55 pt, partiellement transparent, conserve la lecture des chiffres. Les marques restent dans les cellules correspondantes, sans toucher aux cellules voisines. Toute modification des actes, dents ou symboles retire l’approbation et invalide l’aperçu. Les sélections et l’approbation renouvelée restent dans `farDetails.toothMarks` et `farDetails.markingApproved` au seul enregistrement du brouillon en mémoire.
+
+### Validation, vérification et limites
+
+Le générateur exige les identités cohérentes avec la couverture FAR, la naissance du bénéficiaire, la CIN, le téléphone, l’adresse, le compte, le grade et l’unité de l’adhérent, une relation représentable, les trois choix explicites, l’INPE, les deux quantités et la date de déclaration. La portée exacte de l’astérisque de la feuille de maladie reste une question administrative ; ces contrôles couvrent ses champs identifiés. Les dépassements de cellule ou de capacité bloquent le fichier avec un message, sans écrasement des libellés ni réduction automatique du texte.
+
+Trois exemples fictifs (simple, multi-actes, marqué) ont été produits, leurs deux pages rendues avec Poppler et inspectées : identité militaire, deux tableaux, coches, comptages, total, limites de pages et espaces vierges. Un rendu supplémentaire des 52 marques vérifie toutes les cellules et l’absence de miroir. Les tests contrôlent aussi les images originales incorporées, les cinq boîtes, le décalage propre à chaque page, les catégories explicites de chaque organisme et les différences de pixels limitées aux dents choisies.
+
+Le scan est proche d’A4 paysage, à environ 122 ppp. Le lecteur reçoit une préférence sans redimensionnement ; le pilote peut la remplacer. Vérifier sur l’imprimante du cabinet le papier, l’échelle, les marges, le pliage, le recto verso et la lisibilité des petits caractères. La composition papier évoquant une quatrième page, l’acceptation des symboles et les références attendues par la mutuelle demandent une validation du dentiste/organisme. Aucune signature, cachet, autorisation, transmission ou approbation d’assurance n’est généré.

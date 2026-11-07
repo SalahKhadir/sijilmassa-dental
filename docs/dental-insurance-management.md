@@ -150,3 +150,79 @@ Les contrôles restent ceux du prototype frontend ; cette confirmation manuelle 
 - `frontend/tests/insurance-chart.test.mjs` : cartographie, validation, dépôt, préservation PDF et comparaison raster.
 - `frontend/tests/browser/insurance.test.mjs` : confirmation, retrait, effacement, sauvegarde et invalidation du PDF.
 - `docs/dental-insurance-form-mapping.md` et `docs/dental-insurance-management.md` : calibration et workflow.
+
+
+## 8. Phase 9.2B — PDF CNOPS
+
+La feuille CNOPS dispose désormais de **Prévisualiser la feuille CNOPS**, **Télécharger le PDF** et **Imprimer**, à partir des valeurs actuelles du formulaire. L’aperçu est le PDF officiel de deux pages, avec ses dimensions et son orientation d’origine. Il reste temporaire en mémoire, sans écriture de PDF patient dans le répertoire public, localStorage ou IndexedDB, et sans envoi à un service externe. Les seules ressources chargées sont le gabarit vierge et la police depuis l’application locale.
+
+Avant génération, renseigner la couverture CNOPS liée (identités, affiliation et immatriculation), le bénéficiaire et au moins un acte. Le nouvel **INPE du médecin dentiste** doit être saisi explicitement avec neuf chiffres ; l’INP du cabinet n’est pas copié. Cette entrée est conservée dans `cnopsDetails.practitionerInpe` lors de l’enregistrement du brouillon. Les INP de la page 2 correspondent aux autres professionnels et restent vierges.
+
+Le CIM-10 est facultatif pour ce générateur : s’il est absent, un avertissement accompagne le champ vierge. Le modèle possède trois cellules ; une valeur détaillée telle que `K02.1` bloque le PDF au lieu d’être raccourcie. Le praticien vérifie la catégorie à porter sur ce modèle. Aucun diagnostic ni code de nomenclature n’est proposé à partir d’une description. Le tableau contient neuf actes au maximum ; les dépassements de capacité ou de largeur sont signalés et ne produisent aucun PDF tronqué.
+
+Le **Schéma dentaire** reprend le dessin CNOPS et sa cartographie propre de 52 dents. Les permanentes sont numérotées localement 1–8 ; les cinq dents temporaires par quadrant n’ont pas de chiffres locaux lisibles. L’interface indique cette limite et affiche les références FDI pour la confirmation. Chaque coche est une sélection manuelle ; aucune dent n’est choisie à partir des actes. La liste `cnopsDetails.confirmedTeeth` est indépendante des confirmations CNSS. Décocher ou effacer retire les marques, et enregistrer conserve la sélection dans le dépôt en mémoire. Les actes et les dossiers cliniques ne sont pas modifiés.
+
+Le carré évidé reste un repère provisoire sans signification clinique. Le dentiste doit confirmer sa convention d’usage et vérifier la lisibilité à l’impression. Toute modification des champs ou des sélections invalide l’aperçu et révoque son URL. Le téléchargement produit uniquement la copie locale demandée par l’utilisateur. L’impression dépend du lecteur PDF ; si elle est indisponible, télécharger et ouvrir le fichier dans un lecteur local. Vérifier le papier, l’échelle et le retournement recto verso sur une feuille d’essai.
+
+Le remplissage n’est ni une transmission à l’assurance ni une approbation de remboursement. Les signatures, cachets et zones de validation restent vierges. Le rôle dentiste reste celui du prototype frontend, sans nouvelle autorisation serveur ni backend.
+
+### Fichiers de la phase 9.2B
+
+- `frontend/src/lib/insurance/pdf/cnops-mapping.ts`, `cnops-chart-mapping.ts`, `cnops-validation.ts`, `cnops-renderer.ts`, `cnops-service.ts` : coordonnées, validation et génération CNOPS.
+- `frontend/src/lib/insurance/pdf/overlay.ts`, `assets.ts`, `errors.ts` : moteur, formats, ressources locales et erreurs partagés.
+- `frontend/src/lib/insurance/pdf/cnss-renderer.ts`, `cnss-service.ts` : utilisation du moteur partagé, sans modification des coordonnées CNSS.
+- `frontend/src/lib/insurance/tooth-reference.ts`, `types.ts`, `schema.ts` : domaine FDI commun et champs CNOPS optionnels.
+- `frontend/src/components/insurance/insurance-dental-chart.tsx`, `insurance-pdf-actions.tsx` : confirmation et contrôles PDF partagés.
+- `frontend/src/components/insurance/cnss-dental-chart.tsx`, `cnss-pdf-actions.tsx` : points d’entrée CNSS conservés.
+- `frontend/src/components/insurance/insurance-draft-form.tsx` : saisie INPE, instantané CNOPS et sélection indépendante.
+- `frontend/public/pdf-templates/feuille_dentaire_CNOPS.pdf` : copie vierge identique à la référence.
+- `frontend/public/images/cnops-dental-chart.png` : recadrage vierge pour l’interface.
+- `frontend/tests/cnops-pdf.test.mjs`, `frontend/tests/browser/cnops-insurance.test.mjs` : tests CNOPS ciblés.
+- Les deux documents d’assurance : inventaire des champs, décisions de remplissage et limites.
+
+
+## 9. Phase 9.2C — PDF FAR
+
+Le brouillon FAR propose **Prévisualiser la feuille FAR**, **Télécharger le PDF** et **Imprimer**. Le générateur remplit une copie en mémoire des deux pages officielles, sans changer les dimensions, les boîtes, la rotation ou les volets imprimés. Le décalage vertical de 8,580014 pt est vérifié sur chaque page. Le détail des coordonnées figure dans `dental-insurance-form-mapping.md`.
+
+Renseigner dans la couverture FAR l’identité de l’adhérent, sa CIN, son téléphone, son adresse, son N° de compte FAR, son grade et son unité. Le N° de compte est repris tel quel ; l’application ne suppose pas qu’il s’agit d’un compte bancaire et ne le remplace pas par l’immatriculation. Le bénéficiaire et sa date de naissance viennent de la fiche patient. La relation doit correspondre à l’une des cases imprimées Adhérent, Conjoint ou Enfant.
+
+Dans le brouillon, choisir explicitement **Devis / Reçus**, **Soins / Prothèse** et **Maladie / Maternité / Accident**. Ces choix sont vides à l’ouverture d’un nouveau brouillon. Une absence ne coche aucune case et bloque la génération. Le choix Devis/Reçus barre la mention inutile, comme le demande l’original. Saisir l’INPE du médecin dentiste sur neuf chiffres ; l’INP du cabinet n’est pas utilisé. Saisir aussi les nombres de prospectus et de pièces ainsi que la date de déclaration. Zéro est une quantité explicite valide. Ces nouvelles données restent dans le brouillon en mémoire lors de l’enregistrement.
+
+Le même ensemble d’un à cinq actes apparaît dans le tableau dentaire de page 1 et dans la bande médecin/chirurgien-dentiste de page 2. La limite vient de cette seconde bande. Chaque acte exige une date réelle saisie et des honoraires enregistrés. La référence de dent, le code manuel et le coefficient restent facultatifs, avec avertissement lorsqu’ils manquent. Aucun code ni coefficient n’est proposé à partir d’une description. Les montants sont calculés en centimes entiers ; la déclaration sépare les dirhams des deux centimes autour du séparateur imprimé. Un acte de trop ou un texte trop large bloque le PDF avec un message permettant de corriger la saisie.
+
+### Dents et approbation des symboles
+
+Le **Schéma dentaire** affiche le tableau FAR original, les actes et leurs références, puis les 52 dents FDI imprimées, permanentes et temporaires. Aucune dent n’est sélectionnée automatiquement. Cocher une dent l’ajoute à la liste ; choisir ensuite **Cercle** ou **Croix** pour cette dent. Le dessin et la liste affichent le résultat avant génération. Décocher retire la dent ; **Effacer les marques** vide la sélection.
+
+La notice imprimée associe la croix à la prothèse ou à l’extraction, et le cercle à la dent soignée ou couronnée. Elle ne résout pas le recouvrement entre couronne et prothèse. Le dentiste doit donc choisir chaque symbole et approuver explicitement la sélection ; le logiciel ne déduit aucune procédure des codes ou des dents. Une sélection sans symbole ou sans approbation bloque le PDF marqué. Une sélection vide produit un schéma vierge.
+
+Modifier un acte, une dent ou un symbole retire l’approbation et invalide le PDF temporaire. Le praticien doit relire la sélection avant de l’approuver à nouveau. **Enregistrer en brouillon** conserve `farDetails.toothMarks` et `farDetails.markingApproved` ; la réouverture restitue cette confirmation. Ces modifications ne changent aucune consultation ni aucun traitement. Les sélections CNSS et CNOPS restent indépendantes.
+
+### Zones manuelles et limites
+
+L’ordonnance de page 2 reste entièrement vierge : sa notice exige une rédaction manuscrite, y compris l’identité. Les signatures du dentiste, du patient et des autorités, les cachets, les rubriques d’autres professionnels et les zones de contrôle restent vierges. Le cachet de page 2 avec INPE doit être complété manuellement. Une référence d’accord préalable explicitement saisie reste dans le brouillon avec avertissement ; aucun emplacement suffisamment vérifié ne permet de l’imprimer sur ce modèle.
+
+L’aperçu repose sur le PDF généré réel. Toute modification révoque son URL temporaire. Le téléchargement enregistre uniquement la copie demandée sur le poste ; aucun PDF patient n’est écrit dans `public/`, localStorage ou IndexedDB. Les seules ressources chargées sont le modèle vierge et la police locale, sans transmission externe. Si l’impression intégrée est indisponible, télécharger le fichier et l’ouvrir dans un lecteur local.
+
+Les deux pages de trois exemples fictifs ont été rendues et inspectées, ainsi que les 52 marques et les positions des deux tableaux. Un essai papier reste nécessaire pour le format proche A4 paysage, les marges, l’échelle, le recto verso et le pliage évoqué par la notice. L’acceptation des symboles et la composition du dossier papier sont à confirmer auprès du dentiste et de la mutuelle. Le prototype n’apporte ni soumission à l’assurance, ni remboursement calculé, ni autorisation serveur, ni persistance backend.
+
+### Fichiers de la phase 9.2C
+
+Ajouts :
+
+- `frontend/src/lib/insurance/pdf/far-mapping.ts`, `far-chart-mapping.ts`, `far-validation.ts`, `far-renderer.ts`, `far-service.ts` : coordonnées FAR, contrôle des données et génération.
+- `frontend/src/components/insurance/far-dental-chart.tsx` : choix des symboles et approbation.
+- `frontend/public/pdf-templates/feuille_dentaire_FAR.pdf` : copie vierge identique à la référence.
+- `frontend/public/images/far-dental-chart.png` : recadrage officiel vierge.
+- `frontend/tests/far-pdf.test.mjs`, `frontend/tests/browser/far-insurance.test.mjs` : tests ciblés et parcours navigateur.
+
+Adaptations :
+
+- `frontend/src/lib/insurance/pdf/overlay.ts`, `assets.ts`, `errors.ts` : origine vérifiée par page, traits et symboles FAR, chargement local et erreurs.
+- `frontend/src/lib/insurance/types.ts`, `schema.ts`, `repository.ts` : champs FAR optionnels sans catégorie par défaut, symboles validés et invalidation de l’approbation après modification.
+- `frontend/src/components/insurance/insurance-draft-form.tsx` : saisie des données FAR, état des marques, approbation et enregistrement.
+- `frontend/src/components/insurance/insurance-dental-chart.tsx`, `insurance-pdf-actions.tsx` : aperçu large et symboles FAR, actions PDF partagées.
+- `docs/dental-insurance-form-mapping.md`, `docs/dental-insurance-management.md` : inventaire et fonctionnement FAR.
+
+Les coordonnées CNSS/CNOPS et les modules de facturation et d’ordonnance ne sont pas modifiés par cette phase. Aucun commit ni push automatique.

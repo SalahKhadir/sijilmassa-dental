@@ -252,6 +252,13 @@ export function createInMemoryInsuranceRepository(
         },
       };
 
+      // A stored FAR approval cannot silently survive changes to acts or symbols.
+      if (existing.provider === "FAR" && merged.farDetails &&
+        input.farDetails?.markingApproved !== true &&
+        (JSON.stringify(existing.acts) !== JSON.stringify(merged.acts) ||
+          JSON.stringify(existing.farDetails?.toothMarks) !== JSON.stringify(merged.farDetails.toothMarks))) {
+        merged.farDetails = { ...merged.farDetails, markingApproved: false };
+      }
       const parsed = insuranceDraftSchema.parse(merged);
 
       const now = clock().toISOString();

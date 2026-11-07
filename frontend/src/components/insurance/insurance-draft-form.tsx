@@ -22,7 +22,11 @@ import { useConsultations } from "@/components/consultations/consultation-provid
 import { useInsurance } from "./insurance-provider";
 import { CnssPdfActions } from "./cnss-pdf-actions";
 import { CnssDentalChart } from "./cnss-dental-chart";
-import type { CnssPdfInput } from "@/lib/insurance/pdf/cnss-renderer";
+import { InsuranceDentalChart } from "./insurance-dental-chart";
+import { InsurancePdfActions } from "./insurance-pdf-actions";
+import { FarDentalChart } from "./far-dental-chart";
+import { cnopsChartViewport, cnopsToothPositions } from "@/lib/insurance/pdf/cnops-chart-mapping";
+import type { InsurancePdfInput } from "@/lib/insurance/pdf/overlay";
 import type {
   BeneficiaryRelationship,
   CNSSCareType,
@@ -33,6 +37,7 @@ import type {
   FARCareContext,
   FARCareType,
   FARDentalPurpose,
+  FARToothMark,
   InsuranceDocumentDraft,
   InsuranceProvider,
   PatientInsurancePolicy,
@@ -57,6 +62,14 @@ import { clinicDate } from "@/lib/patients/dates";
 import { formatMinor, minorInput, parseMinor } from "@/lib/billing/money";
 import type { Patient } from "@/lib/patients/types";
 import type { Consultation } from "@/lib/consultations/types";
+
+const cnopsChartConfig = {
+  provider: "CNOPS" as const,
+  viewport: cnopsChartViewport,
+  positions: cnopsToothPositions,
+  imageHref: "/images/cnops-dental-chart.png",
+  note: "L’arcade temporaire comporte cinq dents par quadrant sans numéros locaux lisibles. La correspondance FDI part de la ligne médiane ; vérifiez les positions avant confirmation.",
+};
 
 interface InsuranceDraftFormProps {
   initialDraft?: InsuranceDocumentDraft;
@@ -132,10 +145,17 @@ export function InsuranceDraftForm({
     initialDraft?.cnssDetails?.accidentDate || "",
   );
 
+  const [cnopsChartSelection, setCnopsChartSelection] = useState({
+    patientId: initialDraft?.patientId ?? presetPatientId ?? "",
+    teeth: initialDraft?.cnopsDetails?.confirmedTeeth ?? [],
+  });
+  const cnopsConfirmedTeeth = cnopsChartSelection.patientId === selectedPatientId ? cnopsChartSelection.teeth : [];
+  const [cnopsInpe, setCnopsInpe] = useState(initialDraft?.cnopsDetails?.practitionerInpe ?? "");
+
   // CNOPS Details
   const [cnopsCareTypesSelected, setCnopsCareTypesSelected] = useState<
     CNOPSCareType[]
-  >(initialDraft?.cnopsDetails?.careTypes || ["SOINS_1023746"]);
+  >(initialDraft?.cnopsDetails?.careTypes ?? []);
   const [cnopsPriorAuth, setCnopsPriorAuth] = useState(
     initialDraft?.cnopsDetails?.priorAuthorizationNumber || "",
   );
@@ -150,18 +170,28 @@ export function InsuranceDraftForm({
   );
 
   // FAR Details
-  const [farDentalPurpose, setFarDentalPurpose] = useState<FARDentalPurpose>(
-    initialDraft?.farDetails?.dentalPurpose || "DEVIS",
+  const [farDentalPurpose, setFarDentalPurpose] = useState<FARDentalPurpose | "">(
+    initialDraft?.farDetails?.dentalPurpose ?? "",
   );
-  const [farCareType, setFarCareType] = useState<FARCareType>(
-    initialDraft?.farDetails?.careType || "SOINS",
+  const [farCareType, setFarCareType] = useState<FARCareType | "">(
+    initialDraft?.farDetails?.careType ?? "",
   );
-  const [farCareContext, setFarCareContext] = useState<FARCareContext>(
-    initialDraft?.farDetails?.context || "MALADIE",
+  const [farCareContext, setFarCareContext] = useState<FARCareContext | "">(
+    initialDraft?.farDetails?.context ?? "",
   );
   const [farPriorAuth, setFarPriorAuth] = useState(
     initialDraft?.farDetails?.priorAuthorizationNumber || "",
   );
+
+  const [farInpe, setFarInpe] = useState(initialDraft?.farDetails?.practitionerInpe ?? "");
+  const [farProspectusCount, setFarProspectusCount] = useState<number | undefined>(initialDraft?.farDetails?.prospectusCount);
+  const [farChartSelection, setFarChartSelection] = useState({
+    patientId: initialDraft?.patientId ?? presetPatientId ?? "",
+    marks: initialDraft?.farDetails?.toothMarks ?? [] as FARToothMark[],
+    approvalBasis: initialDraft?.farDetails?.markingApproved === true ? JSON.stringify(initialDraft.acts) : "",
+  });
+  const farMarks = farChartSelection.patientId === selectedPatientId ? farChartSelection.marks : [];
+  const farMarkingApproved = farChartSelection.patientId === selectedPatientId && farChartSelection.approvalBasis === JSON.stringify(acts);
 
   // Manual fields
   const [declarationPlace, setDeclarationPlace] = useState(
@@ -270,7 +300,7 @@ export function InsuranceDraftForm({
     [acts],
   );
 
-  const pdfInput: CnssPdfInput | undefined = selectedPatient ? {
+  const pdfInput: InsurancePdfInput | undefined = selectedPatient ? {
     patient: { id: selectedPatient.id, identity: selectedPatient.identity },
     policy: matchedPolicy,
     draft: {
@@ -278,6 +308,16 @@ export function InsuranceDraftForm({
       status: initialDraft?.status ?? "BROUILLON", documentPurpose,
       selectedTreatmentIds, acts,
       cnssDetails: { confirmedTeeth, careTypes: cnssCareTypesSelected, priorAuthorizationNumber: cnssPriorAuth, accidentDate: cnssAccidentDate },
+      cnopsDetails: {
+        careTypes: cnopsCareTypesSelected, practitionerInpe: cnopsInpe, confirmedTeeth: cnopsConfirmedTeeth,
+        priorAuthorizationNumber: cnopsPriorAuth, accidentDate: cnopsAccidentDate,
+        accidentCauses: cnopsAccidentCauses, diagnosisCodeCIM10: cnopsCim10,
+      },
+      farDetails: {
+        dentalPurpose: farDentalPurpose || undefined, careType: farCareType || undefined, context: farCareContext || undefined,
+        priorAuthorizationNumber: farPriorAuth, practitionerInpe: farInpe, prospectusCount: farProspectusCount,
+        toothMarks: farMarks, markingApproved: farMarkingApproved,
+      },
       manualFields: {
         totalFeesMinor: acts.every(a => a.amountMinor !== undefined) ? totalCalculatedMinor : undefined,
         attachmentCount, declarationPlace, declarationDate,
@@ -459,6 +499,8 @@ export function InsuranceDraftForm({
           provider === "CNOPS"
             ? {
                 careTypes: cnopsCareTypesSelected,
+                practitionerInpe: cnopsInpe,
+                confirmedTeeth: cnopsConfirmedTeeth,
                 priorAuthorizationNumber: cnopsPriorAuth.trim() || undefined,
                 accidentDate: cnopsAccidentDate.trim() || undefined,
                 accidentCauses: cnopsAccidentCauses.trim() || undefined,
@@ -468,9 +510,13 @@ export function InsuranceDraftForm({
         farDetails:
           provider === "FAR"
             ? {
-                dentalPurpose: farDentalPurpose,
-                careType: farCareType,
-                context: farCareContext,
+                dentalPurpose: farDentalPurpose || undefined,
+                careType: farCareType || undefined,
+                context: farCareContext || undefined,
+                practitionerInpe: farInpe,
+                prospectusCount: farProspectusCount,
+                toothMarks: farMarks,
+                markingApproved: farMarkingApproved,
                 priorAuthorizationNumber: farPriorAuth.trim() || undefined,
               }
             : undefined,
@@ -892,6 +938,16 @@ export function InsuranceDraftForm({
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1">
+                      <label htmlFor="cnops-inpe" className="block font-semibold">
+                        INPE du médecin dentiste (obligatoire pour le PDF)
+                      </label>
+                      <Input id="cnops-inpe" inputMode="numeric" value={cnopsInpe}
+                        onChange={e => setCnopsInpe(e.target.value)} aria-describedby="cnops-inpe-help" />
+                      <p id="cnops-inpe-help" className="text-muted-foreground">
+                        Saisissez les neuf chiffres de l’INPE vérifié. L’INP du cabinet n’est pas repris automatiquement.
+                      </p>
+                    </div>
+                    <div className="space-y-1">
                       <label
                         htmlFor="cnops-auth"
                         className="block font-semibold"
@@ -902,7 +958,7 @@ export function InsuranceDraftForm({
                         id="cnops-auth"
                         value={cnopsPriorAuth}
                         onChange={(e) => setCnopsPriorAuth(e.target.value)}
-                        placeholder="Ex : AP-CNOPS-001"
+                        placeholder="Référence à reporter (8 cases)"
                         className="text-xs"
                       />
                     </div>
@@ -917,7 +973,7 @@ export function InsuranceDraftForm({
                         id="cnops-cim10"
                         value={cnopsCim10}
                         onChange={(e) => setCnopsCim10(e.target.value)}
-                        placeholder="Ex : K02.1 (Carie de la dentine)"
+                        placeholder="Code confirmé : une majuscule et deux chiffres"
                         className="text-xs"
                       />
                     </div>
@@ -963,10 +1019,11 @@ export function InsuranceDraftForm({
                 <div className="space-y-4 text-xs">
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-1.5">
-                      <label className="block font-semibold">
+                      <label htmlFor="far-purpose" className="block font-semibold">
                         Objet sur la feuille FAR
                       </label>
                       <Select
+                        id="far-purpose"
                         value={farDentalPurpose}
                         onChange={(e) =>
                           setFarDentalPurpose(
@@ -975,6 +1032,7 @@ export function InsuranceDraftForm({
                         }
                         className="text-xs"
                       >
+                        <option value="">Choisir explicitement</option>
                         {farDentalPurposes.map((p) => (
                           <option key={p} value={p}>
                             {farDentalPurposeLabels[p]}
@@ -984,16 +1042,18 @@ export function InsuranceDraftForm({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block font-semibold">
+                      <label htmlFor="far-care-type" className="block font-semibold">
                         Nature des soins
                       </label>
                       <Select
+                        id="far-care-type"
                         value={farCareType}
                         onChange={(e) =>
                           setFarCareType(e.target.value as FARCareType)
                         }
                         className="text-xs"
                       >
+                        <option value="">Choisir explicitement</option>
                         {farCareTypes.map((t) => (
                           <option key={t} value={t}>
                             {farCareTypeLabels[t]}
@@ -1003,14 +1063,16 @@ export function InsuranceDraftForm({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="block font-semibold">Contexte</label>
+                      <label htmlFor="far-context" className="block font-semibold">Contexte</label>
                       <Select
+                        id="far-context"
                         value={farCareContext}
                         onChange={(e) =>
                           setFarCareContext(e.target.value as FARCareContext)
                         }
                         className="text-xs"
                       >
+                        <option value="">Choisir explicitement</option>
                         {farCareContexts.map((c) => (
                           <option key={c} value={c}>
                             {farCareContextLabels[c]}
@@ -1020,6 +1082,16 @@ export function InsuranceDraftForm({
                     </div>
                   </div>
 
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1 font-semibold">INPE du médecin dentiste (FAR)
+                      <Input id="far-inpe" inputMode="numeric" value={farInpe} onChange={event => setFarInpe(event.target.value)} />
+                    </label>
+                    <label className="space-y-1 font-semibold">Nombre de prospectus FAR
+                      <Input id="far-prospectus" type="number" min="0" step="1" value={farProspectusCount ?? ""}
+                        onChange={event => setFarProspectusCount(event.target.value === "" ? undefined : Number(event.target.value))} />
+                    </label>
+                  </div>
+                  <p className="text-muted-foreground">Saisissez l’INPE vérifié (neuf chiffres) et le décompte réel des prospectus. Aucun numéro n’est repris depuis l’INP du cabinet.</p>
                   <div className="space-y-1">
                     <label htmlFor="far-auth" className="block font-semibold">
                       N° d’accord préalable FAR (si applicable)
@@ -1028,9 +1100,10 @@ export function InsuranceDraftForm({
                       id="far-auth"
                       value={farPriorAuth}
                       onChange={(e) => setFarPriorAuth(e.target.value)}
-                      placeholder="Ex : AP-FAR-88"
+                      placeholder="Référence conservée dans le brouillon"
                       className="text-xs sm:w-1/2"
                     />
+                    <p className="mt-1 text-muted-foreground">Aucun champ d’accord préalable n’est vérifié sur ce modèle ; cette référence n’est pas imprimée dans les zones réservées à la mutuelle.</p>
                   </div>
                 </div>
               )}
@@ -1266,12 +1339,14 @@ export function InsuranceDraftForm({
               <div className="rounded-md border border-border/80 bg-muted/10 p-3 text-muted-foreground">
                 <p className="font-semibold text-foreground flex items-center gap-1.5 mb-1">
                   <HelpCircle className="size-3.5 text-secondary" />
-                  Zones réservées au praticien (INP / Cachet)
+                  Zones réservées au praticien ({provider === "CNSS" ? "INP" : "INPE"} / Cachet)
                 </p>
                 <p>
-                  Le numéro INP (084209071) est repris dans le champ du dentiste
-                  sur la feuille CNSS. Les signatures et cachets restent vierges
-                  et doivent être apposés manuellement.
+                  {provider === "FAR"
+                    ? "L’INPE FAR saisi est repris dans l’identification du médecin. Les signatures, cachets et zones de contrôle de la mutuelle restent vierges. La partie ordonnance de page 2 est réservée à la rédaction manuelle du médecin."
+                    : provider === "CNOPS"
+                    ? "L’INPE saisi est repris dans le champ du médecin dentiste. Les INP des autres professionnels restent vides. Les signatures et cachets doivent être apposés manuellement."
+                    : "Le numéro INP (084209071) est repris dans le champ du dentiste sur la feuille CNSS. Les signatures et cachets restent vierges et doivent être apposés manuellement."}
                 </p>
               </div>
             </CardContent>
@@ -1469,6 +1544,22 @@ export function InsuranceDraftForm({
           confirmedTeeth={confirmedTeeth}
           onChange={teeth => setChartSelection({ patientId: selectedPatientId, teeth })}
         />
+      )}
+      {provider === "CNOPS" && (
+        <InsuranceDentalChart config={cnopsChartConfig} acts={acts} confirmedTeeth={cnopsConfirmedTeeth}
+          onChange={teeth => setCnopsChartSelection({ patientId: selectedPatientId, teeth })} />
+      )}
+      {provider === "FAR" && (
+        <FarDentalChart acts={acts} marks={farMarks} approved={farMarkingApproved}
+          onMarksChange={marks => setFarChartSelection({ patientId: selectedPatientId, marks, approvalBasis: "" })}
+          onApprove={approved => setFarChartSelection({ patientId: selectedPatientId, marks: farMarks,
+            approvalBasis: approved ? JSON.stringify(acts) : "" })} />
+      )}
+      {provider === "FAR" && pdfInput && (
+        <InsurancePdfActions key={JSON.stringify(pdfInput)} provider="FAR" input={pdfInput} />
+      )}
+      {provider === "CNOPS" && pdfInput && (
+        <InsurancePdfActions key={JSON.stringify(pdfInput)} provider="CNOPS" input={pdfInput} />
       )}
       {provider === "CNSS" && pdfInput && (
         <CnssPdfActions key={JSON.stringify(pdfInput)} input={pdfInput} />

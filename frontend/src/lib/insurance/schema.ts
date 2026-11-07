@@ -62,18 +62,22 @@ export const dentalInsuranceActSchema = z.object({
   sourceTreatmentId: z.string().optional(),
 });
 
-export const cnssDetailsSchema = z.object({
-  confirmedTeeth: z.array(z.string().regex(/^(?:[1-4][1-8]|[5-8][1-5])$/,
+const confirmedTeethSchema = z.array(z.string().regex(/^(?:[1-4][1-8]|[5-8][1-5])$/,
     "Sélectionnez une référence FDI permanente ou temporaire valide."))
     .max(52)
     .refine(teeth => new Set(teeth).size === teeth.length, "Une dent ne peut être confirmée qu’une fois.")
-    .optional(),
+    .optional();
+
+export const cnssDetailsSchema = z.object({
+  confirmedTeeth: confirmedTeethSchema,
   careTypes: z.array(z.enum(cnssCareTypes)).default([]),
   priorAuthorizationNumber: z.string().trim().max(50).optional().default(""),
   accidentDate: z.string().trim().max(20).optional().default(""),
 });
 
 export const cnopsDetailsSchema = z.object({
+  confirmedTeeth: confirmedTeethSchema,
+  practitionerInpe: z.string().trim().max(9).optional().default(""),
   careTypes: z.array(z.enum(cnopsCareTypes)).default([]),
   priorAuthorizationNumber: z.string().trim().max(50).optional().default(""),
   accidentDate: z.string().trim().max(20).optional().default(""),
@@ -82,9 +86,17 @@ export const cnopsDetailsSchema = z.object({
 });
 
 export const farDetailsSchema = z.object({
-  dentalPurpose: z.enum(farDentalPurposes).default("DEVIS"),
-  careType: z.enum(farCareTypes).default("SOINS"),
-  context: z.enum(farCareContexts).default("MALADIE"),
+  practitionerInpe: z.string().trim().max(9).optional(),
+  prospectusCount: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
+  toothMarks: z.array(z.object({
+    tooth: z.string().regex(/^(?:[1-4][1-8]|[5-8][1-5])$/),
+    symbol: z.enum(["CERCLE", "CROIX"]).optional(),
+  })).max(52).refine(marks => new Set(marks.map(m => m.tooth)).size === marks.length,
+    "Une dent FAR ne peut porter qu’un symbole confirmé.").optional(),
+  markingApproved: z.boolean().optional(),
+  dentalPurpose: z.enum(farDentalPurposes).optional(),
+  careType: z.enum(farCareTypes).optional(),
+  context: z.enum(farCareContexts).optional(),
   priorAuthorizationNumber: z.string().trim().max(50).optional().default(""),
 });
 

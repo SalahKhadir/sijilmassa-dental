@@ -1,0 +1,71 @@
+import assert from "node:assert/strict";
+import { before, after, test } from "node:test";
+import { PDFDocument } from "pdf-lib";
+import { browserHarness } from "./browser-harness.mjs";
+const harness = browserHarness({ port: 3108 });
+before(harness.start);
+after(harness.stop);
+
+test("CNOPS requires explicit INPE and CIM handling, previews, downloads, prints, invalidates and saves chart selections", async () => {
+  const { value, page, errors, external } = await harness.context();
+  try {
+    await page.goto(`${harness.baseURL}/documents/assurances/draft-ins-demo-002`);
+    const pdf = page.getByRole("region", { name: "PDF CNOPS" });
+    const chart = page.getByRole("region", { name: "Schéma dentaire", exact: true });
+    const preview = pdf.getByRole("button", { name: "Prévisualiser la feuille CNOPS", exact: true });
+    await preview.click();
+    await pdf.getByRole("alert").filter({ hasText: "INPE" }).waitFor();
+    assert.equal(await page.locator("#cnops-inpe").inputValue(), "");
+    await page.locator("#cnops-inpe").fill("123456789");
+    await preview.click();
+    await pdf.getByRole("alert").filter({ hasText: "trois cases" }).waitFor();
+    assert.equal(await page.locator("#cnops-cim10").inputValue(), "K02.1");
+    await page.locator("#cnops-cim10").fill("K02");
+    assert.equal(await chart.getByRole("checkbox").count(), 52);
+    assert.equal(await chart.locator("rect[data-tooth]").count(), 0);
+    for (const tooth of [24, 51, 65, 75, 85])
+      await chart.getByRole("checkbox", { name: `Confirmer la dent FDI ${tooth}`, exact: true }).check();
+    await preview.click();
+    const link = pdf.getByRole("link", { name: "Télécharger le PDF" });
+    await link.waitFor();
+    const oldUrl = await link.getAttribute("href");
+    const bytes = await page.evaluate(async url => Array.from(new Uint8Array(await (await fetch(url)).arrayBuffer())), oldUrl);
+    const document = await PDFDocument.load(new Uint8Array(bytes));
+    assert.equal(document.getPageCount(), 2);
+    assert.equal(document.getPages()[0].getWidth(), 799.44);
+    assert.equal(document.getPages()[1].getRotation().angle, 0);
+    const download = page.waitForEvent("download"); await link.click();
+    assert.equal((await download).suggestedFilename(), "feuille-soins-cnops.pdf");
+    await page.waitForFunction(() => !Array.from(document.querySelectorAll("button")).find(b => b.textContent === "Imprimer")?.disabled);
+    await page.evaluate(() => {
+      window.__cnopsPrintCalls = 0;
+      document.querySelector('iframe[title*="PDF CNOPS"]').contentWindow.print = () => window.__cnopsPrintCalls++;
+    });
+    await pdf.getByRole("button", { name: "Imprimer", exact: true }).click();
+    assert.equal(await page.evaluate(() => window.__cnopsPrintCalls), 1);
+    await chart.getByRole("checkbox", { name: "Confirmer la dent FDI 24", exact: true }).uncheck();
+    assert.equal(await link.count(), 0);
+    assert(await page.evaluate(async url => { try { await fetch(url); return false; } catch { return true; } }, oldUrl));
+    assert.equal(await chart.locator('rect[data-tooth="24"]').count(), 0);
+    await chart.getByRole("button", { name: "Effacer les marques" }).click();
+    assert.equal(await chart.locator("rect[data-tooth]").count(), 0);
+    await chart.getByRole("checkbox", { name: "Confirmer la dent FDI 24", exact: true }).check();
+    await page.screenshot({ path: "/tmp/cnops-review/browser-cnops.png", fullPage: true });
+    await page.getByRole("button", { name: "Enregistrer en brouillon", exact: true }).click();
+    await page.waitForURL("**/patients/patient-demo-002");
+    await page.locator('a[href="/documents/assurances/draft-ins-demo-002"]').click();
+    await chart.waitFor();
+    assert(await chart.getByRole("checkbox", { name: "Confirmer la dent FDI 24", exact: true }).isChecked());
+    assert.equal(await page.locator("#cnops-inpe").inputValue(), "123456789");
+    assert.equal(await page.locator("#cnops-cim10").inputValue(), "K02");
+    await preview.click(); await link.waitFor();
+    await page.locator("#cnops-cim10").fill("");
+    assert.equal(await link.count(), 0);
+    await preview.click(); await link.waitFor();
+    await pdf.getByText("CIM - 10 : non renseigné, laissé vide.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("region", { name: "PDF CNSS", exact: true }).count(), 0);
+    assert.deepEqual(await page.evaluate(() => ({ local: Object.keys(localStorage), session: Object.keys(sessionStorage) })), { local: [], session: [] });
+    assert.deepEqual(errors, []);
+    assert.deepEqual(external.filter(url => !url.startsWith("blob:")), []);
+  } finally { await value.close(); }
+});
