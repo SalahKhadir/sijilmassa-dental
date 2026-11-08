@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { loginSchema, type LoginCredentials } from "@/lib/auth/login-schema";
 import {
-  authenticationService,
   AUTHENTICATION_NOTICE,
 } from "@/lib/auth/authentication-service";
+
+import { useAuth } from "./auth-provider";
+import { dashboardFor } from "@/lib/auth/permissions";
 
 // Keep credential controls inert until the client submit handler is attached.
 const subscribeToHydration = () => () => {};
@@ -21,6 +23,8 @@ export function LoginForm() {
     () => true,
     () => false,
   );
+  const { signIn } = useAuth();
+  const submission = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
   const {
@@ -34,10 +38,17 @@ export function LoginForm() {
   });
 
   async function submit(credentials: LoginCredentials) {
+    if (submission.current) return;
+    submission.current = true;
     setNotice("");
     try {
-      const result = await authenticationService.signIn(credentials);
-      setNotice(result.message);
+      const result = await signIn(credentials);
+      if (result.status === "authenticated") {
+        resetField("password");
+        window.location.replace(dashboardFor(result.user.role));
+      } else {
+        setNotice(result.status === "error" ? result.message : "La session n’a pas pu être établie. Réessayez.");
+      }
     } catch {
       setNotice(
         "Le service de connexion est indisponible. Veuillez réessayer ultérieurement.",
@@ -45,27 +56,28 @@ export function LoginForm() {
     } finally {
       resetField("password");
       setShowPassword(false);
+      submission.current = false;
     }
   }
 
   return (
     <form
       noValidate
-      onSubmit={handleSubmit(submit, () => setNotice(""))}
-      aria-describedby="login-prototype-note"
+      onSubmit={(event) => void handleSubmit(submit, () => setNotice(""))(event)}
+      aria-describedby="login-session-note"
       aria-busy={isSubmitting}
       className="space-y-6"
     >
       <noscript>
         <p className="text-sm text-primary">
-          Activez JavaScript pour essayer la validation du formulaire.
+          Activez JavaScript pour vous connecter.
         </p>
       </noscript>
       <p
-        id="login-prototype-note"
+        id="login-session-note"
         className="rounded-lg border border-secondary/30 bg-secondary-tint px-4 py-3 text-sm leading-6 text-foreground"
       >
-        {AUTHENTICATION_NOTICE} Utilisez uniquement des valeurs fictives.
+        {AUTHENTICATION_NOTICE}
       </p>
       <div className="space-y-2">
         <label htmlFor="identifier" className="block text-sm font-semibold">

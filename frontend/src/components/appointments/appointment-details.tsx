@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { PermissionGate } from "@/components/auth/session-boundary";
 import { AppointmentConsultationLink } from "@/components/consultations/appointment-consultation-link";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -183,17 +184,21 @@ export function AppointmentDetails({ id }: { id: string }) {
         </CardContent>
       </Card>
       {patient && (
+        <PermissionGate permission="clinical">
         <AppointmentConsultationLink
           appointmentId={id}
           patientId={patient.id}
         />
+        </PermissionGate>
       )}
       <div className="flex flex-wrap gap-3">
+        <PermissionGate permission="clinical">
         {patient && (
           <Button asChild variant="outline">
             <Link href={`/patients/${patient.id}`}>Voir la fiche patient</Link>
           </Button>
         )}
+        </PermissionGate>
         <Button asChild variant="ghost">
           <Link href={`/rendez-vous?date=${appointment.date}`}>
             Fermer les détails

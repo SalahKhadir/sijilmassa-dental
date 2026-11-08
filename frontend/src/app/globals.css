@@ -140,3 +140,10 @@
     transform: none;
   }
 }
+
+/* Hide a page before a browser back/forward snapshot until its session is checked. */
+html[data-auth-suspended="true"] [data-authenticated-content],
+html[data-auth-suspended="true"] :is([role="dialog"], [role="alertdialog"], [data-radix-popper-content-wrapper]),
+html[data-auth-blocked="true"] :is([role="dialog"], [role="alertdialog"], [data-radix-popper-content-wrapper]) {
+  visibility: hidden;
+}

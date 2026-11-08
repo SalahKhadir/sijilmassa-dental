@@ -1,0 +1,6 @@
+# Keep the backend on loopback behind a future same-origin TLS reverse proxy.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true

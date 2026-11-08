@@ -1,0 +1,6 @@
+package ma.sijilmassa.audit;
+
+public enum AuditEventType {
+    ACCOUNTS_BOOTSTRAPPED, LOGIN_SUCCEEDED, LOGIN_FAILED, LOGOUT,
+    ACCOUNT_DISABLED, LOGIN_THROTTLED, SESSION_REVOKED
+}

@@ -1,0 +1,4 @@
+# Explicit local setup: never starts an HTTP server.
+spring:
+  main:
+    web-application-type: none

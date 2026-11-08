@@ -11,6 +11,8 @@ import {
   Settings2,
 } from "lucide-react";
 import { navigation } from "@/lib/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
+import { canAccessPath } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils";
 const icons = {
   dashboard: LayoutDashboard,
@@ -23,9 +25,11 @@ const icons = {
 };
 export function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { state } = useAuth();
+  if (state.status !== "authenticated") return null;
   return (
     <nav aria-label="Navigation principale" className="space-y-1.5">
-      {navigation.map((item) => {
+      {navigation.filter((item) => canAccessPath(state.user.role, item.href)).map((item) => {
         const active =
           item.href === "/"
             ? pathname === "/"

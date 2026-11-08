@@ -228,7 +228,7 @@ test("clinical encounter from appointment, treatments, draft edits, completion a
       })),
       { local: [], session: [] },
     );
-    assert.deepEqual(await value.cookies(), []);
+    assert((await value.cookies()).every(cookie => cookie.name === "JSESSIONID" && cookie.httpOnly));
     await page.goto(consultationURL);
     await heading(page, "Cette consultation est introuvable.");
     assert.deepEqual(errors, []);

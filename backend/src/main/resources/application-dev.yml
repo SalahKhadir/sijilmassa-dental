@@ -1,0 +1,6 @@
+# HTTP loopback development only. Production cookies remain Secure.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false

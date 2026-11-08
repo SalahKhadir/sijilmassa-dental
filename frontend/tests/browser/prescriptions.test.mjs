@@ -73,7 +73,7 @@ test("blank official PDF previews downloads and requests printing without creati
       .getByRole("status")
       .filter({ hasText: "8 ordonnances affichées" })
       .waitFor();
-    await heading(page, "Feuilles de soins dentaires");
+    await heading(page, "Feuilles de soins dentaires (CNSS, CNOPS, FAR)");
     assert.equal(
       await page
         .getByRole("button", { name: /remplir|générer.*CNSS/i })
@@ -251,7 +251,7 @@ test("patient and consultation entry points preserve valid links through draft e
       })),
       { local: [], session: [] },
     );
-    assert.deepEqual(await value.cookies(), []);
+    assert((await value.cookies()).every(cookie => cookie.name === "JSESSIONID" && cookie.httpOnly));
     await page.goto(url);
     await heading(page, "Cette ordonnance est introuvable.");
     assert.deepEqual(errors, []);

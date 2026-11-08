@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { PermissionGate } from "@/components/auth/session-boundary";
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -186,12 +187,14 @@ export function AppointmentForm({
               className="text-xs leading-5 text-muted-foreground"
             >
               La recherche filtre les choix et conserve la sélection courante.{" "}
+              <PermissionGate permission="clinical">
               <Link
                 href="/patients"
                 className="rounded-sm font-semibold text-primary underline"
               >
                 Ouvrir l’annuaire patients
               </Link>
+              </PermissionGate>
             </p>
             <p
               id="appointment-patient-error"

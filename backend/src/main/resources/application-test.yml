@@ -1,0 +1,6 @@
+# Datasource properties are supplied by the PostgreSQL Testcontainer.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true

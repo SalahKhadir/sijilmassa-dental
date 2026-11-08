@@ -310,7 +310,7 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
       await page.evaluate(() => localStorage.length + sessionStorage.length),
       0,
     );
-    assert.deepEqual(await value.cookies(), []);
+    assert((await value.cookies()).every(cookie => cookie.name === "JSESSIONID" && cookie.httpOnly));
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
   } catch (error) {

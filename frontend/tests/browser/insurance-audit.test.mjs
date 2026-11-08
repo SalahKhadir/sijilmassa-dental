@@ -54,6 +54,7 @@ for(const [index,provider] of ["CNSS","CNOPS","FAR"].entries()) {
       if(index===2){await page.getByLabel("Symbole FAR de la dent 16",{exact:true}).selectOption("CERCLE");await page.getByRole("checkbox",{name:/Je confirme, en tant que dentiste/}).check();}
       await page.getByRole("button",{name:"Enregistrer en brouillon",exact:true}).click();
       await page.waitForURL(`**/patients/${patientId}`);
+      await page.waitForFunction(() => Array.from(document.querySelectorAll('a[href^="/documents/assurances/draft-ins-"]')).some(node => !node.getAttribute("href").includes("draft-ins-demo")));
       const hrefs=await page.locator('a[href^="/documents/assurances/draft-ins-"]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute("href")));
       const href=hrefs.find(href=>!href.includes("draft-ins-demo"));assert(href);
       await page.locator(`a[href="${href}"]`).click();await chart.waitFor();assert(await tooth.isChecked());

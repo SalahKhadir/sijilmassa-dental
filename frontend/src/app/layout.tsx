@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/components/auth/auth-provider";
+import { readServerSession } from "@/lib/auth/server-session";
 export const metadata: Metadata = {
   title: {
     default: "Tableau de bord | Sijilmassa Dental",
@@ -7,9 +9,10 @@ export const metadata: Metadata = {
   },
   description: "Espace de gestion du cabinet dentaire Sijilmassa Dental.",
 };
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const initial = await readServerSession();
   return (
     <html lang="fr-MA">
       <body>
@@ -19,7 +22,7 @@ export default function RootLayout({
         >
           Aller au contenu principal
         </a>
-        {children}
+        <AuthProvider initial={initial}>{children}</AuthProvider>
       </body>
     </html>
   );

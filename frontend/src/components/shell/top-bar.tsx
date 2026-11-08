@@ -2,9 +2,13 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { navigation } from "@/lib/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
+import { roleLabels } from "@/lib/auth/permissions";
+import { Button } from "@/components/ui/button";
 import { MobileNavigation } from "./mobile-navigation";
 export function TopBar({ brand }: { brand: ReactNode }) {
   const path = usePathname();
+  const { state, signOut } = useAuth();
   const title =
     navigation.find(
       (item) =>
@@ -22,11 +26,12 @@ export function TopBar({ brand }: { brand: ReactNode }) {
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <span className="rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground">
-          Démonstration
+          {state.status === "authenticated" ? roleLabels[state.user.role] : "Session"}
         </span>
         <span className="hidden border-l pl-4 text-sm font-medium md:inline">
-          Espace cabinet
+          {state.status === "authenticated" ? state.user.username : ""}
         </span>
+        <Button variant="ghost" onClick={() => void signOut()}>Se déconnecter</Button>
       </div>
     </header>
   );

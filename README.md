@@ -1,6 +1,6 @@
 # Sijilmassa Dental
 
-Application de gestion d’un cabinet dentaire au Maroc, destinée à fonctionner sur le réseau local du cabinet. **Phase 7 — facturation, paiements et suivi financier sur données fictives.**
+Application de gestion d’un cabinet dentaire au Maroc, destinée à fonctionner sur le réseau local du cabinet. **Phase 8.2A — connexion Next.js intégrée aux sessions Spring Boot.** Le frontend conserve ses données fictives en mémoire.
 
 ## Démarrer le frontend
 
@@ -12,7 +12,7 @@ pnpm install
 pnpm dev
 ```
 
-Ouvrir [http://localhost:3000](http://localhost:3000). Aucune variable d’environnement, clé API, police distante ou base de données n’est nécessaire. Les ressources de l’application sont locales après installation. Le serveur Next.js doit rester actif ; cette phase ne fournit pas de mode PWA avec cache hors ligne.
+Configurer `frontend/.env.local` à partir de `.env.example` et démarrer le backend avec PostgreSQL selon [la documentation d’authentification](docs/frontend-authentication.md). Ouvrir [http://localhost:3000](http://localhost:3000) ; l’accès au cabinet exige une session Spring Boot. Aucune clé API ou police distante n’est nécessaire. Les ressources de l’application sont locales après installation. Le serveur Next.js doit rester actif ; cette phase ne fournit pas de mode PWA avec cache hors ligne.
 
 Pour vérifier la compilation et lancer le résultat localement :
 
@@ -37,7 +37,7 @@ pnpm start
 
 | Route | Écran |
 | --- | --- |
-| `/login` | Prototype de connexion |
+| `/login` | Connexion aux comptes locaux Spring Boot |
 | `/` | Tableau de bord |
 | `/patients` | Patients |
 | `/rendez-vous` | Calendrier du cabinet |
@@ -73,9 +73,9 @@ La typographie utilise Arial/Helvetica/sans-serif, sans téléchargement. Les co
 
 Les indicateurs patients, rendez-vous et financiers du tableau de bord lisent les dépôts mémoire partagés. Les charges, les encaissements et le reste à encaisser sont calculés séparément à partir des factures et des règlements. Les montants sont des entiers en centimes ; les calculs intermédiaires utilisent BigInt avec contrôle des limites. Le frontend cible ES2020 et nécessite un navigateur moderne.
 
-Les liens rapides ouvrent l’annuaire patients, l’agenda partagé et les modules en préparation. Le formulaire `/login` utilise React Hook Form et Zod pour valider des valeurs fictives. Son service typé renvoie l’état « indisponible » et un message explicite sur la future intégration Spring Boot. Le mot de passe est effacé après soumission. Le tableau de bord reste accessible comme aperçu de développement.
+Les liens rapides ouvrent l’annuaire patients, l’agenda partagé et les modules en préparation. Le formulaire `/login` utilise React Hook Form et Zod et appelle désormais Spring Boot à travers le proxy Next.js de même origine. Le mot de passe est effacé après soumission. La session est restaurée par `/auth/me` et le cabinet n’est plus accessible librement. Les données métier restent fictives en mémoire.
 
-Le répertoire `backend/` reste réservé aux phases futures. `docs/` contient les consignes de sélection des composants visuels. Aucun déploiement, Docker ou schéma de base de données n’est ajouté. Le dépôt distinct `kaoutar_facturation` reste inchangé. La phase 7 conserve des données fictives en mémoire.
+Le répertoire `backend/` contient désormais le socle Spring Boot de phase 8.1 et un PostgreSQL Docker de développement. Les comptes et l’audit de sécurité sont persistants ; les données métier restent en mémoire, tandis que le frontend utilise les sessions du backend. Le dépôt distinct `kaoutar_facturation` reste inchangé.
 
 ## Validation de la phase 1
 
@@ -211,3 +211,22 @@ La phase 9.1 établit la fondation de données et vérifie les gabarits officiel
 - Tous les formulaires originaux sont des rasters plats (0 AcroForms interactifs).
 
 La documentation détaillée de la phase 9.1 est consultable dans [`docs/dental-insurance-management.md`](docs/dental-insurance-management.md) et la cartographie des gabarits dans [`docs/dental-insurance-form-mapping.md`](docs/dental-insurance-form-mapping.md).
+
+
+## Socle backend — phase 8.1
+
+Java 21 LTS, Spring Boot 4.1.2 et Maven Wrapper 3.9.11. PostgreSQL 17 est fourni pour le développement par `backend/compose.yml`, avec volume persistant, contrôle de santé et port limité à localhost. Flyway établit l’historique sans table métier ; Hibernate utilise `ddl-auto=validate`.
+
+Depuis `backend/`, copier `.env.example` vers `.env`, renseigner les deux mots de passe locaux distincts, puis :
+
+```sh
+docker compose --env-file .env up -d --wait postgres
+set -a
+. ./.env
+set +a
+./mvnw spring-boot:run
+```
+
+La phase 8.2 ajoute login, logout, `/auth/me` et un endpoint CSRF sous `/api/v1/auth`, avec sessions serveur, BCrypt et rôles DENTIST/RECEPTIONIST. Les comptes initiaux sont créés uniquement par une commande locale interactive sur une base sans utilisateur. GET `/actuator/health` reste public et masque les détails ; les autres routes restent refusées sans règle explicite. Les erreurs suivent RFC 9457, CSRF est conservé et aucun CORS public n’est configuré.
+
+`./mvnw test` et `./mvnw verify` incluent les tests PostgreSQL Testcontainers et nécessitent un démon Docker accessible. Les commandes, variables, résultats de validation et limites sont documentés dans [backend/README.md](backend/README.md) et [docs/backend-architecture.md](docs/backend-architecture.md). La phase 8.2A connecte le frontend aux sessions serveur ; [son architecture, ses tests et ses limites](docs/frontend-authentication.md) décrivent le proxy, CSRF et les rôles. La phase 8.3A de persistance patients reste à réaliser. Les descriptions historiques des phases 1 à 7 ne décrivent pas l’état actuel de l’authentification.

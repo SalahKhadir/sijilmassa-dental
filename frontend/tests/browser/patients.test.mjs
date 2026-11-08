@@ -250,7 +250,7 @@ test("directory, validation, medical checkboxes, creation, editing, navigation a
       await page.evaluate(() => localStorage.length + sessionStorage.length),
       0,
     );
-    assert.deepEqual(await value.cookies(), []);
+    assert((await value.cookies()).every(cookie => cookie.name === "JSESSIONID" && cookie.httpOnly));
     await page.reload();
     await heading(page, "Patient introuvable");
     await page.goto(`${baseURL}/patients/id-inconnu/modifier`);
@@ -355,7 +355,7 @@ test("responsive layouts, keyboard, reduced motion, treatment examples and exist
     }
     for (const [path, title] of [
       ["/", "Tableau de bord"],
-      ["/login", "Connexion"],
+      ["/login", "Tableau de bord"],
       ["/rendez-vous", "Rendez-vous"],
       ["/consultations", "Consultations"],
       ["/facturation", "Facturation"],
@@ -381,8 +381,9 @@ test("responsive layouts, keyboard, reduced motion, treatment examples and exist
   }
 });
 
-test("login prototype preserves validation, password visibility and unavailable authentication", async () => {
+test("login preserves validation, password visibility and generic real authentication errors", async () => {
   const { value, page, errors, external } = await context({
+    anonymous: true,
     viewport: { width: 390, height: 900 },
   });
   try {
@@ -413,7 +414,7 @@ test("login prototype preserves validation, password visibility and unavailable 
       .click();
     await page
       .getByRole("status")
-      .filter({ hasText: "Connexion indisponible" })
+      .filter({ hasText: "Connexion refusée" })
       .waitFor();
     assert.equal(page.url(), `${baseURL}/login`);
     assert.equal(await password.inputValue(), "");
@@ -422,7 +423,7 @@ test("login prototype preserves validation, password visibility and unavailable 
       await page.evaluate(() => localStorage.length + sessionStorage.length),
       0,
     );
-    assert.deepEqual(await value.cookies(), []);
+    assert((await value.cookies()).every(cookie => cookie.name === "JSESSIONID" && cookie.httpOnly));
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
   } finally {

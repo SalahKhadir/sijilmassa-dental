@@ -182,7 +182,7 @@ test("consultation invoice permits price override and exact partial payments sha
       ]),
       [[], []],
     );
-    assert.deepEqual(await value.cookies(), []);
+    assert((await value.cookies()).every(cookie => cookie.name === "JSESSIONID" && cookie.httpOnly));
     await page.goto(url);
     await heading(page, "Cette facture est introuvable.");
     assert.deepEqual(errors, []);

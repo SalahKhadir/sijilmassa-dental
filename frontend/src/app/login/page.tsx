@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { readServerSession } from "@/lib/auth/server-session";
+import { dashboardFor } from "@/lib/auth/permissions";
+import { SessionBoundary } from "@/components/auth/session-boundary";
 import {
-  ArrowLeft,
   CalendarDays,
   FolderHeart,
   ReceiptText,
@@ -11,7 +13,9 @@ import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = { title: "Connexion" };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const session = await readServerSession();
+  if (session.status === "authenticated") redirect(dashboardFor(session.user.role));
   return (
     <main
       id="contenu"
@@ -82,18 +86,9 @@ export default function LoginPage() {
           <p className="mt-3 mb-8 text-sm leading-6 text-muted-foreground">
             Retrouvez votre espace Sijilmassa Dental.
           </p>
-          <LoginForm />
+          <SessionBoundary login><LoginForm /></SessionBoundary>
           <div className="mt-8 border-t pt-6">
-            <Link
-              href="/"
-              className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-semibold text-primary hover:underline"
-            >
-              <ArrowLeft aria-hidden="true" className="size-4" />
-              Explorer le tableau de bord de démonstration
-            </Link>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              Aperçu de développement en accès libre.
-            </p>
+            <p className="text-xs leading-5 text-muted-foreground">Accès réservé aux comptes créés localement. Aucun compte ne peut être créé depuis cette page.</p>
           </div>
         </div>
       </section>
