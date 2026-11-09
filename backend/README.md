@@ -1,6 +1,6 @@
-# Backend — phase 8.2
+# Backend — phase 8.3A
 
-Backend local avec comptes persistants, authentification par session et autorisations serveur. Aucun endpoint patient ou autre module métier n’est livré. Le frontend utilise ces sessions depuis la phase 8.2A ; ses dépôts métier restent en mémoire.
+Backend local avec comptes persistants, authentification par session et autorisations serveur. Le module patients persiste désormais l’identité administrative et le dossier médical séparément. Les autres modules métier ne sont pas persistants. Le frontend utilise ces sessions depuis la phase 8.2A ; ses dépôts métier restent en mémoire.
 
 ## Prérequis
 
@@ -166,3 +166,14 @@ Utiliser une origine unique en HTTPS avec `prod`, les cookies Secure et un proxy
 ## Intégration frontend — phase 8.2A
 
 Le frontend utilise désormais les sessions Spring à travers un proxy Next.js de même origine. Le contrat backend, CSRF et les cookies restent inchangés. Voir [l’intégration frontend](../docs/frontend-authentication.md) pour le proxy, la restauration, le logout, les restrictions provisoires de présentation et les tests. Les dépôts métier restent fictifs et ne sont pas protégés comme des données cliniques persistantes.
+
+
+## Patients persistants — phase 8.3A
+
+V3 ajoute l’identité administrative, le dossier médical, ses catégories et la cible patient des événements d’audit. V1/V2 sont conservées. `ddl-auto=validate`, sessions, CSRF et refus par défaut restent actifs. Aucun patient n’est inséré au démarrage.
+
+Les deux rôles accèdent à la création, recherche paginée, lecture et modification administratives sous `/api/v1/patients`. Le dossier `/api/v1/patients/{id}/medical-record` et la création combinée `/api/v1/patients/with-medical-record` sont réservés au dentiste. Les PUT exigent une version ; les conflits répondent 409. `inactive` archive sans supprimer et permet une restauration versionnée.
+
+Le [contrat patient complet](../docs/patient-backend-contract.md) documente les champs, DTO, exemples, validations, audits et adaptations requises en phase 8.3B. Le frontend et son proxy ne sont pas encore reliés à ces endpoints patients ; leurs fichiers restent inchangés.
+
+Validation : `./mvnw verify` réussit avec **53 tests**, dont **25 tests patients** sur PostgreSQL et sessions HTTP réelles, sans test ignoré. Les événements d’audit font partie de la transaction de mutation et ne contiennent que les UUID, le type et la date. Les détails d’erreur serveur pgJDBC sont désactivés ; les journaux PostgreSQL natifs doivent également être protégés avant usage réel.

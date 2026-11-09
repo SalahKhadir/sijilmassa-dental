@@ -56,7 +56,7 @@ export function PatientNotFound() {
         fictives sont réinitialisées au rechargement.
       </p>
       <Button asChild variant="outline">
-        <Link href="/patients">
+        <Link href="/demo/patients">
           <ArrowLeft aria-hidden="true" />
           Retour à l’annuaire
         </Link>

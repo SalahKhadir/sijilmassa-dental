@@ -10,7 +10,6 @@ export function dashboardFor(role: Role): string {
 }
 export function canAccessPath(role: Role, pathname: string): boolean {
   if (role === "DENTIST") return true;
-  // Mixed patient, billing and document screens contain clinical content today.
-  // Keep them closed until administrative projections are explicitly approved.
+  if (/^\/patients(?:\/(?:nouveau|[0-9a-fA-F-]{36}(?:\/modifier)?))?\/?$/.test(pathname)) return true;
   return pathname === "/rendez-vous" || pathname.startsWith("/rendez-vous/");
 }

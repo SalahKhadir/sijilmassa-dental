@@ -1,16 +1,16 @@
-# Architecture backend — phase 8.2
+# Architecture backend — phase 8.3A
 
 ## Périmètre
 
 Le backend est un monolithe modulaire Java 21, Spring Boot 4.1.2, Spring MVC, JPA, Validation, Security, Actuator, PostgreSQL et Flyway. Le parent Spring Boot gère les versions compatibles ; aucune dépendance cloud, Lombok ou H2 n’est ajoutée. Le Maven Wrapper fixe Maven 3.9.11. [Spring Boot documente cette gestion des dépendances](https://docs.spring.io/spring-boot/reference/using/build-systems.html).
 
-Les packages créés sont `ma.sijilmassa`, `common.api`, `common.exception`, `security` et `audit`. Aucun contrôleur CRUD métier n’est ajouté. `V1__foundation.sql` reste inchangée ; V2 ajoute uniquement `application_user` et `security_audit_event`. L’identité utilise un UUID, un identifiant normalisé unique, un hash BCrypt coût 12, un rôle, un état actif, une version de session et des horodatages UTC. L’audit référence les UUID connus sans recopier les saisies ou secrets.
+Les packages actifs sont `common.api`, `common.exception`, `security`, `audit` et `patient`, sous `ma.sijilmassa`. Les API d’authentification et patients sont livrées ; les autres modules métier ne sont pas persistants. V1 établit l’historique, V2 ajoute les comptes et l’audit de sécurité, V3 sépare identité patient et dossier médical. Les identités utilisent des UUID et les réponses ne sérialisent pas les entités JPA.
 
 ## Références du frontend
 
 Les contrats examinés sont `frontend/src/lib/{patients,appointments,consultations,prescriptions,billing,insurance}/types.ts` et les implémentations de dépôts correspondantes. Les documents patients, clinique et facturation décrivent les limites du prototype.
 
-- `Patient` rassemble aujourd’hui identité, questionnaire, allergies et antécédents. Le futur backend devra séparer les projections administratives et cliniques, sans sérialiser cette structure entière pour la réception.
+- `Patient` rassemble aujourd’hui identité, questionnaire, allergies et antécédents. Le backend sépare désormais les projections administratives et cliniques, sans sérialiser cette structure entière pour la réception.
 - Les rendez-vous référencent un patient ; une consultation peut référencer un rendez-vous de ce patient. Les consultations et soins ont leur propre cycle de vie.
 - Les ordonnances et documents d’assurance restent distincts des consultations. Les confirmations dentaires propres aux organismes doivent être conservées explicitement.
 - Les factures ont un cycle brouillon/émise/annulée et les paiements sont distincts. Les montants restent exacts en centimes MAD, avec entiers ou décimaux exacts côté Java/PostgreSQL.
@@ -18,7 +18,7 @@ Les contrats examinés sont `frontend/src/lib/{patients,appointments,consultatio
 
 Ces concepts guideront les migrations futures. Ils ne justifient pas la création immédiate de toutes les tables. Les contraintes, transactions et règles de modification devront être définies avec chaque module.
 
-## Frontières prévues
+## Frontières des modules
 
 | Module futur | Responsabilité |
 | --- | --- |
@@ -51,13 +51,11 @@ Les événements d’audit sont l’initialisation, les connexions réussies et 
 
 Les endpoints, le bootstrap, le contrat CSRF et la matrice de rôles sont détaillés dans [backend/README.md](../backend/README.md). Le frontend appelle ces endpoints depuis la phase 8.2A ; ses données métier restent des fixtures de démonstration.
 
-## Phase 8.3 — persistance patients
+## Phase 8.3B — intégration frontend patients
 
-Définir les DTO administratifs et cliniques, la validation serveur, la politique de CIN, la recherche paginée, les index, les références uniques et les réponses 404/409. Prévoir un contrôle de concurrence optimiste pour les deux postes, des transactions et des tests PostgreSQL/RBAC. Les états « non renseigné » du questionnaire doivent rester distincts d’une réponse négative. Les dates civiles ne doivent pas être converties en instants UTC.
+L’API persistante de phase 8.3A est détaillée dans [le contrat patients](patient-backend-contract.md). Le frontend devra utiliser des DTO administratifs et cliniques distincts, la pagination serveur, les UUID et les versions de concurrence. Les états « non renseigné » du questionnaire doivent rester distincts d’une réponse négative et les dates civiles ne doivent pas être converties en instants UTC.
 
-Une migration dédiée créera alors les premières tables patients avec leurs contraintes. Remplacer ensuite le dépôt mémoire par un adaptateur HTTP typé ; aucun adaptateur de persistance patient n’est encore livré. Les pièces PDF et générateurs existants restent inchangés.
-
-L’accès LAN prévu utilise une même origine : le navigateur appelle `/api/v1`, un futur proxy local transmet ce préfixe à Spring et les pages à Next.js. Le backend et PostgreSQL restent en loopback. Cela évite de dépendre de CORS interorigines pour les cookies. Le proxy devra fournir TLS et une politique explicite d’en-têtes fiables ; cette phase ne configure aucun déploiement ni proxy.
+V3 crée les tables patients avec leurs contraintes ; aucun adaptateur de persistance patient n’est encore livré au frontend. Les pièces PDF et générateurs existants restent inchangés. L’allowlist du proxy Next.js, aujourd’hui limitée à l’authentification, devra évoluer explicitement pour ces routes, avec cookies, CSRF et absence de cache. L’accès LAN prévu reste sous une même origine HTTPS ; le backend et PostgreSQL restent sur loopback. Aucun déploiement ou proxy TLS n’est configuré ici.
 
 ## Exploitation future et sauvegardes
 
@@ -89,3 +87,20 @@ Cette validation ne constitue pas un audit de sécurité complet. L’intégrati
 ## Intégration frontend — phase 8.2A
 
 Le frontend utilise désormais les sessions Spring à travers un proxy Next.js de même origine. Le contrat backend, CSRF et les cookies restent inchangés. Voir [l’intégration frontend](../docs/frontend-authentication.md) pour le proxy, la restauration, le logout, les restrictions provisoires de présentation et les tests. Les dépôts métier restent fictifs et ne sont pas protégés comme des données cliniques persistantes.
+
+
+## Phase 8.3A — premier domaine persistant
+
+Le package `patient` regroupe DTO explicites, validation, mapping, services transactionnels, contrôleurs REST et entités administratives/cliniques séparées. L’entité administrative ne référence pas le dossier médical : les chemins d’annuaire et de détail administratif ne peuvent pas le sérialiser par inadvertance.
+
+V3 crée `patient`, `patient_medical_record`, `patient_history_condition`, `patient_allergy_category` et la séquence des références. Les catégories sont typées et les questions fixes versionnées ; aucune réponse n’est stockée sous forme de JSON arbitraire. V1/V2 restent inchangées. Aucun lien SQL ne pointe vers un module futur.
+
+Le dentiste et l’accueil disposent des opérations administratives explicites. Seul le dentiste lit/modifie le dossier médical et crée un patient avec ses réponses initiales. Contrôleur et service appliquent les politiques de rôle, en plus de l’allowlist HTTP. Les routes non prévues restent refusées.
+
+L’identité et le dossier médical ont des versions optimistes indépendantes. Un verrou partagé du parent pendant l’écriture clinique coordonne le statut actif avec l’archivage. Les écritures et l’audit sont atomiques ; les événements patients ne contiennent que cible, acteur, type et instant. Aucune suppression physique ou historisation du contenu médical n’est ajoutée.
+
+Le [contrat patients](patient-backend-contract.md) contient le mapping audité, les décisions de confidentialité, les exemples JSON, les limites de recherche, les règles d’archivage et les exigences exactes de phase 8.3B. La persistance des patients est livrée côté backend ; le frontend conserve ses dépôts mémoire et son proxy d’authentification.
+
+`./mvnw verify` : **53 tests réussis**, dont **25 tests patients** sur un serveur HTTP réel et PostgreSQL Testcontainers, aucune erreur et aucun test ignoré. Sont vérifiés migrations, JPA, FK/contraintes, rôles, CSRF, sérialisation, questionnaire, rollback sur refus d’audit, références concurrentes et conflits de versions. Les empreintes V1/V2 et frontend/PDF sont conservées.
+
+Le test de passage V2 → V3 vérifie aussi la conservation d’un compte et d’un événement d’authentification existants, ainsi que les checksums des migrations appliquées.

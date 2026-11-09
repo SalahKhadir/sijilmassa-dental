@@ -100,7 +100,7 @@ export function InvoiceDetails({ id }: { id: string }) {
       )}
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="outline">
-          <Link href={`/patients/${patient.id}`}>Voir le dossier patient</Link>
+          <Link href={`/demo/patients/${patient.id}`}>Voir le dossier patient</Link>
         </Button>
         <Button asChild variant="ghost">
           <Link href="/facturation">Retour à la facturation</Link>

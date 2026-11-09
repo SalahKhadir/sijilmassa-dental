@@ -1,6 +1,6 @@
 # Sijilmassa Dental
 
-Application de gestion d’un cabinet dentaire au Maroc, destinée à fonctionner sur le réseau local du cabinet. **Phase 8.2A — connexion Next.js intégrée aux sessions Spring Boot.** Le frontend conserve ses données fictives en mémoire.
+Application de gestion d’un cabinet dentaire au Maroc, destinée à fonctionner sur le réseau local du cabinet. **Phase 8.3B — interface patients reliée à l’API Spring Boot.** Les modules rendez-vous, consultations, prescriptions, facturation et assurances conservent leurs données synthétiques en mémoire. La validation réelle est confirmée en phase 8.3B.1 : 53 tests backend, 206 tests unitaires frontend et 30 parcours navigateur réussis ; voir [le rapport d’intégration patients](docs/patient-frontend-integration.md).
 
 ## Démarrer le frontend
 
@@ -230,3 +230,10 @@ set +a
 La phase 8.2 ajoute login, logout, `/auth/me` et un endpoint CSRF sous `/api/v1/auth`, avec sessions serveur, BCrypt et rôles DENTIST/RECEPTIONIST. Les comptes initiaux sont créés uniquement par une commande locale interactive sur une base sans utilisateur. GET `/actuator/health` reste public et masque les détails ; les autres routes restent refusées sans règle explicite. Les erreurs suivent RFC 9457, CSRF est conservé et aucun CORS public n’est configuré.
 
 `./mvnw test` et `./mvnw verify` incluent les tests PostgreSQL Testcontainers et nécessitent un démon Docker accessible. Les commandes, variables, résultats de validation et limites sont documentés dans [backend/README.md](backend/README.md) et [docs/backend-architecture.md](docs/backend-architecture.md). La phase 8.2A connecte le frontend aux sessions serveur ; [son architecture, ses tests et ses limites](docs/frontend-authentication.md) décrivent le proxy, CSRF et les rôles. La phase 8.3A de persistance patients reste à réaliser. Les descriptions historiques des phases 1 à 7 ne décrivent pas l’état actuel de l’authentification.
+
+
+## Patients persistants — phase 8.3B
+
+L’annuaire `/patients` utilise l’API authentifiée, les UUID/références serveur, la pagination et les versions optimistes. L’accueil accède aux informations administratives ; seul le dentiste ouvre le questionnaire et les antécédents. Archivage et restauration conservent le dossier. Une panne ne déclenche aucun repli vers les fixtures.
+
+Les anciens écrans patients sont accessibles au dentiste sous `/demo/patients`, pour conserver les parcours métier synthétiques sans les relier aux dossiers enregistrés. Les sections historiques ci-dessus restent des comptes rendus de phases antérieures. Le [rapport de phase 8.3B](docs/patient-frontend-integration.md) décrit les fichiers, contrats, démarrage, tests et limites actuels. Aucun template PDF ni mapping dentaire n’est modifié.

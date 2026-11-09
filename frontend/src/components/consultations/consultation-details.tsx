@@ -92,7 +92,7 @@ export function ConsultationDetails({ id }: { id: string }) {
       )}
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="secondary">
-          <Link href={`/patients/${patient.id}/clinique`}>
+          <Link href={`/demo/patients/${patient.id}/clinique`}>
             Voir le contexte médical
           </Link>
         </Button>

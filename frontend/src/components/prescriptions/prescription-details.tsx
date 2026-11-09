@@ -96,7 +96,7 @@ export function PrescriptionDetails({ id }: { id: string }) {
       )}
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="outline">
-          <Link href={`/patients/${patient.id}/clinique`}>
+          <Link href={`/demo/patients/${patient.id}/clinique`}>
             Voir le dossier clinique
           </Link>
         </Button>

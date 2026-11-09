@@ -10,14 +10,14 @@ function PatientActions({ patient }: { patient: Patient }) {
   return (
     <div className="flex items-center gap-1">
       <Button variant="ghost" asChild className="px-2">
-        <Link href={`/patients/${patient.id}`} aria-label={`Voir ${name}`}>
+        <Link href={`/demo/patients/${patient.id}`} aria-label={`Voir ${name}`}>
           <Eye aria-hidden="true" />
           <span className="xl:sr-only">Voir</span>
         </Link>
       </Button>
       <Button variant="ghost" asChild className="px-2">
         <Link
-          href={`/patients/${patient.id}/modifier`}
+          href={`/demo/patients/${patient.id}/modifier`}
           aria-label={`Modifier ${name}`}
         >
           <Pencil aria-hidden="true" />
@@ -61,7 +61,7 @@ export function PatientTable({ patients }: { patients: readonly Patient[] }) {
                 </td>
                 <th scope="row" className="px-4 py-3 font-semibold">
                   <Link
-                    href={`/patients/${patient.id}`}
+                    href={`/demo/patients/${patient.id}`}
                     className="rounded-sm text-primary hover:underline"
                   >
                     {patient.identity.firstName} {patient.identity.lastName}
@@ -101,7 +101,7 @@ export function PatientTable({ patients }: { patients: readonly Patient[] }) {
                   {patient.reference}
                 </p>
                 <Link
-                  href={`/patients/${patient.id}`}
+                  href={`/demo/patients/${patient.id}`}
                   className="rounded-sm text-sm font-semibold text-primary hover:underline"
                 >
                   {patient.identity.firstName} {patient.identity.lastName}

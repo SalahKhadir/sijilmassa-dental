@@ -358,7 +358,7 @@ test("walk-in validation, search filters, invalid links, readonly routes and res
         "/consultations/nouveau?patientId=missing",
         "Ce patient est introuvable.",
       ],
-      ["/patients/missing/clinique", "Ce patient est introuvable."],
+      ["/demo/patients/missing/clinique", "Ce patient est introuvable."],
       [
         "/consultations/nouveau?patientId=patient-demo-001&appointmentId=appointment-demo-003",
         "Le lien de rendez-vous est invalide pour ce patient.",

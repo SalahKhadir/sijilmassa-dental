@@ -46,7 +46,7 @@ test("cross-origin mutations and oversized bodies are rejected locally", async (
 test("central presentation policies are restrictive for mixed clinical modules", () => {
   assert.equal(dashboardFor("RECEPTIONIST"), "/rendez-vous");
   assert.equal(dashboardFor("DENTIST"), "/");
-  for (const path of ["/", "/patients/nouveau", "/patients/demo/dossier", "/consultations", "/documents", "/facturation", "/parametres"]) {
+  for (const path of ["/", "/demo/patients", "/patients/demo/dossier", "/consultations", "/documents", "/facturation", "/parametres"]) {
     assert.equal(canAccessPath("RECEPTIONIST", path), false); assert.equal(canAccessPath("DENTIST", path), true);
   }
   assert.equal(canAccessPath("RECEPTIONIST", "/rendez-vous/demo/modifier"), true);
@@ -61,3 +61,5 @@ test("origin check uses incoming authority rather than Next's internal localhost
   }), "auth/logout", { origin: "http://internal", fetcher: async () => new Response(null, { status: 204 }) });
   assert.equal(response.status, 204);
 });
+
+ test("reception can open only persistent administrative patient routes", () => { for (const path of ["/patients", "/patients/nouveau", "/patients/00000000-0000-4000-8000-000000000001", "/patients/00000000-0000-4000-8000-000000000001/modifier"]) assert.equal(canAccessPath("RECEPTIONIST", path), true); for (const path of ["/demo/patients", "/patients/00000000-0000-4000-8000-000000000001/dossier", "/patients/00000000-0000-4000-8000-000000000001/clinique"]) assert.equal(canAccessPath("RECEPTIONIST", path), false); });

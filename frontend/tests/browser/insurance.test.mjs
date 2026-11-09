@@ -90,7 +90,7 @@ test("dentist confirms, removes, clears and saves chart marks; changes revoke th
     for (const number of [16,11,51,61,71,81]) await tooth(number).check();
     await page.screenshot({path:"/tmp/cnss-chart/browser-selection.png",fullPage:true});
     await page.getByRole("button",{name:"Enregistrer en brouillon",exact:true}).click();
-    await page.waitForURL("**/patients/patient-demo-001");
+    await page.waitForURL("**/demo/patients/patient-demo-001");
     await page.locator('a[href="/documents/assurances/draft-ins-demo-001"]').click();
     await chart.waitFor();
     for (const number of [16,11,51,61,71,81]) assert(await tooth(number).isChecked());

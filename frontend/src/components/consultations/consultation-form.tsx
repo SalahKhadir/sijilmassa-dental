@@ -278,7 +278,7 @@ export function ConsultationForm({
           </div>
           {selectedPatient && (
             <Button asChild variant="outline">
-              <Link href={`/patients/${selectedPatient.id}/clinique`}>
+              <Link href={`/demo/patients/${selectedPatient.id}/clinique`}>
                 Consulter le contexte médical du patient
               </Link>
             </Button>

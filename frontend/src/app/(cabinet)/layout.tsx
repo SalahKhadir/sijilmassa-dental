@@ -1,3 +1,4 @@
+import { PrototypeNotice } from "@/components/shell/prototype-notice";
 import { redirect } from "next/navigation";
 import { readServerSession } from "@/lib/auth/server-session";
 import { SessionBoundary, SessionUnavailable } from "@/components/auth/session-boundary";
@@ -22,7 +23,7 @@ export default async function CabinetLayout({ children }: { children: ReactNode 
           <BillingProvider>
             <PrescriptionProvider>
               <InsuranceProvider>
-                <ApplicationShell>{children}</ApplicationShell>
+                <ApplicationShell><PrototypeNotice />{children}</ApplicationShell>
               </InsuranceProvider>
             </PrescriptionProvider>
           </BillingProvider>

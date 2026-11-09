@@ -30,6 +30,7 @@ public class ApiProblems {
             case 403 -> "L’accès à cette ressource est refusé.";
             case 404 -> "La ressource demandée est introuvable.";
             case 405 -> "Cette méthode HTTP n’est pas autorisée.";
+            case 409 -> "Le dossier a changé ou l’opération est en conflit. Rechargez-le avant de réessayer.";
             case 415 -> "Le format de la requête n’est pas pris en charge.";
             case 429 -> "Trop de tentatives. Réessayez dans une minute.";
             case 503 -> "Le service est temporairement indisponible.";

@@ -52,7 +52,7 @@ test("CNOPS requires explicit INPE and CIM handling, previews, downloads, prints
     await chart.getByRole("checkbox", { name: "Confirmer la dent FDI 24", exact: true }).check();
     await page.screenshot({ path: "/tmp/cnops-review/browser-cnops.png", fullPage: true });
     await page.getByRole("button", { name: "Enregistrer en brouillon", exact: true }).click();
-    await page.waitForURL("**/patients/patient-demo-002");
+    await page.waitForURL("**/demo/patients/patient-demo-002");
     await page.locator('a[href="/documents/assurances/draft-ins-demo-002"]').click();
     await chart.waitFor();
     assert(await chart.getByRole("checkbox", { name: "Confirmer la dent FDI 24", exact: true }).isChecked());

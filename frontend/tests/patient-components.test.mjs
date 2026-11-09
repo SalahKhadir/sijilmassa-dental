@@ -36,7 +36,7 @@ test("directory renders populated, empty, no-result, loading and recoverable-err
   const populated = directory({ status: "ready", data: patientFixtures });
   assert.match(populated, /Annuaire des patients/);
   assert.match(populated, /Page 1 sur 2/);
-  assert.match(populated, /href="\/patients\/patient-demo-/);
+  assert.match(populated, /href="\/demo\/patients\/patient-demo-/);
   assert.match(
     directory({ status: "ready", data: [] }),
     /Aucun patient pour le moment/,
@@ -113,6 +113,6 @@ test("treatment table is read-only, uses the paper columns and exact centime sub
 test("unknown patient presentation offers a return path and explains temporary records", () => {
   const markup = renderToStaticMarkup(createElement(PatientNotFound));
   assert.match(markup, /Patient introuvable/);
-  assert.match(markup, /href="\/patients"/);
+  assert.match(markup, /href="\/demo\/patients"/);
   assert.match(markup, /rechargement/);
 });

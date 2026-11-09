@@ -78,8 +78,8 @@ export function PatientForm({
   } = form;
   const disabled = !hydrated || isSubmitting;
   const returnUrl = patient
-    ? `/patients/${patient.id}${clinical ? "/dossier" : ""}`
-    : "/patients";
+    ? `/demo/patients/${patient.id}${clinical ? "/dossier" : ""}`
+    : "/demo/patients";
   const isReview = step === steps.length - 1;
   const review = isReview ? getValues() : null;
   function focusStep(next: number) {
@@ -151,7 +151,7 @@ export function PatientForm({
               : values,
           )
         : await createPatient(values);
-      router.push(`/patients/${saved.id}${clinical ? "/dossier" : ""}`);
+      router.push(`/demo/patients/${saved.id}${clinical ? "/dossier" : ""}`);
     } catch {
       setSaveError(
         "Impossible d’enregistrer le dossier en mémoire. Vérifiez les champs et réessayez.",

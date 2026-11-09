@@ -22,10 +22,15 @@ export function proxyProblem(status: number): Response {
 }
 export async function proxyAuthentication(request: Request, path: string,
   options: { fetcher?: typeof fetch; origin?: string } = {}): Promise<Response> {
-  const method = paths.get(path);
-  if (!method) return proxyProblem(404);
-  if (request.method !== method) return proxyProblem(405);
-  if (method === "POST") {
+  const uuid = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+  const patientRoute = path === "patients" ? ["GET", "POST"]
+    : path === "patients/with-medical-record" ? ["POST"]
+    : new RegExp(`^patients/${uuid}(?:/medical-record)?$`).test(path) ? ["GET", "PUT"] : null;
+  const methods = patientRoute ?? (paths.has(path) ? [paths.get(path)!] : null);
+  if (!methods) return proxyProblem(404);
+  const method = request.method;
+  if (!methods.includes(method)) return proxyProblem(405);
+  if (method === "POST" || method === "PUT") {
     const origin = request.headers.get("Origin");
     if (origin) {
       try {
@@ -48,7 +53,7 @@ export async function proxyAuthentication(request: Request, path: string,
       if (value && !nominated.has(name.toLowerCase())) headers.set(name, value);
     }
     let body: Uint8Array<ArrayBuffer> | undefined;
-    if (method === "POST" && request.body) {
+    if ((method === "POST" || method === "PUT") && request.body) {
       const reader = request.body.getReader();
       const chunks: Uint8Array[] = [];
       let size = 0;
@@ -56,14 +61,14 @@ export async function proxyAuthentication(request: Request, path: string,
         const { done, value } = await reader.read();
         if (done) break;
         size += value.length;
-        if (size > 4096) { await reader.cancel(); return proxyProblem(413); }
+        if (size > (patientRoute ? 65536 : 4096)) { await reader.cancel(); return proxyProblem(413); }
         chunks.push(value);
       }
       body = new Uint8Array(size);
       let offset = 0;
       for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.length; }
     }
-    const upstream = await (options.fetcher ?? fetch)(`${origin}/api/v1/${path}`, {
+    const upstream = await (options.fetcher ?? fetch)(`${origin}/api/v1/${path}${patientRoute && method === "GET" ? new URL(request.url).search : ""}`, {
       method, headers, body, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(8000),
     });
     if (upstream.status >= 300 && upstream.status < 400) return proxyProblem(502);

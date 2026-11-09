@@ -9,7 +9,7 @@ for(const [index,provider] of ["CNSS","CNOPS","FAR"].entries()) {
     const {value,page,errors,external}=await harness.context();
     const patientId=`patient-demo-00${index+1}`;
     try {
-      await page.goto(`${harness.baseURL}/patients/${patientId}`);
+      await page.goto(`${harness.baseURL}/demo/patients/${patientId}`);
       await page.getByRole("button",{name:"Modifier la police",exact:true}).click();
       const dialog=page.getByRole("dialog");
       if(index===0) {
@@ -53,7 +53,7 @@ for(const [index,provider] of ["CNSS","CNOPS","FAR"].entries()) {
       await tooth.check();
       if(index===2){await page.getByLabel("Symbole FAR de la dent 16",{exact:true}).selectOption("CERCLE");await page.getByRole("checkbox",{name:/Je confirme, en tant que dentiste/}).check();}
       await page.getByRole("button",{name:"Enregistrer en brouillon",exact:true}).click();
-      await page.waitForURL(`**/patients/${patientId}`);
+      await page.waitForURL(`**/demo/patients/${patientId}`);
       await page.waitForFunction(() => Array.from(document.querySelectorAll('a[href^="/documents/assurances/draft-ins-"]')).some(node => !node.getAttribute("href").includes("draft-ins-demo")));
       const hrefs=await page.locator('a[href^="/documents/assurances/draft-ins-"]').evaluateAll(nodes=>nodes.map(node=>node.getAttribute("href")));
       const href=hrefs.find(href=>!href.includes("draft-ins-demo"));assert(href);
@@ -78,7 +78,7 @@ for(const [index,provider] of ["CNSS","CNOPS","FAR"].entries()) {
       await page.getByPlaceholder("Description de l'acte...").fill("Soin fictif audit");
       if(index<2)assert.equal(await tooth.isChecked(),false);
       else assert.equal(await page.getByRole("checkbox",{name:/Je confirme, en tant que dentiste/}).isChecked(),false);
-      await page.getByRole("link",{name:"Retour",exact:true}).click();await page.waitForURL(`**/patients/${patientId}`);
+      await page.getByRole("link",{name:"Retour",exact:true}).click();await page.waitForURL(`**/demo/patients/${patientId}`);
       await page.getByRole("link",{name:"Nouvelle feuille de soins",exact:true}).click();
       await page.getByPlaceholder("Description de l'acte...").fill("Secret fictif du premier patient");
       await page.locator("#decl-place").fill("Lieu fictif privé");
@@ -100,7 +100,7 @@ for(const [index,provider] of ["CNSS","CNOPS","FAR"].entries()) {
 test("switching same-patient policies revokes previews and chart confirmation; total overflow stays recoverable",async()=>{
   const {value,page,errors}=await harness.context();
   try {
-    await page.goto(`${harness.baseURL}/patients/patient-demo-001`);
+    await page.goto(`${harness.baseURL}/demo/patients/patient-demo-001`);
     await page.getByRole("button",{name:"Modifier la police",exact:true}).click();
     const dialog=page.getByRole("dialog");await dialog.locator("#policy-active").uncheck();
     await dialog.getByRole("button",{name:"Mettre à jour",exact:true}).click();await dialog.waitFor({state:"hidden"});

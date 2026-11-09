@@ -81,9 +81,11 @@ function PatientField({
 export function PatientIdentityFields({
   disabled,
   today,
+  persistent = false,
 }: {
   disabled: boolean;
   today: string;
+  persistent?: boolean;
 }) {
   const { register } = useFormContext<CreatePatientInput>();
   return (
@@ -129,7 +131,7 @@ export function PatientIdentityFields({
         type="tel"
         maxLength={40}
         disabled={disabled}
-        help="Exemple fictif +212 6XX XX 00 00. Formats locaux et internationaux acceptés."
+        help={persistent ? "Numéro de 6 à 20 chiffres, sans X de démonstration." : "Exemple fictif +212 6XX XX 00 00. Formats locaux et internationaux acceptés."}
       />
       <PatientField
         name="identity.landline"
@@ -157,7 +159,7 @@ export function PatientIdentityFields({
         type="password"
         maxLength={30}
         disabled={disabled}
-        help="Donnée personnelle sensible. Utilisez une valeur fictive ; elle est masquée dans les vues générales."
+        help={persistent ? "Donnée personnelle sensible, masquée dans les vues générales." : "Donnée personnelle sensible. Utilisez une valeur fictive ; elle est masquée dans les vues générales."}
       />
       <PatientField
         name="identity.medicalCoverage"

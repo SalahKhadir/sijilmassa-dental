@@ -1,10 +1,4 @@
-import type { Metadata } from "next";
-import { PatientProfile } from "@/components/patients/patient-profile";
-export const metadata: Metadata = { title: "Fiche patient" };
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  return <PatientProfile id={(await params).id} />;
+import { PersistentPatientRecord } from "@/components/patients/persistent/record";
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+ return <PersistentPatientRecord id={(await params).id} />;
 }

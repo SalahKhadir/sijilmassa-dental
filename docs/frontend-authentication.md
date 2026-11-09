@@ -127,3 +127,10 @@ Les chunks client ne contiennent ni `BACKEND_INTERNAL_URL`, ni l’origine inter
 ## Suite proposée — phase 8.3A
 
 Définir avec le cabinet les projections patients administratives et cliniques et la matrice d’accès correspondante, puis leur persistance PostgreSQL et leurs tests RBAC. La séparation des données devra précéder l’ouverture des vues mixtes à l’accueil. Aucun travail de persistance patient n’est commencé ici.
+
+
+## Évolution phase 8.3B
+
+Le proxy autorise désormais les routes patients explicites et leurs méthodes, avec une limite de 64 Kio pour ces corps et 4 Kio pour l’authentification. L’accueil peut ouvrir les pages administratives `/patients`, `/patients/nouveau`, `/patients/{UUID}` et `/patients/{UUID}/modifier`. Les routes du questionnaire restent réservées au dentiste et ne montent aucun chargeur clinique pour l’accueil. Un 401 patient confirmé force une navigation complète vers `/login` ; une panne reste une erreur distincte.
+
+L’ancien annuaire mixte est conservé sous `/demo/patients` pour les modules synthétiques, toujours réservé au dentiste. Aucun patient persistant n’entre dans leurs dépôts ou générateurs PDF. Les paragraphes de phase 8.2A ci-dessus décrivent l’état historique ; voir [l’intégration patients](patient-frontend-integration.md) pour le périmètre et les résultats actuels, notamment la validation PostgreSQL réelle de phase 8.3B.1.

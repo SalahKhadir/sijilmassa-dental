@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 @Service
 public class SecurityAudit {
@@ -18,5 +19,9 @@ public class SecurityAudit {
     @Transactional
     public void record(AuditEventType type, UUID actor, UUID subject) {
         events.save(new SecurityAuditEvent(type, actor, subject, clock.instant()));
+    }
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordPatient(AuditEventType type, UUID actor, UUID patientId) {
+        events.save(new SecurityAuditEvent(type, actor, null, patientId, clock.instant()));
     }
 }

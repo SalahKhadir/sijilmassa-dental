@@ -20,7 +20,7 @@ async function continueStep(page) {
 test("directory, validation, medical checkboxes, creation, editing, navigation and refresh", async () => {
   const { value, page, errors, external } = await context();
   try {
-    await page.goto(`${baseURL}/patients`);
+    await page.goto(`${baseURL}/demo/patients`);
     await heading(page, "Patients");
     await page
       .getByRole("status")
@@ -151,14 +151,14 @@ test("directory, validation, medical checkboxes, creation, editing, navigation a
       .check();
     await continueStep(page);
     await heading(page, "Vérification et confirmation");
-    assert.equal(page.url(), `${baseURL}/patients/nouveau`);
+    assert.equal(page.url(), `${baseURL}/demo/patients/nouveau`);
     assert(
       !(await page.locator("main").innerText()).includes("DEMO-CIN-TEST-ONLY"),
     );
     await page
       .getByRole("button", { name: "Créer le dossier fictif", exact: true })
       .click();
-    await page.waitForURL(/\/patients\/patient-demo-021\/dossier$/);
+    await page.waitForURL(/\/demo\/patients\/patient-demo-021\/dossier$/);
     await heading(page, "Prénom fictif Démo-Navigation");
     await page
       .getByRole("status")
@@ -186,7 +186,7 @@ test("directory, validation, medical checkboxes, creation, editing, navigation a
     await page
       .getByRole("button", { name: "Enregistrer en mémoire", exact: true })
       .click();
-    await page.waitForURL(/\/patients\/patient-demo-021\/dossier$/);
+    await page.waitForURL(/\/demo\/patients\/patient-demo-021\/dossier$/);
     await page
       .getByRole("status")
       .filter({ hasText: "Dossier fictif modifié en mémoire" })
@@ -214,7 +214,7 @@ test("directory, validation, medical checkboxes, creation, editing, navigation a
     await page
       .getByRole("button", { name: "Enregistrer en mémoire", exact: true })
       .click();
-    await page.waitForURL(/\/patients\/patient-demo-021$/);
+    await page.waitForURL(/\/demo\/patients\/patient-demo-021$/);
     await heading(page, "Prénom modifié fictif Démo-Navigation");
     await page
       .getByRole("navigation", { name: "Navigation principale" })
@@ -222,8 +222,7 @@ test("directory, validation, medical checkboxes, creation, editing, navigation a
       .click();
     await heading(page, "Tableau de bord");
     await page
-      .getByRole("navigation", { name: "Navigation principale" })
-      .getByRole("link", { name: "Patients", exact: true })
+      .getByRole("link", { name: "Annuaire synthétique", exact: true })
       .click();
     await page
       .getByRole("status")
@@ -253,7 +252,7 @@ test("directory, validation, medical checkboxes, creation, editing, navigation a
     assert((await value.cookies()).every(cookie => cookie.name === "JSESSIONID" && cookie.httpOnly));
     await page.reload();
     await heading(page, "Patient introuvable");
-    await page.goto(`${baseURL}/patients/id-inconnu/modifier`);
+    await page.goto(`${baseURL}/demo/patients/id-inconnu/modifier`);
     await heading(page, "Patient introuvable");
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
@@ -278,7 +277,7 @@ test("responsive layouts, keyboard, reduced motion, treatment examples and exist
   try {
     for (const width of [1440, 1280, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
-      await page.goto(`${baseURL}/patients`);
+      await page.goto(`${baseURL}/demo/patients`);
       await page
         .getByRole("status")
         .filter({ hasText: "20 patients trouvés" })
@@ -297,7 +296,7 @@ test("responsive layouts, keyboard, reduced motion, treatment examples and exist
           ),
           fullPage: true,
         });
-      await page.goto(`${baseURL}/patients/patient-demo-001/dossier`);
+      await page.goto(`${baseURL}/demo/patients/patient-demo-001/dossier`);
       await heading(page, "Aïcha Démo-Amrani");
       await page.getByRole("table").waitFor();
       assert(
@@ -314,7 +313,7 @@ test("responsive layouts, keyboard, reduced motion, treatment examples and exist
           ),
           fullPage: true,
         });
-      await page.goto(`${baseURL}/patients/nouveau`);
+      await page.goto(`${baseURL}/demo/patients/nouveau`);
       await heading(page, "Nouveau patient");
       const lastName = page.getByLabel("Nom (obligatoire)", { exact: true });
       await lastName.focus();

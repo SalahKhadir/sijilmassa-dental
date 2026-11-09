@@ -43,9 +43,9 @@ class ApiSecurityTest {
 
     @Test
     @WithMockUser(roles = "DENTIST")
-    void evenAuthenticatedUsersHaveNoApiAccess() throws Exception {
-        mvc.perform(get("/api/v1/patients")).andExpect(status().isForbidden());
-        mvc.perform(post("/api/v1/patients").with(csrf())).andExpect(status().isForbidden());
+    void unconfiguredApiRemainsDeniedForAuthenticatedUsers() throws Exception {
+        mvc.perform(get("/api/v1/unconfigured")).andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/unconfigured").with(csrf())).andExpect(status().isForbidden());
     }
 
     @Test

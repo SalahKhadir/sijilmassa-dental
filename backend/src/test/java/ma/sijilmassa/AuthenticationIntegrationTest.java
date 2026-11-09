@@ -252,8 +252,8 @@ class AuthenticationIntegrationTest {
         var denied = reception.get("/api/v1/_testroles/clinical");
         assertThat(denied.statusCode()).isEqualTo(403);
         assertThat(mapper.readTree(denied.body()).get("status").asInt()).isEqualTo(403);
-        assertThat(dentist.get("/api/v1/patients").statusCode()).isEqualTo(403);
-        assertThat(reception.get("/api/v1/patients").statusCode()).isEqualTo(403);
+        assertThat(dentist.get("/api/v1/unconfigured").statusCode()).isEqualTo(403);
+        assertThat(reception.get("/api/v1/unconfigured").statusCode()).isEqualTo(403);
         assertThat(new Browser().get("/api/v1/_testroles/clinical").statusCode()).isEqualTo(401);
     }
 

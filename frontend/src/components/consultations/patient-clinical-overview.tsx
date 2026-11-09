@@ -42,7 +42,7 @@ export function PatientClinicalOverview({ id }: { id: string }) {
       </PageHeading>
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="outline">
-          <Link href={`/patients/${id}`}>Retour au dossier patient</Link>
+          <Link href={`/demo/patients/${id}`}>Retour au dossier patient</Link>
         </Button>
         <Button asChild variant="secondary">
           <Link href={`/consultations?patientId=${id}`}>
@@ -50,7 +50,7 @@ export function PatientClinicalOverview({ id }: { id: string }) {
           </Link>
         </Button>
         <Button asChild variant="ghost">
-          <Link href={`/patients/${id}/dossier`}>
+          <Link href={`/demo/patients/${id}/dossier`}>
             Ouvrir le questionnaire et l’historique papier
           </Link>
         </Button>

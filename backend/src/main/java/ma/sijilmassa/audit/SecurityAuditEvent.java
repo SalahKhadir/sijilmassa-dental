@@ -14,9 +14,16 @@ public class SecurityAuditEvent {
     @Column(name = "actor_user_id") private UUID actorUserId;
     @Column(name = "subject_user_id") private UUID subjectUserId;
 
+    @Column(name = "target_patient_id") private UUID targetPatientId;
+
     protected SecurityAuditEvent() { }
 
     SecurityAuditEvent(AuditEventType type, UUID actor, UUID subject, Instant now) {
+        this(type, actor, subject, null, now);
+    }
+
+    SecurityAuditEvent(AuditEventType type, UUID actor, UUID subject, UUID targetPatient, Instant now) {
+        targetPatientId = targetPatient;
         id = UUID.randomUUID();
         eventType = type;
         actorUserId = actor;

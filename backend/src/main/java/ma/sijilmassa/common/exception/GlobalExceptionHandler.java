@@ -52,6 +52,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(problems.create(403, request));
     }
 
+    @ExceptionHandler(ma.sijilmassa.patient.PatientFailure.class)
+    public ResponseEntity<ProblemDetail> handlePatient(ma.sijilmassa.patient.PatientFailure failure, HttpServletRequest request) {
+        return safe(failure.status(), request);
+    }
+
+    @ExceptionHandler({org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+            org.springframework.dao.DataIntegrityViolationException.class,
+            org.springframework.dao.PessimisticLockingFailureException.class})
+    public ResponseEntity<ProblemDetail> handleConflict(HttpServletRequest request) { return safe(409, request); }
+
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleInvalid(HttpServletRequest request) { return safe(400, request); }
+
+    private ResponseEntity<ProblemDetail> safe(int status, HttpServletRequest request) {
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problems.create(status, request));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception exception, HttpServletRequest request) {
         logger.error("Erreur interne, requestId=" + RequestIdFilter.requestId(request));

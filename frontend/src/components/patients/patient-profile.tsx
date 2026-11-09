@@ -48,7 +48,7 @@ export function PatientProfile({
   return (
     <>
       <Link
-        href="/patients"
+        href="/demo/patients"
         className="inline-flex min-h-10 items-center gap-2 rounded-sm text-sm font-semibold text-primary hover:underline"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
@@ -65,7 +65,7 @@ export function PatientProfile({
       >
         <Button asChild>
           <Link
-            href={`/patients/${patient.id}/${clinical ? "dossier/modifier" : "modifier"}`}
+            href={`/demo/patients/${patient.id}/${clinical ? "dossier/modifier" : "modifier"}`}
           >
             <Pencil aria-hidden="true" />
             {clinical ? "Modifier le dossier de santé" : "Modifier le patient"}
@@ -94,7 +94,7 @@ export function PatientProfile({
       >
         <Button asChild variant={clinical ? "ghost" : "secondary"}>
           <Link
-            href={`/patients/${id}`}
+            href={`/demo/patients/${id}`}
             aria-current={!clinical ? "page" : undefined}
           >
             Informations personnelles
@@ -102,14 +102,14 @@ export function PatientProfile({
         </Button>
         <Button asChild variant={clinical ? "secondary" : "ghost"}>
           <Link
-            href={`/patients/${id}/dossier`}
+            href={`/demo/patients/${id}/dossier`}
             aria-current={clinical ? "page" : undefined}
           >
             Questionnaire et traitements · Prototype dentiste
           </Link>
         </Button>
         <Button asChild variant="ghost">
-          <Link href={`/patients/${id}/clinique`}>
+          <Link href={`/demo/patients/${id}/clinique`}>
             Espace clinique · Dentiste
           </Link>
         </Button>

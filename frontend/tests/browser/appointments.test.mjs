@@ -57,8 +57,7 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
       .waitFor();
     const pendingBefore = await dashboardCounter(page, "À confirmer");
     await page
-      .getByRole("navigation", { name: "Navigation principale" })
-      .getByRole("link", { name: "Patients", exact: true })
+      .getByRole("link", { name: "Annuaire synthétique", exact: true })
       .click();
     await page
       .getByRole("status")

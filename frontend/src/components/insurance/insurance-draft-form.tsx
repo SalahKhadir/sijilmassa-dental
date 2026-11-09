@@ -572,7 +572,7 @@ export function InsuranceDraftForm({
         await createDraft(input);
       }
 
-      router.push(`/patients/${selectedPatientId}`);
+      router.push(`/demo/patients/${selectedPatientId}`);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -599,7 +599,7 @@ export function InsuranceDraftForm({
           <Link
             href={
               selectedPatientId
-                ? `/patients/${selectedPatientId}`
+                ? `/demo/patients/${selectedPatientId}`
                 : "/documents"
             }
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline mb-1"

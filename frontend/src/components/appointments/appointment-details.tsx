@@ -195,7 +195,7 @@ export function AppointmentDetails({ id }: { id: string }) {
         <PermissionGate permission="clinical">
         {patient && (
           <Button asChild variant="outline">
-            <Link href={`/patients/${patient.id}`}>Voir la fiche patient</Link>
+            <Link href={`/demo/patients/${patient.id}`}>Voir la fiche patient</Link>
           </Button>
         )}
         </PermissionGate>

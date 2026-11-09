@@ -64,7 +64,7 @@ export function ConsultationDirectory({
           {patient.identity.lastName} ·{" "}
           <Link
             className="text-primary underline"
-            href={`/patients/${patient.id}/clinique`}
+            href={`/demo/patients/${patient.id}/clinique`}
           >
             Retour à la vue clinique
           </Link>{" "}

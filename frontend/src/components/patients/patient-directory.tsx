@@ -38,7 +38,7 @@ export function PatientDirectory() {
         description="Gérez les dossiers administratifs de vos patients."
       >
         <Button asChild>
-          <Link href="/patients/nouveau">
+          <Link href="/demo/patients/nouveau">
             <UserPlus aria-hidden="true" />
             Nouveau patient
           </Link>

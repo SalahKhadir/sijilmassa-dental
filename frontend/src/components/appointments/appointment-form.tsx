@@ -189,7 +189,7 @@ export function AppointmentForm({
               La recherche filtre les choix et conserve la sélection courante.{" "}
               <PermissionGate permission="clinical">
               <Link
-                href="/patients"
+                href="/demo/patients"
                 className="rounded-sm font-semibold text-primary underline"
               >
                 Ouvrir l’annuaire patients

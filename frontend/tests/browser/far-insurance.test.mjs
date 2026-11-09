@@ -58,7 +58,7 @@ test("FAR requires explicit symbols and approval, preserves origin, downloads, p
     await approval.check();
     await page.screenshot({path:"/tmp/far-review/browser-far.png",fullPage:true});
     await page.getByRole("button",{name:"Enregistrer en brouillon",exact:true}).click();
-    await page.waitForURL("**/patients/patient-demo-003");
+    await page.waitForURL("**/demo/patients/patient-demo-003");
     await page.locator('a[href="/documents/assurances/draft-ins-demo-003"]').click();
     await chart.waitFor(); assert(await approval.isChecked());
     assert.equal(await page.getByLabel("Symbole FAR de la dent 36",{exact:true}).inputValue(),"CERCLE");
