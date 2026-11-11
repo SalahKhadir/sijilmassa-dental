@@ -35,7 +35,7 @@ export function PatientClinicalOverview({ id }: { id: string }) {
         description="Vue clinique · Questionnaire rapporté et consultations."
       >
         <Button asChild>
-          <Link href={`/consultations/nouveau?patientId=${id}`}>
+          <Link href={`/demo/consultations/nouveau?patientId=${id}`}>
             Nouvelle consultation
           </Link>
         </Button>
@@ -45,7 +45,7 @@ export function PatientClinicalOverview({ id }: { id: string }) {
           <Link href={`/demo/patients/${id}`}>Retour au dossier patient</Link>
         </Button>
         <Button asChild variant="secondary">
-          <Link href={`/consultations?patientId=${id}`}>
+          <Link href={`/demo/consultations?patientId=${id}`}>
             Voir les consultations
           </Link>
         </Button>

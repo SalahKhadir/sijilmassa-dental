@@ -127,7 +127,7 @@ export function AppointmentDetails({ id }: { id: string }) {
         }
       >
         <Button asChild>
-          <Link href={`/rendez-vous/${id}/modifier`}>
+          <Link href={`/demo/rendez-vous/${id}/modifier`}>
             Modifier le rendez-vous
           </Link>
         </Button>
@@ -200,7 +200,7 @@ export function AppointmentDetails({ id }: { id: string }) {
         )}
         </PermissionGate>
         <Button asChild variant="ghost">
-          <Link href={`/rendez-vous?date=${appointment.date}`}>
+          <Link href={`/demo/rendez-vous?date=${appointment.date}`}>
             Fermer les détails
           </Link>
         </Button>

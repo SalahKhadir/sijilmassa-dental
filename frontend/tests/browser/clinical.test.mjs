@@ -29,7 +29,7 @@ async function screenshot(page, name) {
 test("clinical encounter from appointment, treatments, draft edits, completion and shared patient history", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${baseURL}/rendez-vous/appointment-demo-001`);
+    await page.goto(`${baseURL}/demo/rendez-vous/appointment-demo-001`);
     await heading(page, "Détails du rendez-vous");
     await mainLink(page, "Créer une consultation").click();
     await heading(page, "Nouvelle consultation");
@@ -212,8 +212,7 @@ test("clinical encounter from appointment, treatments, draft edits, completion a
       ),
     );
     await page
-      .getByRole("navigation", { name: "Navigation principale" })
-      .getByRole("link", { name: "Tableau de bord", exact: true })
+      .getByRole("link", { name: "Tableau de bord synthétique", exact: true })
       .click();
     await heading(page, "Tableau de bord");
     assert(
@@ -242,7 +241,7 @@ test("walk-in validation, search filters, invalid links, readonly routes and res
     reducedMotion: "reduce",
   });
   try {
-    await page.goto(`${baseURL}/consultations`);
+    await page.goto(`${baseURL}/demo/consultations`);
     await heading(page, "Consultations");
     await page
       .getByRole("status")
@@ -345,30 +344,30 @@ test("walk-in validation, search filters, invalid links, readonly routes and res
       ),
     );
     const cases = [
-      ["/consultations/missing", "Cette consultation est introuvable."],
+      ["/demo/consultations/missing", "Cette consultation est introuvable."],
       [
-        "/consultations/missing/modifier",
+        "/demo/consultations/missing/modifier",
         "Cette consultation est introuvable.",
       ],
       [
-        "/consultations/consultation-demo-002/modifier",
+        "/demo/consultations/consultation-demo-002/modifier",
         "Cette consultation terminée est en lecture seule.",
       ],
       [
-        "/consultations/nouveau?patientId=missing",
+        "/demo/consultations/nouveau?patientId=missing",
         "Ce patient est introuvable.",
       ],
       ["/demo/patients/missing/clinique", "Ce patient est introuvable."],
       [
-        "/consultations/nouveau?patientId=patient-demo-001&appointmentId=appointment-demo-003",
+        "/demo/consultations/nouveau?patientId=patient-demo-001&appointmentId=appointment-demo-003",
         "Le lien de rendez-vous est invalide pour ce patient.",
       ],
       [
-        "/consultations/nouveau?appointmentId=missing",
+        "/demo/consultations/nouveau?appointmentId=missing",
         "Le lien de rendez-vous est invalide pour ce patient.",
       ],
       [
-        "/consultations/nouveau?appointmentId=appointment-demo-003",
+        "/demo/consultations/nouveau?appointmentId=appointment-demo-003",
         "Ce rendez-vous possède déjà une consultation.",
       ],
     ];

@@ -1,4 +1,12 @@
-# Gestion des rendez-vous — phase 4
+# Gestion des rendez-vous — phase 8.4B
+
+Le calendrier principal `/rendez-vous` utilise désormais Spring Boot et PostgreSQL : vues jour/semaine/mobile, création avec patient réel, édition versionnée, statuts et conflits. Les parcours synthétiques restent sous `/demo/rendez-vous` et le tableau de bord synthétique sous `/demo`, sans mélange d’identifiants. Voir [l’intégration frontend](appointment-frontend-integration.md) pour l’architecture, les fuseaux, la revalidation entre postes, les limites et la procédure de test.
+
+Le contrat de phase 8.4A fait autorité : durée 30–180 minutes, pas d’horaires fictifs, pas de motif/notes libres, TERMINE réservé au dentiste et immuable. Les sections ci-dessous décrivent le prototype historique, sans remplacer ces règles.
+
+**Validation de phase 8.4B : 229 tests frontend, 80 tests backend et 35 parcours navigateur réels réussis, sans échec ni test ignoré.** Le build de production Webpack passe ; le build Turbopack reste bloqué par l’ouverture de port du sandbox. Voir le rapport lié ci-dessus pour les commandes et limites.
+
+## Historique — phase 4
 
 ## Agenda du cabinet
 

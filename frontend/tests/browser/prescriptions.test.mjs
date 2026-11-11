@@ -109,7 +109,7 @@ test("blank official PDF previews downloads and requests printing without creati
 test("patient and consultation entry points preserve valid links through draft editing and explicit finalization", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${baseURL}/consultations/consultation-demo-001`);
+    await page.goto(`${baseURL}/demo/consultations/consultation-demo-001`);
     await mainLink(page, "Créer une ordonnance").click();
     await heading(page, "Nouvelle ordonnance");
     assert.equal(

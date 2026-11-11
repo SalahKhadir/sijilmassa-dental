@@ -39,7 +39,7 @@ export function ConsultationList({
                 >
                   <div className="min-w-0 space-y-2">
                     <Link
-                      href={`/consultations/${record.id}`}
+                      href={`/demo/consultations/${record.id}`}
                       className="inline-block rounded-sm text-base font-semibold text-primary hover:underline"
                     >
                       {patient

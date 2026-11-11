@@ -32,7 +32,7 @@ export function ConsultationFormPage({
       <>
         <ClinicalMissing message="Cette consultation terminée est en lecture seule." />
         <Button asChild>
-          <Link href={`/consultations/${id}`}>Voir la consultation</Link>
+          <Link href={`/demo/consultations/${id}`}>Voir la consultation</Link>
         </Button>
       </>
     );
@@ -62,7 +62,7 @@ export function ConsultationFormPage({
       <>
         <ClinicalMissing message="Ce rendez-vous possède déjà une consultation." />
         <Button asChild>
-          <Link href={`/consultations/${duplicate.id}`}>
+          <Link href={`/demo/consultations/${duplicate.id}`}>
             Ouvrir la consultation existante
           </Link>
         </Button>

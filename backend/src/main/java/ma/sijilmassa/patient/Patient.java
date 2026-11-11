@@ -45,6 +45,8 @@ public class Patient {
         gsmDigits = gsm.replaceAll("[^0-9]", ""); landlineDigits = landline.replaceAll("[^0-9]", "");
         updatedAt = updatedAt == null || now.isAfter(updatedAt) ? now : updatedAt.plusNanos(1000);
     }
+    public boolean isActive() { return status == Status.ACTIVE; }
+
     static String normalize(String text) {
         return Normalizer.normalize(text, Normalizer.Form.NFKD).replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT).strip().replaceAll("(?U)\\s+", " ");

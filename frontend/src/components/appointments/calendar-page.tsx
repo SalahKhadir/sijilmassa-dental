@@ -47,7 +47,7 @@ export function CalendarPage({ initialDate }: { initialDate?: string }) {
         description="Organisez les consultations du cabinet."
       >
         <Button asChild>
-          <Link href={`/rendez-vous/nouveau?date=${date}`}>
+          <Link href={`/demo/rendez-vous/nouveau?date=${date}`}>
             <CalendarPlus aria-hidden="true" />
             Nouveau rendez-vous
           </Link>

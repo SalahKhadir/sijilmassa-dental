@@ -21,6 +21,18 @@ public class SecurityAudit {
         events.save(new SecurityAuditEvent(type, actor, subject, clock.instant()));
     }
     @Transactional(propagation = Propagation.MANDATORY)
+    public void recordAppointment(AuditEventType type, UUID actor, UUID appointmentId) {
+        events.save(SecurityAuditEvent.appointment(type, actor, appointmentId, clock.instant()));
+    }
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordPrescription(AuditEventType type, UUID actor, UUID prescriptionId) {
+        events.save(SecurityAuditEvent.prescription(type, actor, prescriptionId, clock.instant()));
+    }
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordConsultation(AuditEventType type, UUID actor, UUID consultationId) {
+        events.save(SecurityAuditEvent.consultation(type, actor, consultationId, clock.instant()));
+    }
+    @Transactional(propagation = Propagation.MANDATORY)
     public void recordPatient(AuditEventType type, UUID actor, UUID patientId) {
         events.save(new SecurityAuditEvent(type, actor, null, patientId, clock.instant()));
     }

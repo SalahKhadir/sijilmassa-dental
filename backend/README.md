@@ -1,6 +1,6 @@
-# Backend — phase 8.3A
+# Backend — phase 8.4A
 
-Backend local avec comptes persistants, authentification par session et autorisations serveur. Le module patients persiste désormais l’identité administrative et le dossier médical séparément. Les autres modules métier ne sont pas persistants. Le frontend utilise ces sessions depuis la phase 8.2A ; ses dépôts métier restent en mémoire.
+Backend local avec comptes persistants, authentification par session et autorisations serveur. Le module patients persiste désormais l’identité administrative et le dossier médical séparément. Les rendez-vous disposent aussi d’une API persistante avec protection PostgreSQL contre les chevauchements. Le calendrier frontend reste un prototype mémoire ; son intégration n’est pas commencée. Les autres modules métier ne sont pas persistants. Le frontend utilise ces sessions depuis la phase 8.2A et l’API patients depuis la phase 8.3B ; les autres écrans métier gardent leurs dépôts synthétiques.
 
 ## Prérequis
 
@@ -177,3 +177,18 @@ Les deux rôles accèdent à la création, recherche paginée, lecture et modifi
 Le [contrat patient complet](../docs/patient-backend-contract.md) documente les champs, DTO, exemples, validations, audits et adaptations requises en phase 8.3B. Le frontend et son proxy ne sont pas encore reliés à ces endpoints patients ; leurs fichiers restent inchangés.
 
 Validation : `./mvnw verify` réussit avec **53 tests**, dont **25 tests patients** sur PostgreSQL et sessions HTTP réelles, sans test ignoré. Les événements d’audit font partie de la transaction de mutation et ne contiennent que les UUID, le type et la date. Les détails d’erreur serveur pgJDBC sont désactivés ; les journaux PostgreSQL natifs doivent également être protégés avant usage réel.
+
+
+## Rendez-vous persistants — phase 8.4A
+
+V4 ajoute l’agenda unique, ses versions optimistes et les cibles d’audit rendez-vous. Les patients référencés doivent être des UUID PostgreSQL actifs pour une réservation ou un déplacement. Les identifiants synthétiques du calendrier frontend ne sont jamais importés.
+
+Les routes sont `GET/POST /api/v1/appointments`, `GET/PUT /api/v1/appointments/{id}` et `PUT /api/v1/appointments/{id}/status`. La lecture exige `from`/`to` avec décalage, une fenêtre maximale de 43 jours et une pagination de 1 à 100 résultats. Les deux rôles gèrent les opérations administratives ; seul le dentiste peut envoyer TERMINE, ensuite immuable. Les motifs/notes libres ne sont pas acceptés dans cette phase.
+
+La contrainte GiST PostgreSQL sur `tstzrange(start_at,end_at,'[)')` réserve les créneaux EN_ATTENTE/CONFIRME/TERMINE et autorise les bornes adjacentes. Aucune extension n’est nécessaire pour cet agenda sans dimension de ressource. L’échec d’une réservation concurrente ou d’une version obsolète reçoit un 409 générique. L’audit participe à la même transaction et son échec annule toute mutation.
+
+Le [contrat rendez-vous](../docs/appointment-backend-contract.md) détaille les DTO, la matrice des statuts, les règles Africa/Casablanca, les contraintes, les tests et les adaptations à prévoir en phase 8.4B. Les horaires fictifs du frontend ne sont pas appliqués au backend. Aucun endpoint de consultation ou de facturation n’est ajouté.
+
+V1/V2/V3 restent inchangées ; le rôle de migration habituel peut créer cette table et ses index, sans installer d’extension. Exécuter `./mvnw verify` avec JDK 21 et Docker pour la validation PostgreSQL complète. Ne pas utiliser la base Compose existante pour les tests : les Testcontainers restent isolés.
+
+**Validation de phase 8.4A : `./mvnw -B -ntp verify` réussit avec 80 tests, 0 échec, 0 erreur et 0 test ignoré.** Cela comprend 26 tests de rendez-vous sur serveur HTTP et PostgreSQL réels, le passage V3→V4 avec données conservées et les 53 régressions antérieures. Les collisions concurrentes, la course archivage/réservation, les rôles, CSRF, les versions et le rollback d’audit sont vérifiés. Le JAR est produit ; V1/V2/V3, les composants frontend et les PDF restent identiques.

@@ -36,7 +36,7 @@ export function ClinicalMissing({
       <CardContent className="space-y-4 pt-6">
         <h1 className="text-xl font-semibold">{message}</h1>
         <Button asChild variant="outline">
-          <Link href="/consultations">Retour aux consultations</Link>
+          <Link href="/demo/consultations">Retour aux consultations</Link>
         </Button>
       </CardContent>
     </Card>

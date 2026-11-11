@@ -32,7 +32,7 @@ export function AppointmentAgenda({
         return (
           <li key={appointment.id}>
             <Link
-              href={`/rendez-vous/${appointment.id}`}
+              href={`/demo/rendez-vous/${appointment.id}`}
               className="block space-y-3 rounded-sm px-5 py-5 hover:bg-muted"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">

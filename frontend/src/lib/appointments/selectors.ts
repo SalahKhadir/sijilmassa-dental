@@ -15,9 +15,9 @@ export function appointmentPatient(patient: Patient): AppointmentPatient {
     },
   };
 }
-export function sortAppointments(
-  appointments: readonly Appointment[],
-): Appointment[] {
+export function sortAppointments<T extends Pick<Appointment, "date" | "startTime" | "id">>(
+  appointments: readonly T[],
+): T[] {
   return [...appointments].sort(
     (a, b) =>
       a.date.localeCompare(b.date) ||
@@ -60,18 +60,18 @@ export function appointmentDashboardStats(
     upcoming: upcomingAppointments(appointments, today, time),
   };
 }
-export interface PositionedAppointment {
-  appointment: Appointment;
+export interface PositionedAppointment<T = Appointment> {
+  appointment: T;
   column: number;
   columns: number;
 }
 /** Assign lanes to ALL statuses so historical overlaps are never painted over. */
-export function positionAppointments(
-  appointments: readonly Appointment[],
-): PositionedAppointment[] {
+export function positionAppointments<T extends Pick<Appointment, "id" | "date" | "startTime" | "durationMinutes">>(
+  appointments: readonly T[],
+): PositionedAppointment<T>[] {
   const ordered = sortAppointments(appointments);
-  const output: PositionedAppointment[] = [];
-  let group: PositionedAppointment[] = [];
+  const output: PositionedAppointment<T>[] = [];
+  let group: PositionedAppointment<T>[] = [];
   let laneEnds: number[] = [];
   let groupEnd = -1;
   let groupDate = "";

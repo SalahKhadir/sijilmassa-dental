@@ -1,4 +1,4 @@
-import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
+import { PersistentDashboardOverview } from "@/components/dashboard/persistent-overview";
 export default function DashboardPage() {
-  return <DashboardOverview />;
+  return <PersistentDashboardOverview />;
 }

@@ -60,7 +60,7 @@ export function AppointmentNotFound() {
         rechargement réinitialise les créations fictives.
       </p>
       <Button asChild variant="outline">
-        <Link href="/rendez-vous">Retour à l’agenda</Link>
+        <Link href="/demo/rendez-vous">Retour à l’agenda</Link>
       </Button>
     </Card>
   );

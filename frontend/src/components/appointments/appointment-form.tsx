@@ -93,7 +93,7 @@ export function AppointmentForm({
       const saved = appointment
         ? await updateAppointment(appointment.id, input)
         : await createAppointment(input);
-      router.push(`/rendez-vous/${saved.id}`);
+      router.push(`/demo/rendez-vous/${saved.id}`);
     } catch (error) {
       if (error instanceof AppointmentConflictError) {
         setError("startTime", { message: error.message });
@@ -374,8 +374,8 @@ export function AppointmentForm({
           <Link
             href={
               appointment
-                ? `/rendez-vous/${appointment.id}`
-                : `/rendez-vous?date=${initialDate}`
+                ? `/demo/rendez-vous/${appointment.id}`
+                : `/demo/rendez-vous?date=${initialDate}`
             }
           >
             Annuler la saisie

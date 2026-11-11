@@ -134,3 +134,81 @@ Définir avec le cabinet les projections patients administratives et cliniques e
 Le proxy autorise désormais les routes patients explicites et leurs méthodes, avec une limite de 64 Kio pour ces corps et 4 Kio pour l’authentification. L’accueil peut ouvrir les pages administratives `/patients`, `/patients/nouveau`, `/patients/{UUID}` et `/patients/{UUID}/modifier`. Les routes du questionnaire restent réservées au dentiste et ne montent aucun chargeur clinique pour l’accueil. Un 401 patient confirmé force une navigation complète vers `/login` ; une panne reste une erreur distincte.
 
 L’ancien annuaire mixte est conservé sous `/demo/patients` pour les modules synthétiques, toujours réservé au dentiste. Aucun patient persistant n’entre dans leurs dépôts ou générateurs PDF. Les paragraphes de phase 8.2A ci-dessus décrivent l’état historique ; voir [l’intégration patients](patient-frontend-integration.md) pour le périmètre et les résultats actuels, notamment la validation PostgreSQL réelle de phase 8.3B.1.
+
+
+## Diagnostic local : Spring répond 401, Next répond 503
+
+Le hotfix a reproduit un backend joignable (health 200, `/auth/me` anonyme 401), mais un proxy Next à 503. `frontend/.env.local` était absent et `BACKEND_INTERNAL_URL` n’était pas fournie au processus Next. `backendOrigin()` dans `src/lib/auth/backend-proxy.ts` refuse une origine absente ; le proxy et le lecteur de session renvoient alors une erreur d’indisponibilité sûre. Une réponse 401 reçue de Spring est conservée, pas convertie en 503.
+
+`.env.example` est un modèle : Next ne le charge pas. Depuis `frontend/`, créer `.env.local` si nécessaire, ou ajouter uniquement la variable manquante à un fichier existant, sans remplacer ses autres valeurs :
+
+```dotenv
+BACKEND_INTERNAL_URL=http://127.0.0.1:8080
+```
+
+Ce fichier reste ignoré par Git et la variable reste exclusivement serveur. `backendOrigin()` lit `process.env` lors de chaque requête ; Next charge ces valeurs au démarrage et peut les recharger en mode développement. Un redémarrage est la procédure fiable après une modification de configuration ; le mode production demande aussi un redémarrage du processus Next. Aucun rebuild n’est requis pour cette variable serveur utilisée par ces routes dynamiques. Une variable déjà exportée dans le terminal prend priorité sur `.env.local` : vérifier aussi ce cas sans afficher d’autres variables.
+
+Diagnostic du fichier local et de la validation réellement utilisée par le proxy, sans afficher la valeur ni des secrets (Node.js 22.13 ou supérieur) :
+
+```sh
+cd frontend
+node --env-file-if-exists=.env.local --import tsx --input-type=module -e 'import {backendOrigin} from "./src/lib/auth/backend-proxy"; try { backendOrigin(); console.log("BACKEND_INTERNAL_URL : origine serveur valide"); } catch { console.error("BACKEND_INTERNAL_URL absente ou invalide : vérifier frontend/.env.local et redémarrer Next.js"); process.exitCode=1; }'
+```
+
+Ce contrôle ne prouve pas la connectivité réseau. Une origine doit être HTTP(S), sans identifiants, chemin, query ou fragment. Le proxy garde une réponse publique 503 générique en cas de configuration invalide ou panne ; le diagnostic local permet d’en distinguer la cause sans exposer l’origine interne au navigateur.
+
+Si les services sont arrêtés, démarrage depuis la racine du dépôt, dans deux terminaux :
+
+```sh
+# Terminal backend ; .env existe déjà et reste privé. JDK avec javac configuré.
+cd backend
+docker compose --env-file .env up -d --wait postgres
+set -a
+. ./.env
+set +a
+./mvnw spring-boot:run
+```
+
+```sh
+# Terminal frontend ; ne pas écraser un .env.local existant.
+cd frontend
+test -f .env.local || cp .env.example .env.local
+pnpm dev
+```
+
+Ne pas relancer le bootstrap, recréer les comptes ou supprimer le volume pour ce problème de connectivité. Le navigateur ouvre uniquement `http://localhost:3000` ; Spring reste sur loopback. Vérifications anonymes attendues :
+
+```sh
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/actuator/health
+# 200
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/api/v1/auth/me
+# 401
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/api/v1/auth/me
+# 401
+```
+
+Vérification du hotfix exécutée le 9 novembre 2026 :
+
+| Contrôle | Résultat |
+| --- | --- |
+| Services réels du développeur avant correction | Health Spring 200, `/auth/me` direct 401, proxy Next 503 |
+| Services réels après ajout de `.env.local` | Health 200, direct 401, proxy `http://localhost:3000/api/v1/auth/me` 401 |
+| Chromium sur le vrai port 3000 | Formulaire normal visible ; sans session et cookie invalide : 401 |
+| Diagnostic de configuration | Origine configurée valide ; valeurs absente/malformée refusées avec diagnostic générique, sans afficher leur contenu |
+| TypeScript et ESLint | Réussite, aucun avertissement ESLint |
+| Tests unitaires frontend | 208 réussis, 0 échec, 0 ignoré ; deux régressions proxy ajoutées pour 401/403 et configuration invalide |
+| Build standard Next/Turbopack | Échec environnemental à l’ouverture d’un port dans le sous-processus CSS : `Operation not permitted` |
+| Build officiel `next build --webpack` | Réussite dans une copie temporaire, sans altérer le `.next` du serveur actif |
+| Parcours navigateur d’authentification existants | 5 réussis, 0 échec, 0 ignoré, sur Spring/PostgreSQL réels et comptes synthétiques isolés |
+| Arrêt réel du backend temporaire après les parcours | 503 privé sans cache ni origine interne exposée ; écran indisponible sans faux logout ou fallback ; stockages navigateur contrôlés vides |
+
+Les parcours réels couvrent dentiste, accueil, cookie de session et rotation, CSRF rejeté puis renouvelé explicitement, refresh, session invalidée, logout et retour arrière. Le harnais existant a provisionné ses comptes via `AccountBootstrap` dans une base Testcontainers jetable, sans utiliser les credentials ou la base du développeur. Les credentials et processus temporaires ont été nettoyés. Aucun compte réel n’a été modifié.
+
+Les builds et parcours isolés ont utilisé le même CLI Next et les tests existants depuis une copie temporaire : `node node_modules/next/dist/bin/next build`, `node node_modules/next/dist/bin/next build --webpack`, puis les cinq tests de `tests/browser/authentication.test.mjs`. Le CLI était appelé directement pour éviter la réinstallation automatique liée au déplacement de `node_modules` par le gestionnaire de paquets ; le script de build du dépôt n’a pas changé. La suite Maven complète n’a pas été relancée pour ce hotfix de configuration : son résultat de phase 8.4A reste 80 réussites, sans être présenté comme une nouvelle exécution.
+
+Le seul fichier local créé est `frontend/.env.local`, ignoré par Git avec permissions 0600. Les changements suivis du hotfix sont `frontend/.env.example`, `frontend/tests/auth-proxy.test.mjs`, `README.md` et ce document. Les modifications non commitées de phase 8.4A sont conservées. Aucune logique de proxy, authentification, cookie, CSRF, rôle, patient ou rendez-vous n’est modifiée. Les migrations et données PostgreSQL existantes restent intactes ; la phase 8.4B n’est pas commencée.
+
+
+## Extension rendez-vous — phase 8.4B
+
+Le proxy autorise maintenant GET/POST collection rendez-vous, GET/PUT détail UUID et PUT statut UUID. Le transport commun `lib/api/session-request.ts` reprend la gestion HTTP/CSRF des patients pour les rendez-vous, sans modifier la rotation du login, les sessions ou les règles backend. Aucun port Spring n’est exposé au navigateur et aucun jeton n’est persistant. Les parcours réels des deux rôles et les régressions d’authentification font partie des 35 parcours réussis de phase 8.4B ; voir [l’intégration rendez-vous](appointment-frontend-integration.md).

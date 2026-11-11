@@ -74,7 +74,7 @@ export function ConsultationDetails({ id }: { id: string }) {
         <ConsultationStatus status={consultation.status} />
         {draft && (
           <Button asChild>
-            <Link href={`/consultations/${id}/modifier`}>
+            <Link href={`/demo/consultations/${id}/modifier`}>
               Modifier le brouillon
             </Link>
           </Button>
@@ -97,12 +97,12 @@ export function ConsultationDetails({ id }: { id: string }) {
           </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href={`/consultations?patientId=${patient.id}`}>
+          <Link href={`/demo/consultations?patientId=${patient.id}`}>
             Consultations du patient
           </Link>
         </Button>
         <Button asChild variant="ghost">
-          <Link href="/consultations">Toutes les consultations</Link>
+          <Link href="/demo/consultations">Toutes les consultations</Link>
         </Button>
       </div>
       <Card>
@@ -140,7 +140,7 @@ export function ConsultationDetails({ id }: { id: string }) {
             {appointment && appointment.patientId === patient.id ? (
               <Link
                 className="text-primary underline"
-                href={`/rendez-vous/${appointment.id}`}
+                href={`/demo/rendez-vous/${appointment.id}`}
               >
                 Rendez-vous du {formatPatientDate(appointment.date)} à{" "}
                 {appointment.startTime}

@@ -21,8 +21,8 @@ export function AppointmentConsultationLink({
         <Link
           href={
             linkedId
-              ? `/consultations/${linkedId}`
-              : `/consultations/nouveau?patientId=${patientId}&appointmentId=${appointmentId}`
+              ? `/demo/consultations/${linkedId}`
+              : `/demo/consultations/nouveau?patientId=${patientId}&appointmentId=${appointmentId}`
           }
         >
           {linkedId ? "Ouvrir la consultation liée" : "Créer une consultation"}

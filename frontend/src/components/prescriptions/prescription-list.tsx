@@ -45,7 +45,7 @@ export function PrescriptionList({
               </p>
               {record.consultationId && (
                 <Link
-                  href={`/consultations/${record.consultationId}`}
+                  href={`/demo/consultations/${record.consultationId}`}
                   className="inline-block text-xs text-primary underline"
                 >
                   Voir la consultation liée

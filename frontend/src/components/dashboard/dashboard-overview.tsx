@@ -51,7 +51,7 @@ export function DashboardOverview() {
         description="Retrouvez les repères essentiels pour organiser votre journée."
       >
         <Button asChild>
-          <Link href="/rendez-vous">
+          <Link href="/demo/rendez-vous">
             <CalendarDays aria-hidden="true" />
             Ouvrir l’agenda
           </Link>
@@ -111,7 +111,7 @@ export function DashboardOverview() {
           />
         )}
         <div className="space-y-6">
-          <QuickActions />
+          <QuickActions demo />
           {financial.state.status === "error" ? (
             <BillingErrorState retry={financial.retry} />
           ) : (

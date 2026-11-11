@@ -1,4 +1,6 @@
-# Architecture backend — phase 8.3A
+# Architecture backend — phase 8.4A
+
+> État actuel 8.5C.2A : patients, rendez-vous, clinique et brouillons d’ordonnances disposent d’API persistantes. Les descriptions précédentes restent historiques. Le frontend clinique est intégré en 8.5B.2 ; celui des ordonnances reste un prototype. Voir la section Ordonnances en fin de document.
 
 ## Périmètre
 
@@ -104,3 +106,36 @@ Le [contrat patients](patient-backend-contract.md) contient le mapping audité, 
 `./mvnw verify` : **53 tests réussis**, dont **25 tests patients** sur un serveur HTTP réel et PostgreSQL Testcontainers, aucune erreur et aucun test ignoré. Sont vérifiés migrations, JPA, FK/contraintes, rôles, CSRF, sérialisation, questionnaire, rollback sur refus d’audit, références concurrentes et conflits de versions. Les empreintes V1/V2 et frontend/PDF sont conservées.
 
 Le test de passage V2 → V3 vérifie aussi la conservation d’un compte et d’un événement d’authentification existants, ainsi que les checksums des migrations appliquées.
+
+
+## Rendez-vous — phase 8.4A
+
+Le module `appointment` ajoute une entité sans association sérialisable vers le patient, des DTO stricts, un dépôt de plages PostgreSQL, un service transactionnel et un contrôleur REST versionné. Il n’expose ni texte médical, ni motif/notes libres, ni résumé de patient. Les références patient sont des UUID avec FK et verrou partagé lors des réservations, en coordination avec l’archivage.
+
+V4 utilise une exclusion GiST partielle sur les intervalles `[start_at,end_at)`, limitée aux statuts qui réservent le créneau. Cette protection couvre les collisions entre différentes lignes, en complément de la version JPA protégeant une ligne donnée. Un index GiST complet sert les lectures de calendrier bornées incluant les statuts non bloquants. L’agenda est unique et ne nécessite ni table de ressources ni extension `btree_gist`.
+
+L’audit ajoute une cible rendez-vous contrôlée par FK/CHECK. Création, remplacement, déplacement et statut sont audités dans la transaction métier ; aucun nom, texte, horaire ancien ou payload n’est copié dans l’événement. Les migrations antérieures et les contrats patients restent conservés.
+
+La politique de présentation future devra différencier les statuts administratifs de TERMINE, réservé au dentiste et terminal. Le calcul temporel repose sur les instants et Africa/Casablanca, sans horaire d’ouverture supposé ni UTC+1 fixe. Voir [le contrat rendez-vous](appointment-backend-contract.md) pour les décisions, transitions, API et limites.
+
+Les tests existants sont adaptés uniquement à l’ajout de V4 : nettoyage des bases de test avec la nouvelle FK, passage V2→V3 conservé à sa cible et attente de V4 dans les contrôles de schéma. Le lanceur navigateur de test connaît les nouvelles entités et migrations ; seule son assertion de version est ajustée côté script de test frontend. Les composants, modèles, dépôts, authentification et ressources frontend ne sont pas modifiés. Aucune intégration de phase 8.4B n’est commencée.
+
+Validation de phase 8.4A : **80 tests Maven réussis, aucun échec, erreur ou test ignoré**, avec PostgreSQL Testcontainers et serveurs HTTP réels. Les 26 tests rendez-vous comprennent les collisions entre transactions indépendantes, la contrainte SQL autoritaire, le verrou d’archivage patient et le rollback lorsque l’audit échoue. Le test de migration V3→V4 conserve les données administratives, médicales et d’audit, et les 53 tests historiques restent verts. Aucun code de phase 8.4B n’est livré.
+
+
+## Ordonnances — phase 8.5C.2A
+
+Le package `prescription` livre DTO stricts, service transactionnel, dépôts/entités et cinq opérations : POST/GET `/api/v1/prescriptions`, GET/PUT `/api/v1/prescriptions/{id}` et PUT `/api/v1/prescriptions/{id}/archival`. Les détails et mutations exigent `patientId` ; l’historique utilise des pages de 50 et un curseur date/UUID décroissant. Le tableau de lignes est la commande de remplacement complet, avec UUID serveur stables et version parent.
+
+V7 ajoute `prescription` et `prescription_line`, la FK composite de consultation/patient et l’audit dédié sans texte clinique. La contrainte différable d’ordre permet les permutations atomiques ; les positions sont contiguës et limitées à 0–19. Les guards interdisent suppression de l’ordonnance, réaffectation du patient et toute modification de brouillon archivé, lignes comprises. Les écritures prennent le verrou patient partagé puis le verrou ordonnance exclusif ; chaque mutation avance la version une seule fois. Les versions attendues périmées donnent 409 ; l’audit et les lignes participent à la même transaction.
+
+Les trois niveaux HTTP/contrôleur/service imposent DENTIST. Le filtre de confidentialité prescriptions applique no-store/Vary Cookie même aux refus de session/CSRF. La limite de corps de 256 Kio et la validation des scalaires sont propres aux prescriptions. Les mécanismes de session et de CSRF ainsi que les règles des autres ressources restent inchangés. L’identité patient est obtenue par projection minimale ; la vérification du lien clinique utilise un test d’existence, sans lire les notes.
+
+Les décisions A–E sont approuvées dans le [contrat ordonnances](prescription-persistence-contract.md). Le statut SQL est limité à BROUILLON dans cette phase ; aucun PDF/snapshot, finalisation ou téléchargement. Le lien correctif est réservé et forcé à NULL, avant une future migration accompagnant les règles complètes. Le profil professionnel, le rendu Java/Node privé et la rétention documentaire sont décrits pour la suite sans être implémentés. Le [contrat REST](prescription-rest-contract.md) distingue les cinq opérations livrées et les routes non exposées ; le [plan d’acceptation](prescription-acceptance-plan.md) donne la validation réellement exécutée et les tests restants.
+
+
+## Pont de rendu prescriptions — 8.5C.2B.1
+
+`prescription.rendering` fournit un adaptateur local Node via pipes, une inspection structurelle PDFBox et une orchestration interne DENTIST sans transaction englobante. Les lectures de prescription/identité et de compte utilisent les services/dépôts existants ; elles sont revalidées après rendu. Aucun contrôleur, audit de finalisation, migration, changement d’état ou stockage PDF n’est ajouté. Les règles de session, CSRF et l’allowlist HTTP restent inchangées.
+
+Le worker compile le moteur TypeScript existant et utilise les mêmes assets épinglés. Chemins serveur fixes, manifeste attendu, environnement vidé, permissions Node de lecture et bornes temporelles/volumétriques protègent l’invocation. La dépendance PDFBox valide indépendamment la sortie en mémoire ; elle n’est pas utilisée pour générer un autre format de document. Voir [l’ADR, le protocole et la validation](prescription-rendering-bridge.md). La capacité est désactivée par défaut et n’est pas nécessaire au démarrage des API historiques.

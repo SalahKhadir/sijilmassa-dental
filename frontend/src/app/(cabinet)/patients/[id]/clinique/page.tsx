@@ -1,2 +1,2 @@
-import Link from "next/link";
-export default function Page() { return <p>Les consultations restent en démonstration, sans lien avec les patients enregistrés. <Link href="/consultations">Ouvrir le prototype synthétique</Link></p>; }
+import { PersistentClinicalDirectory } from "@/components/consultations/persistent/history";
+export default async function Page({ params }: { params: Promise<{ id: string }> }) { return <PersistentClinicalDirectory patientId={(await params).id} />; }

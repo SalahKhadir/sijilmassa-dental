@@ -1,5 +1,7 @@
 # Gestion des ordonnances — phase 6
 
+> État actuel : ce document décrit le prototype synthétique et son PDF. Le [contrat de persistance 8.5C.1](prescription-persistence-contract.md), son [API proposée](prescription-rest-contract.md) et son [plan de tests et de phase 8.5C.2](prescription-acceptance-plan.md) décrivent la cible ; la fondation backend des brouillons est livrée en 8.5C.2A, sans intégration frontend. La [finalisation atomique et le PDF persistant](prescription-finalization-contract.md) sont livrés côté backend en 8.5C.2B.2. Le [pont de rendu privé 8.5C.2B.1](prescription-rendering-bridge.md) réutilise désormais ce même moteur côté serveur, sans modifier le comportement du prototype. Les patients, rendez-vous et consultations réels sont déjà intégrés ; les mentions historiques ci-dessous ne décrivent pas leurs autorisations actuelles.
+
 ## Périmètre et parcours
 
 La page Documents rassemble les ordonnances et une section d’information sur les feuilles de soins dentaires CNSS, CNOPS et FAR. Le dentiste peut créer un brouillon, le relire, le modifier et le finaliser explicitement. Il peut aussi ouvrir le modèle vierge pour une saisie manuscrite. Les médicaments et leurs instructions sont saisis par le dentiste.

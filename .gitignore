@@ -12,6 +12,7 @@ node_modules/
 vendor/
 
 # --- Next.js / React / Build ---
+.prescription-renderer/
 .next/
 out/
 dist/

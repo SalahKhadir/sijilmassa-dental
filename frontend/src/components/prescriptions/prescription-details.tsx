@@ -102,7 +102,7 @@ export function PrescriptionDetails({ id }: { id: string }) {
         </Button>
         {record.consultationId && (
           <Button asChild variant="outline">
-            <Link href={`/consultations/${record.consultationId}`}>
+            <Link href={`/demo/consultations/${record.consultationId}`}>
               Voir la consultation liée
             </Link>
           </Button>

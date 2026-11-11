@@ -1,4 +1,5 @@
 "use client";
+import { PersistentPatientAppointments } from "@/components/appointments/persistent/patient-section";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -51,12 +52,13 @@ function AdministrativeRecord({ id, clinical, edit }: { id: string; clinical: bo
     <PersistentNotice /><PatientStatus status={patient.status} />
     {patient.status === "inactive" && <p role="status" className="rounded-lg border bg-surface p-4">Patient inactif. Le dossier médical reste consultable ; sa modification exige une restauration.</p>}
     <nav aria-label="Sections du dossier" className="flex flex-wrap gap-4 border-b pb-3"><Link className="text-primary underline" href={`/patients/${id}`}>Informations personnelles</Link>
-      {user?.role === "DENTIST" && <Link className="text-primary underline" href={`/patients/${id}/dossier`}>Questionnaire et antécédents</Link>}</nav>
+      {user?.role === "DENTIST" && <><Link className="text-primary underline" href={`/patients/${id}/dossier`}>Questionnaire et antécédents</Link><Link className="text-primary underline" href={`/patients/${id}/clinique`}>Historique clinique</Link></>}</nav>
     {clinical ? <MedicalSection key={revision} patient={patient} edit={edit} reloadPatient={reload} /> : edit ?
       <PersistentPatientForm key={revision} patient={patient} mode="administrative" reload={reload} /> : <>
         <Card><CardContent className="pt-6"><PatientIdentitySummary identity={{ ...patient.identity, dateOfBirth: patient.identity.dateOfBirth ?? "" }} /></CardContent></Card>
         <div className="flex gap-3"><Button asChild><Link href={`/patients/${id}/modifier`}>Modifier le patient</Link></Button>
           <Button variant="outline" disabled={busy || Boolean(actionError)} onClick={() => void lifecycle()}>{busy ? "Enregistrement…" : patient.status === "active" ? "Archiver le patient" : "Restaurer le patient"}</Button></div>
+        <PersistentPatientAppointments patientId={patient.id} inactive={patient.status === "inactive"} />
         {actionError ? <PatientFailure error={actionError} retry={reload} /> : null}{notice && <p role="status">{notice}</p>}
       </>}
   </>;

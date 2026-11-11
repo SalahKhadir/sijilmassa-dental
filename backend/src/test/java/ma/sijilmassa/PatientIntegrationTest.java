@@ -61,7 +61,7 @@ class PatientIntegrationTest {
     Browser reception;
 
     @BeforeEach void isolatedData() throws Exception {
-        jdbc.execute("TRUNCATE security_audit_event, patient_history_condition, patient_allergy_category, patient_medical_record, patient, application_user");
+        jdbc.execute("TRUNCATE prescription_document, prescription_line, prescription, clinical_treatment, clinical_consultation, appointment, security_audit_event, patient_history_condition, patient_allergy_category, patient_medical_record, patient, application_user");
         clock.advance(120);
         bootstrap.initialize("patient.dentist", PASSWORD, "patient.reception", PASSWORD);
         dentist = new Browser("patient.dentist"); reception = new Browser("patient.reception");
@@ -70,7 +70,7 @@ class PatientIntegrationTest {
 
     @Test void migrationChainAndMappedSchemaAreValidated() {
         assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history WHERE success ORDER BY installed_rank", String.class))
-                .contains("1", "2", "3", "900");
+                .contains("1", "2", "3", "4", "5", "6", "7", "8", "900");
         assertThat(entityManagerFactory.isOpen()).isTrue();
         assertThat(jdbc.queryForObject("SHOW timezone", String.class)).isEqualTo("UTC");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM patient", Integer.class)).isZero();

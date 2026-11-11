@@ -52,9 +52,48 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(problems.create(403, request));
     }
 
+    @ExceptionHandler(ma.sijilmassa.appointment.AppointmentFailure.class)
+    public ResponseEntity<ProblemDetail> handleAppointment(ma.sijilmassa.appointment.AppointmentFailure failure, HttpServletRequest request) {
+        return safe(failure.status(), request);
+    }
     @ExceptionHandler(ma.sijilmassa.patient.PatientFailure.class)
     public ResponseEntity<ProblemDetail> handlePatient(ma.sijilmassa.patient.PatientFailure failure, HttpServletRequest request) {
         return safe(failure.status(), request);
+    }
+
+    @ExceptionHandler(ma.sijilmassa.clinical.ClinicalFailure.class)
+    public ResponseEntity<ProblemDetail> handleClinical(ma.sijilmassa.clinical.ClinicalFailure failure, HttpServletRequest request) {
+        int status = switch (failure.reason()) {
+            case PATIENT_NOT_FOUND, CONSULTATION_NOT_FOUND, TREATMENT_NOT_FOUND -> 404;
+            case INVALID_INPUT, INVALID_TREATMENT, INVALID_APPOINTMENT -> 400;
+            case ARCHIVED_PATIENT, INVALID_STATE, CONCURRENCY_CONFLICT, DUPLICATE_APPOINTMENT -> 409;
+        };
+        return safe(status, request);
+    }
+
+    @ExceptionHandler(ma.sijilmassa.prescription.PrescriptionFailure.class)
+    public ResponseEntity<ProblemDetail> handlePrescription(ma.sijilmassa.prescription.PrescriptionFailure failure, HttpServletRequest request) {
+        var problem = problems.create(failure.status(), request);
+        if (failure.status() != 404 && failure.status() != 413) problem.setProperty("code", failure.reason().name());
+        return ResponseEntity.status(failure.status()).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
+    }
+
+    @ExceptionHandler(ma.sijilmassa.prescription.rendering.RenderingFailure.class)
+    public ResponseEntity<ProblemDetail> handleRendering(ma.sijilmassa.prescription.rendering.RenderingFailure failure, HttpServletRequest request) {
+        int status = switch (failure.code()) {
+            case INVALID_INPUT, LAYOUT_OVERFLOW, UNSUPPORTED_CHARACTER -> 400;
+            case INVALID_OUTPUT -> 500;
+            default -> 503;
+        };
+        String code = switch (failure.code()) {
+            case INVALID_INPUT -> "INVALID_INPUT";
+            case LAYOUT_OVERFLOW -> "PDF_LAYOUT_OVERFLOW";
+            case UNSUPPORTED_CHARACTER -> "PDF_UNSUPPORTED_CHARACTER";
+            case INVALID_OUTPUT -> "DOCUMENT_UNAVAILABLE";
+            default -> "RENDERER_UNAVAILABLE";
+        };
+        var problem = problems.create(status, request); problem.setProperty("code", code);
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
     }
 
     @ExceptionHandler({org.springframework.orm.ObjectOptimisticLockingFailureException.class,

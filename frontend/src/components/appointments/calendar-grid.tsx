@@ -23,10 +23,12 @@ export function CalendarGrid({
   appointments,
   patients,
   selectedDate,
+  persistent = false,
 }: {
   selectedDate?: string;
+  persistent?: boolean;
   dates: readonly string[];
-  appointments: readonly Appointment[];
+  appointments: readonly Pick<Appointment, "id" | "patientId" | "date" | "startTime" | "durationMinutes" | "type" | "status">[];
   patients: readonly AppointmentPatient[];
 }) {
   const scrollRegion = useRef<HTMLDivElement>(null);
@@ -42,16 +44,19 @@ export function CalendarGrid({
     if (target.left < view.left + 56 || target.right > view.right)
       region.scrollLeft += target.left - view.left - 56;
   }, [selectedDate, dateKey]);
+  useLayoutEffect(() => {
+    if (persistent && scrollRegion.current) scrollRegion.current.scrollTop = 8 * 60 * 3;
+  }, [persistent, dateKey]);
   const scale = Math.max(3, 90 / developmentSchedule.minimumDuration);
   const start = Math.min(
-    parseLocalTime(developmentSchedule.gridStart) ?? 540,
+    persistent ? 0 : (parseLocalTime(developmentSchedule.gridStart) ?? 540),
     ...appointments.map(
       (appointment) =>
         Math.floor((parseLocalTime(appointment.startTime) ?? 540) / 60) * 60,
     ),
   );
   const end = Math.max(
-    parseLocalTime(developmentSchedule.gridEnd) ?? 1080,
+    persistent ? 1440 : (parseLocalTime(developmentSchedule.gridEnd) ?? 1080),
     ...appointments.map(
       (appointment) =>
         Math.ceil(
@@ -125,10 +130,10 @@ export function CalendarGrid({
           {dates.map((date, index) => (
             <div
               key={date}
-              className="relative border-r bg-muted"
+              className={persistent ? "relative border-r bg-surface" : "relative border-r bg-muted"}
               style={{ height }}
             >
-              {(developmentSchedule.weeklyHours[localWeekday(date)] ?? []).map(
+              {(!persistent ? developmentSchedule.weeklyHours[localWeekday(date)] ?? [] : []).map(
                 (period) => (
                   <div
                     key={period.start}
@@ -171,7 +176,7 @@ export function CalendarGrid({
                   return (
                     <Link
                       key={appointment.id}
-                      href={`/rendez-vous/${appointment.id}`}
+                      href={`${persistent ? "/rendez-vous" : "/demo/rendez-vous"}/${appointment.id}`}
                       aria-label={description}
                       title={description}
                       className={cn(

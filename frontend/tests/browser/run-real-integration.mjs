@@ -1,9 +1,9 @@
 // Disposable real Spring/PostgreSQL environment. No clinic .env file is sourced.
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { chromium, request } from "playwright";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, mkdir, readFile, rm, open } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, open } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,36 +62,65 @@ try {
   const health = await fetch(`${runtime.backendOrigin}/actuator/health`);
   assert.equal(health.status, 200); assert.deepEqual(await health.json(), { status: "UP" });
   assert.equal((await fetch(`${baseURL}/api/v1/patients`)).status, 401);
-  assert.deepEqual(runtime.migrations, ["1", "2", "3"]); assert.equal(runtime.jpaValidated, true);
-  console.log("Real synthetic PostgreSQL, Spring Boot and Next.js proxy ready; V1/V2/V3, JPA, health and anonymous denial verified.");
-  await run("pnpm", ["test:browser"], { env: { ...process.env,
+  assert.deepEqual(runtime.migrations, ["1", "2", "3", "4", "5", "6", "7", "8"]); assert.equal(runtime.jpaValidated, true);
+  console.log("Real synthetic PostgreSQL, Spring Boot and Next.js proxy ready; V1–V8, JPA, health and anonymous denial verified.");
+  // Authenticate the outage probe before the journeys; do not add a login to their final burst.
+  const fixture = JSON.parse(await readFile(path.join(fixtureDirectory, "users.json"), "utf8"));
+  const probe = await request.newContext({ baseURL });
+  let probeState;
+  try {
+    const csrf = await (await probe.get("/api/v1/auth/csrf")).json();
+    assert.equal((await probe.post("/api/v1/auth/login", { headers: { [csrf.headerName]: csrf.token }, data: fixture.dentist })).status(), 200);
+    probeState = await probe.storageState();
+  } finally { await probe.dispose(); }
+  const browserTests = (await readdir(path.join(frontend, "tests/browser"))).filter(name => name.endsWith(".test.mjs")
+    && (!process.env.BROWSER_TEST_FILE || name === process.env.BROWSER_TEST_FILE)).sort();
+  assert(browserTests.length > 0, "No matching browser test file");
+  await run(process.execPath, ["--import", "tsx", "--test", "--experimental-test-isolation=none", ...browserTests.map(name => `tests/browser/${name}`)], { env: { ...process.env,
     AUTH_TEST_FIXTURE: path.join(fixtureDirectory, "users.json"), PATIENTS_TEST_BASE_URL: baseURL,
     BACKEND_INTERNAL_URL: runtime.backendOrigin,
   } });
   // A real outage, after all normal journeys: stop only the backend owned by this process.
-  const fixture = JSON.parse(await readFile(path.join(fixtureDirectory, "users.json"), "utf8"));
   const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined });
   try {
-    const context = await browser.newContext();
-    const csrf = await (await context.request.get(`${baseURL}/api/v1/auth/csrf`)).json();
-    assert.equal((await context.request.post(`${baseURL}/api/v1/auth/login`, { headers: { [csrf.headerName]: csrf.token }, data: fixture.dentist })).status(), 200);
+    const context = await browser.newContext({ storageState: probeState });
     const patients = await context.request.get(`${baseURL}/api/v1/patients`);
     assert.equal(patients.status(), 200); assert.match(patients.headers()["cache-control"], /private.*no-store|no-store.*private/);
     const page = await context.newPage();
     await page.goto(`${baseURL}/patients`); await page.getByRole("heading", { name: "Patients", exact: true }).waitFor();
     assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
     assert.equal(await page.evaluate(async () => (await indexedDB.databases()).length), 0);
+    const identity = { firstName: "Panne clinique fictive", lastName: "852", sex: "unanswered", dateOfBirth: null, address: "", gsm: "", landline: "", profession: "", cin: "", medicalCoverage: "" };
+    const currentCsrf = await (await context.request.get(`${baseURL}/api/v1/auth/csrf`)).json();
+    const headers = { [currentCsrf.headerName]: currentCsrf.token };
+    const createdPatient = await context.request.post(`${baseURL}/api/v1/patients`, { headers, data: { identity, status: "active" } });
+    assert.equal(createdPatient.status(), 201); const clinicalPatient = await createdPatient.json();
+    const createdConsultation = await context.request.post(`${baseURL}/api/v1/consultations`, { headers, data: { patientId: clinicalPatient.id, content: {
+      appointmentId: null, consultationDate: "2026-11-10", chiefComplaint: "SYNTHETIC-CLINICAL-OUTAGE-CANARY", clinicalObservations: "", assessment: "", treatmentPlan: "", notes: "",
+    } } });
+    assert.equal(createdConsultation.status(), 201); const clinicalRecord = await createdConsultation.json();
+    await page.goto(`${baseURL}/consultations/${clinicalRecord.id}?patientId=${clinicalPatient.id}`);
+    await page.getByText("SYNTHETIC-CLINICAL-OUTAGE-CANARY", { exact: true }).waitFor();
     backendProcess.stdin.end(); await once(backendProcess, "exit");
     const failure = await context.request.get(`${baseURL}/api/v1/patients`);
     assert.equal(failure.status(), 503); assert.match(failure.headers()["cache-control"], /no-store/);
     assert(!(await failure.text()).includes(runtime.backendOrigin));
-    await page.reload(); await page.getByRole("heading", { name: "Session non vérifiée", exact: true }).waitFor();
+    const appointmentFailure = await context.request.get(`${baseURL}/api/v1/appointments?from=2026-11-10T00:00:00Z&to=2026-11-11T00:00:00Z`);
+    assert.equal(appointmentFailure.status(), 503); assert.match(appointmentFailure.headers()["cache-control"], /no-store/);
+    assert(!(await appointmentFailure.text()).includes(runtime.backendOrigin));
+    const clinicalFailure = await context.request.get(`${baseURL}/api/v1/consultations/${clinicalRecord.id}?patientId=${clinicalPatient.id}`);
+    assert.equal(clinicalFailure.status(), 503); assert.match(clinicalFailure.headers()["cache-control"], /no-store/);
+    assert(!(await clinicalFailure.text()).includes(runtime.backendOrigin));
+    await page.getByRole("button", { name: "Actualiser le dossier clinique", exact: true }).click();
+    await page.getByText(/Le service clinique est indisponible|Session non vérifiée/).first().waitFor();
+    assert.equal(await page.getByText("SYNTHETIC-CLINICAL-OUTAGE-CANARY", { exact: true }).count(), 0);
+    await page.goto(`${baseURL}/rendez-vous`); await page.getByRole("heading", { name: "Session non vérifiée", exact: true }).waitFor();
     assert(!page.url().endsWith("/login"));
     const serviceLogs = (await readFile(path.join(directory, "backend.log"), "utf8")) + (await readFile(path.join(directory, "next.log"), "utf8"));
-    for (const secret of [fixture.dentist.password, fixture.receptionist.password, "Profession fictive 83B", "Autre utilisateur fictif", "Diabète"]) {
+    for (const secret of [fixture.dentist.password, fixture.receptionist.password, "Profession fictive 83B", "Autre utilisateur fictif", "Diabète", "SYNTHETIC-CLINICAL-OUTAGE-CANARY"]) {
       assert(!serviceLogs.includes(secret), "Patient payload or credential found in service logs");
     }
-    console.log("Real backend shutdown verified: safe uncached 503, explicit unavailable UI without logout/fallback, empty browser storage and no payload/credentials in service logs.");
+    console.log("Real backend shutdown verified: safe uncached patient/appointment 503, explicit unavailable UI without logout/fallback, empty browser storage and no payload/credentials in service logs.");
     await context.close();
   } finally { await browser.close(); }
 } catch (error) {

@@ -63,3 +63,26 @@ test("origin check uses incoming authority rather than Next's internal localhost
 });
 
  test("reception can open only persistent administrative patient routes", () => { for (const path of ["/patients", "/patients/nouveau", "/patients/00000000-0000-4000-8000-000000000001", "/patients/00000000-0000-4000-8000-000000000001/modifier"]) assert.equal(canAccessPath("RECEPTIONIST", path), true); for (const path of ["/demo/patients", "/patients/00000000-0000-4000-8000-000000000001/dossier", "/patients/00000000-0000-4000-8000-000000000001/clinique"]) assert.equal(canAccessPath("RECEPTIONIST", path), false); });
+
+test("reachable backend unauthorized statuses remain 401/403, never availability errors", async () => {
+  for (const status of [401, 403]) {
+    const body = { type: "about:blank", status, title: status === 401 ? "Unauthorized" : "Forbidden" };
+    const result = await proxyAuthentication(new Request("http://clinic.local/api/v1/auth/me"), "auth/me", {
+      origin: "http://127.0.0.1:8080", fetcher: async () => Response.json(body, { status, headers: { "Content-Type": "application/problem+json" } }),
+    });
+    assert.equal(result.status, status); assert.deepEqual(await result.json(), body);
+    assert.match(result.headers.get("cache-control"), /private, no-store/);
+  }
+});
+
+test("missing or invalid server configuration fails before transport without exposing the configured value", async () => {
+  assert.throws(() => backendOrigin(""), /Missing internal backend URL/);
+  for (const origin of ["", "invalid-origin", "http://synthetic-user:synthetic-secret@private.invalid"]) {
+    let called = false;
+    const result = await proxyAuthentication(new Request("http://clinic.local/api/v1/auth/me"), "auth/me", {
+      origin, fetcher: async () => { called = true; return Response.json({}); },
+    });
+    assert.equal(result.status, 503); assert.equal(called, false);
+    assert(!(await result.text()).includes("synthetic-secret"));
+  }
+});

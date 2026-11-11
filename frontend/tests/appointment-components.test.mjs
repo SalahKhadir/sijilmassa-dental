@@ -71,7 +71,7 @@ test("time grid positions all overlapping histories and keeps independent keyboa
     patients,
   });
   for (const appointment of appointments)
-    assert(markup.includes(`href="/rendez-vous/${appointment.id}"`));
+    assert(markup.includes(`href="/demo/rendez-vous/${appointment.id}"`));
   assert(markup.includes("height:88px"));
   assert(markup.includes("height:133px"));
   assert(markup.includes("Annulé"));

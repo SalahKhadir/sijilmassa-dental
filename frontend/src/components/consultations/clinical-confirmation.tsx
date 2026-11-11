@@ -7,6 +7,7 @@ export function ClinicalConfirmation({
   description,
   confirmLabel,
   busy = false,
+  confirmDisabled = false,
   error,
   onOpenChange,
   onConfirm,
@@ -16,6 +17,7 @@ export function ClinicalConfirmation({
   description: string;
   confirmLabel: string;
   busy?: boolean;
+  confirmDisabled?: boolean;
   error?: string;
   onOpenChange(open: boolean): void;
   onConfirm(): void;
@@ -50,7 +52,7 @@ export function ClinicalConfirmation({
                 Annuler
               </Button>
             </Dialog.Close>
-            <Button onClick={onConfirm} disabled={busy}>
+            <Button onClick={onConfirm} disabled={busy || confirmDisabled}>
               {busy ? "Enregistrement…" : confirmLabel}
             </Button>
           </div>

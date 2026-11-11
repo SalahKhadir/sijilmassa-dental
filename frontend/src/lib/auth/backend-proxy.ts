@@ -26,7 +26,16 @@ export async function proxyAuthentication(request: Request, path: string,
   const patientRoute = path === "patients" ? ["GET", "POST"]
     : path === "patients/with-medical-record" ? ["POST"]
     : new RegExp(`^patients/${uuid}(?:/medical-record)?$`).test(path) ? ["GET", "PUT"] : null;
-  const methods = patientRoute ?? (paths.has(path) ? [paths.get(path)!] : null);
+  const appointmentRoute = path === "appointments" ? ["GET", "POST"]
+    : new RegExp(`^appointments/${uuid}$`).test(path) ? ["GET", "PUT"]
+    : new RegExp(`^appointments/${uuid}/status$`).test(path) ? ["PUT"] : null;
+  const clinicalRoute = path === "consultations" ? ["GET", "POST"]
+    : new RegExp(`^consultations/${uuid}$`).test(path) ? ["GET", "PUT"]
+    : new RegExp(`^consultations/${uuid}/treatments$`).test(path) ? ["POST"]
+    : new RegExp(`^consultations/${uuid}/treatments/removed$`).test(path) ? ["GET"]
+    : new RegExp(`^consultations/${uuid}/(?:finalization|treatments/${uuid}(?:/removal)?)$`).test(path) ? ["PUT"] : null;
+  const resourceRoute = patientRoute ?? appointmentRoute ?? clinicalRoute;
+  const methods = resourceRoute ?? (paths.has(path) ? [paths.get(path)!] : null);
   if (!methods) return proxyProblem(404);
   const method = request.method;
   if (!methods.includes(method)) return proxyProblem(405);
@@ -61,14 +70,14 @@ export async function proxyAuthentication(request: Request, path: string,
         const { done, value } = await reader.read();
         if (done) break;
         size += value.length;
-        if (size > (patientRoute ? 65536 : 4096)) { await reader.cancel(); return proxyProblem(413); }
+        if (size > (resourceRoute ? 65536 : 4096)) { await reader.cancel(); return proxyProblem(413); }
         chunks.push(value);
       }
       body = new Uint8Array(size);
       let offset = 0;
       for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.length; }
     }
-    const upstream = await (options.fetcher ?? fetch)(`${origin}/api/v1/${path}${patientRoute && method === "GET" ? new URL(request.url).search : ""}`, {
+    const upstream = await (options.fetcher ?? fetch)(`${origin}/api/v1/${path}${clinicalRoute || (resourceRoute && method === "GET") ? new URL(request.url).search : ""}`, {
       method, headers, body, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(8000),
     });
     if (upstream.status >= 300 && upstream.status < 400) return proxyProblem(502);
@@ -79,6 +88,11 @@ export async function proxyAuthentication(request: Request, path: string,
     for (const name of ["X-Request-ID", "Retry-After"]) {
       const value = upstream.headers.get(name);
       if (value) responseHeaders.set(name, value);
+    }
+    if (clinicalRoute && upstream.headers.has("Location")) {
+      const location = upstream.headers.get("Location")!;
+      if (!new RegExp(`^/api/v1/consultations/${uuid}\\?patientId=${uuid}$`).test(location)) return proxyProblem(502);
+      responseHeaders.set("Location", location);
     }
     // Do not combine Set-Cookie (Expires contains commas). Spring uses host-only Path=/ cookies.
     for (const cookie of upstream.headers.getSetCookie()) {

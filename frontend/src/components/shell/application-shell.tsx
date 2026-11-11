@@ -1,3 +1,4 @@
+import { DataScopeLabel } from "./data-scope-label";
 import type { ReactNode } from "react";
 import { Brand } from "./brand";
 import { Navigation } from "./navigation";
@@ -21,7 +22,7 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
             Pensé pour votre cabinet
           </p>
           <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Prototype frontend · Phase 7
+            <DataScopeLabel compact />
           </p>
         </div>
       </aside>
@@ -35,8 +36,7 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
           {children}
         </main>
         <footer className="px-4 pb-6 text-xs text-muted-foreground sm:px-8 xl:px-10">
-          Sijilmassa Dental · Données fictives · Modifications temporaires en
-          mémoire
+          <DataScopeLabel />
         </footer>
       </div>
     </div>

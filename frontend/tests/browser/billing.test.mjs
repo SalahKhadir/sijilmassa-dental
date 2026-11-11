@@ -54,7 +54,7 @@ async function invoicePdf(page) {
 test("consultation invoice permits price override and exact partial payments shared across patient and dashboard", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${harness.baseURL}/consultations/consultation-demo-001`);
+    await page.goto(`${harness.baseURL}/demo/consultations/consultation-demo-001`);
     await link(page, "Créer une facture").click();
     await heading(page, "Nouvelle facture");
     assert.equal(
@@ -166,10 +166,8 @@ test("consultation invoice permits price override and exact partial payments sha
     assert((await financial.innerText()).includes("2026-011"));
     assert((await financial.innerText()).includes(formatMinor(95000)));
     // Follow a client-side shell link to preserve the shared in-memory ledger.
-    if (await button(page, "Ouvrir le menu de navigation").isVisible())
-      await button(page, "Ouvrir le menu de navigation").click();
     await page
-      .getByRole("link", { name: "Tableau de bord", exact: true })
+      .getByRole("link", { name: "Tableau de bord synthétique", exact: true })
       .first()
       .click();
     await heading(page, "Tableau de bord");

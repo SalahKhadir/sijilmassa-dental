@@ -50,7 +50,7 @@ async function dashboardCounter(page, label) {
 test("shared appointments create, edit, conflict, cancel, reactivate and update patient and dashboard views", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${baseURL}/`);
+    await page.goto(`${baseURL}/demo`);
     await heading(page, "Tableau de bord");
     await page
       .getByRole("heading", { name: "Prochains rendez-vous", exact: true })
@@ -131,7 +131,7 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
       .getByLabel("Motif administratif (facultatif)", { exact: true })
       .fill("Motif d’organisation fictif");
     await save(page);
-    await page.waitForURL(/\/rendez-vous\/appointment-demo-013$/);
+    await page.waitForURL(/\/demo\/rendez-vous\/appointment-demo-013$/);
     await heading(page, "Détails du rendez-vous");
     await page
       .getByRole("status")
@@ -177,7 +177,7 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
       .getByLabel("Heure de début (obligatoire)", { exact: true })
       .fill("09:30");
     await save(page);
-    await page.waitForURL(/\/rendez-vous\/appointment-demo-014$/);
+    await page.waitForURL(/\/demo\/rendez-vous\/appointment-demo-014$/);
     await page
       .getByRole("link", { name: "Modifier le rendez-vous", exact: true })
       .click();
@@ -194,14 +194,13 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
     await page
       .getByRole("button", { name: "Enregistrer en mémoire", exact: true })
       .click();
-    await page.waitForURL(/\/rendez-vous\/appointment-demo-014$/);
+    await page.waitForURL(/\/demo\/rendez-vous\/appointment-demo-014$/);
     await page
       .getByRole("status")
       .filter({ hasText: "Rendez-vous fictif modifié en mémoire" })
       .waitFor();
     await page
-      .getByRole("navigation", { name: "Navigation principale" })
-      .getByRole("link", { name: "Tableau de bord", exact: true })
+      .getByRole("link", { name: "Tableau de bord synthétique", exact: true })
       .click();
     await page
       .getByRole("heading", { name: "Prochains rendez-vous", exact: true })
@@ -223,8 +222,7 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
     await heading(page, "Détails du rendez-vous");
     await status(page, "ANNULE");
     await page
-      .getByRole("navigation", { name: "Navigation principale" })
-      .getByRole("link", { name: "Tableau de bord", exact: true })
+      .getByRole("link", { name: "Tableau de bord synthétique", exact: true })
       .click();
     await page
       .getByRole("heading", { name: "Prochains rendez-vous", exact: true })
@@ -246,13 +244,13 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
       .getByLabel("Heure de début (obligatoire)", { exact: true })
       .fill("09:45");
     await save(page);
-    await page.waitForURL(/\/rendez-vous\/appointment-demo-015$/);
+    await page.waitForURL(/\/demo\/rendez-vous\/appointment-demo-015$/);
     await page
       .getByRole("link", { name: "Fermer les détails", exact: true })
       .click();
     await heading(page, "Rendez-vous");
     const grid = page.getByRole("region", { name: /Grille horaire/ });
-    await grid.locator('a[href="/rendez-vous/appointment-demo-014"]').click();
+    await grid.locator('a[href="/demo/rendez-vous/appointment-demo-014"]').click();
     await heading(page, "Détails du rendez-vous");
     await page
       .getByLabel("Nouveau statut", { exact: true })
@@ -271,8 +269,7 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
     const periods = developmentSchedule.weeklyHours[localWeekday(today)] ?? [];
     if (periods.length) {
       await page
-        .getByRole("navigation", { name: "Navigation principale" })
-        .getByRole("link", { name: "Tableau de bord", exact: true })
+        .getByRole("link", { name: "Tableau de bord synthétique", exact: true })
         .click();
       await page
         .getByRole("heading", { name: "Prochains rendez-vous", exact: true })
@@ -294,8 +291,7 @@ test("shared appointments create, edit, conflict, cancel, reactivate and update 
       await save(page);
       await heading(page, "Détails du rendez-vous");
       await page
-        .getByRole("navigation", { name: "Navigation principale" })
-        .getByRole("link", { name: "Tableau de bord", exact: true })
+        .getByRole("link", { name: "Tableau de bord synthétique", exact: true })
         .click();
       await page
         .getByRole("heading", { name: "Prochains rendez-vous", exact: true })
@@ -330,7 +326,7 @@ test("calendar navigation, responsive agenda, keyboard, historical entries and u
   try {
     for (const width of [1440, 1280, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
-      await page.goto(`${baseURL}/rendez-vous?date=2026-11-07`);
+      await page.goto(`${baseURL}/demo/rendez-vous?date=2026-11-07`);
       await heading(page, "Rendez-vous");
       await page.getByRole("button", { name: "Semaine", exact: true }).click();
       await page
@@ -361,7 +357,7 @@ test("calendar navigation, responsive agenda, keyboard, historical entries and u
         );
         assert.equal(
           await region
-            .locator('a[href="/rendez-vous/appointment-demo-011"]')
+            .locator('a[href="/demo/rendez-vous/appointment-demo-011"]')
             .count(),
           1,
         );
@@ -405,7 +401,7 @@ test("calendar navigation, responsive agenda, keyboard, historical entries and u
       await page.getByLabel("Date affichée", { exact: true }).inputValue(),
       clinicDate(),
     );
-    await page.goto(`${baseURL}/rendez-vous/nouveau?patientId=unknown`);
+    await page.goto(`${baseURL}/demo/rendez-vous/nouveau?patientId=unknown`);
     await heading(page, "Nouveau rendez-vous");
     await page
       .getByText(
@@ -440,9 +436,9 @@ test("calendar navigation, responsive agenda, keyboard, historical entries and u
         ),
         fullPage: true,
       });
-    await page.goto(`${baseURL}/rendez-vous/id-inconnu`);
+    await page.goto(`${baseURL}/demo/rendez-vous/id-inconnu`);
     await heading(page, "Rendez-vous introuvable");
-    await page.goto(`${baseURL}/rendez-vous/id-inconnu/modifier`);
+    await page.goto(`${baseURL}/demo/rendez-vous/id-inconnu/modifier`);
     await heading(page, "Rendez-vous introuvable");
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);

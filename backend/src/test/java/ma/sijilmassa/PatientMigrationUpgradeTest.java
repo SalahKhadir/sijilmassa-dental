@@ -31,7 +31,7 @@ class PatientMigrationUpgradeTest {
         jdbc.update("INSERT INTO application_user(id,username,password_hash,role,active,created_at,updated_at) VALUES (?,'upgrade.synthetic',?,'DENTIST',true,now(),now())", actor, hash);
         jdbc.update("INSERT INTO security_audit_event(id,occurred_at,event_type,actor_user_id,subject_user_id) VALUES (?,now(),'LOGIN_SUCCEEDED',?,?)", event, actor, actor);
 
-        Flyway upgraded = Flyway.configure().dataSource(source).locations("classpath:db/migration").load();
+        Flyway upgraded = Flyway.configure().dataSource(source).locations("classpath:db/migration").target("3").load();
         assertThat(upgraded.migrate().migrationsExecuted).isEqualTo(1);
         assertThat(upgraded.validateWithResult().validationSuccessful).isTrue();
         assertThat(jdbc.queryForList("SELECT version, checksum FROM flyway_schema_history WHERE version IN ('1','2') ORDER BY installed_rank")).isEqualTo(oldChecksums);

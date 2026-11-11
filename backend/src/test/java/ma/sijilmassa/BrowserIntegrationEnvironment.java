@@ -40,7 +40,7 @@ public final class BrowserIntegrationEnvironment {
                     "--spring.flyway.locations=classpath:db/migration")) {
                 var jdbc = context.getBean(JdbcTemplate.class);
                 var migrations = jdbc.queryForList("SELECT version FROM flyway_schema_history WHERE success ORDER BY installed_rank", String.class);
-                if (!migrations.equals(java.util.List.of("1", "2", "3"))
+                if (!migrations.equals(java.util.List.of("1", "2", "3", "4", "5", "6", "7", "8"))
                         || !"validate".equals(context.getEnvironment().getProperty("spring.jpa.hibernate.ddl-auto"))
                         || jdbc.queryForObject("SELECT count(*) FROM patient", Integer.class) != 0) {
                     throw new IllegalStateException("Unexpected synthetic database baseline");
@@ -64,7 +64,7 @@ public final class BrowserIntegrationEnvironment {
         }
     }
     @TestConfiguration(proxyBeanMethods = false)
-    @EntityScan(basePackages = {"ma.sijilmassa.patient", "ma.sijilmassa.security", "ma.sijilmassa.audit"})
+    @EntityScan(basePackages = {"ma.sijilmassa.patient", "ma.sijilmassa.security", "ma.sijilmassa.audit", "ma.sijilmassa.appointment", "ma.sijilmassa.clinical", "ma.sijilmassa.prescription"})
     static class BrowserEntities { }
 
     private static String password() {

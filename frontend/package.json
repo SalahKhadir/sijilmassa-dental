@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:prescription-renderer": "node scripts/build-prescription-renderer.mjs",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "test": "node --import tsx --test --experimental-test-isolation=none tests/*.test.mjs",

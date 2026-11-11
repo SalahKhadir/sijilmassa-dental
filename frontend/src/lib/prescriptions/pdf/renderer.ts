@@ -19,6 +19,7 @@ async function openTemplate(template: Uint8Array) {
   } catch {
     throw new PrescriptionPdfError(
       "Le modèle officiel ne peut pas être lu. Rechargez-le avant de réessayer.",
+      "ASSET_INVALID",
     );
   }
   const page = document.getPages()[0];
@@ -31,6 +32,7 @@ async function openTemplate(template: Uint8Array) {
   )
     throw new PrescriptionPdfError(
       "Les dimensions du modèle diffèrent du document A5 officiel attendu.",
+      "ASSET_INVALID",
     );
   return document;
 }
@@ -78,6 +80,7 @@ export async function renderPrescriptionPdf(
       if (!supported.has(character.codePointAt(0)!))
         throw new PrescriptionPdfError(
           "Un caractère saisi n’est pas pris en charge par la police du PDF. Vérifiez le texte avant de réessayer.",
+          "UNSUPPORTED_CHARACTER",
         );
     }
   }
@@ -91,6 +94,7 @@ export async function renderPrescriptionPdf(
   if (patientLines.length > 2)
     throw new PrescriptionPdfError(
       "Le nom du patient dépasse la zone d’identification du modèle.",
+      "LAYOUT_OVERFLOW",
     );
   // Reserve the same area for both statuses so finalization never removes content.
   const lines = paragraphs.map((text) =>
@@ -108,6 +112,7 @@ export async function renderPrescriptionPdf(
   if (placed.some((line) => line.y < area.bottom))
     throw new PrescriptionPdfError(
       "Le contenu dépasse la zone d’écriture d’une page A5. Réorganisez l’ordonnance avant de réessayer. Aucun texte n’a été tronqué.",
+      "LAYOUT_OVERFLOW",
     );
   const page = document.getPages()[0];
   const origin = page.getCropBox();

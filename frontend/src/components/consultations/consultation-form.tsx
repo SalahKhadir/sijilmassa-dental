@@ -92,7 +92,7 @@ export function ConsultationForm({
       const record = consultation
         ? await clinical.update(consultation.id, input)
         : await clinical.create(input);
-      router.push(`/consultations/${record.id}`);
+      router.push(`/demo/consultations/${record.id}`);
     } catch (error) {
       if (error instanceof LinkedConsultationError)
         setDuplicateId(error.consultationId);
@@ -368,7 +368,7 @@ export function ConsultationForm({
       {duplicateId && (
         <Link
           className="inline-block text-sm font-semibold text-primary underline"
-          href={`/consultations/${duplicateId}`}
+          href={`/demo/consultations/${duplicateId}`}
         >
           Ouvrir la consultation existante
         </Link>
@@ -378,8 +378,8 @@ export function ConsultationForm({
           <Link
             href={
               consultation
-                ? `/consultations/${consultation.id}`
-                : "/consultations"
+                ? `/demo/consultations/${consultation.id}`
+                : "/demo/consultations"
             }
           >
             Annuler la saisie

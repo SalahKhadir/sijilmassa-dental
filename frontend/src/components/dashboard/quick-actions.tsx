@@ -26,7 +26,7 @@ const actions = [
     icon: ReceiptText,
   },
 ];
-export function QuickActions() {
+export function QuickActions({ demo = false }: { demo?: boolean }) {
   return (
     <Card>
       <CardHeader>
@@ -36,7 +36,7 @@ export function QuickActions() {
         {actions.map(({ href, title, detail, icon: Icon }) => (
           <Link
             key={href}
-            href={href}
+            href={demo && ["/patients", "/rendez-vous"].includes(href) ? `/demo${href}` : href}
             className="group flex items-center gap-3 rounded-lg border p-3 hover:border-primary/30 hover:bg-primary-tint/30"
           >
             <span className="rounded-lg bg-muted p-2.5 text-primary">

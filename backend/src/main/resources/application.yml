@@ -68,3 +68,4 @@ logging:
     org.hibernate.orm.jdbc.bind: OFF
     org.hibernate.orm.jdbc.error: OFF
     org.hibernate.engine.jdbc.spi.SqlExceptionHelper: OFF
+    org.apache.pdfbox: OFF

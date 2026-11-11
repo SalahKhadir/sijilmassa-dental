@@ -15,7 +15,7 @@ export const prescriptionPage = {
   paragraphGap: 5,
 } as const;
 export class PrescriptionPdfError extends Error {
-  constructor(message: string) {
+  constructor(message: string, public readonly code: "ASSET_INVALID" | "UNSUPPORTED_CHARACTER" | "LAYOUT_OVERFLOW" | "INVALID_INPUT" = "INVALID_INPUT") {
     super(message);
     this.name = "PrescriptionPdfError";
   }
@@ -52,6 +52,7 @@ export function wrapPdfText(
         if (font.widthOfTextAtSize(character, size) > width)
           throw new PrescriptionPdfError(
             "Un caractère dépasse la largeur disponible.",
+            "LAYOUT_OVERFLOW",
           );
         if (font.widthOfTextAtSize(line + character, size) > width) {
           lines.push(line);

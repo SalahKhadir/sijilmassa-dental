@@ -1,6 +1,6 @@
 # Sijilmassa Dental
 
-Application de gestion d’un cabinet dentaire au Maroc, destinée à fonctionner sur le réseau local du cabinet. **Phase 8.3B — interface patients reliée à l’API Spring Boot.** Les modules rendez-vous, consultations, prescriptions, facturation et assurances conservent leurs données synthétiques en mémoire. La validation réelle est confirmée en phase 8.3B.1 : 53 tests backend, 206 tests unitaires frontend et 30 parcours navigateur réussis ; voir [le rapport d’intégration patients](docs/patient-frontend-integration.md).
+Application de gestion d’un cabinet dentaire au Maroc, destinée à fonctionner sur le réseau local du cabinet. **Phase 8.4B — patients et rendez-vous reliés aux API Spring Boot/PostgreSQL.** Consultations, prescriptions, facturation et assurances restent des prototypes synthétiques séparés. Validation réelle : 80 tests backend, 229 tests frontend et 35 parcours navigateur réussis. Voir [l’intégration rendez-vous](docs/appointment-frontend-integration.md).
 
 ## Démarrer le frontend
 
@@ -9,6 +9,8 @@ Prérequis : Node.js **22.13 ou supérieur** (Node.js 24 LTS conseillé) et **pn
 ```sh
 cd frontend
 pnpm install
+# Préparer la configuration serveur locale avant le premier démarrage.
+test -f .env.local || cp .env.example .env.local
 pnpm dev
 ```
 
@@ -237,3 +239,10 @@ La phase 8.2 ajoute login, logout, `/auth/me` et un endpoint CSRF sous `/api/v1/
 L’annuaire `/patients` utilise l’API authentifiée, les UUID/références serveur, la pagination et les versions optimistes. L’accueil accède aux informations administratives ; seul le dentiste ouvre le questionnaire et les antécédents. Archivage et restauration conservent le dossier. Une panne ne déclenche aucun repli vers les fixtures.
 
 Les anciens écrans patients sont accessibles au dentiste sous `/demo/patients`, pour conserver les parcours métier synthétiques sans les relier aux dossiers enregistrés. Les sections historiques ci-dessus restent des comptes rendus de phases antérieures. Le [rapport de phase 8.3B](docs/patient-frontend-integration.md) décrit les fichiers, contrats, démarrage, tests et limites actuels. Aucun template PDF ni mapping dentaire n’est modifié.
+
+
+## Rendez-vous réels — phase 8.4B
+
+`/rendez-vous` utilise les patients et rendez-vous enregistrés : vues jour/semaine/mobile, recherche réelle de patient, création et édition versionnées, statuts et conflits PostgreSQL. La fiche patient présélectionne son UUID ; aucun lien vers une consultation ou facture synthétique n’est créé. Les dates utilisent Africa/Casablanca avec choix explicite pour une heure répétée. L’agenda se revalide au focus et toutes les 30 secondes, sans promesse de synchronisation instantanée.
+
+Les anciens parcours restent sous `/demo/rendez-vous` et `/demo`. Les sections historiques de ce README décrivent les phases précédentes ; la [documentation de gestion des rendez-vous](docs/appointment-management.md) et le [rapport d’intégration](docs/appointment-frontend-integration.md) définissent le périmètre et les résultats actuels. Aucun module clinique ou financier persistant n’est commencé.

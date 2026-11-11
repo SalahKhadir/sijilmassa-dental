@@ -217,8 +217,7 @@ test("directory, validation, medical checkboxes, creation, editing, navigation a
     await page.waitForURL(/\/demo\/patients\/patient-demo-021$/);
     await heading(page, "Prénom modifié fictif Démo-Navigation");
     await page
-      .getByRole("navigation", { name: "Navigation principale" })
-      .getByRole("link", { name: "Tableau de bord", exact: true })
+      .getByRole("link", { name: "Tableau de bord synthétique", exact: true })
       .click();
     await heading(page, "Tableau de bord");
     await page
@@ -355,8 +354,8 @@ test("responsive layouts, keyboard, reduced motion, treatment examples and exist
     for (const [path, title] of [
       ["/", "Tableau de bord"],
       ["/login", "Tableau de bord"],
-      ["/rendez-vous", "Rendez-vous"],
-      ["/consultations", "Consultations"],
+      ["/demo/rendez-vous", "Rendez-vous"],
+      ["/demo/consultations", "Consultations"],
       ["/facturation", "Facturation"],
       ["/documents", "Documents"],
       ["/parametres", "Paramètres"],

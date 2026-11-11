@@ -1,3 +1,4 @@
+import { createSessionRequest } from "../../api/session-request";
 import { z } from "zod";
 import { patientSchema } from "../schema";
 import { clinicDate } from "../dates";
@@ -53,29 +54,8 @@ export function persistentFormSchema() {
 }
 /** Local to its owning screen; no patient cache or token shared with prototype providers. */
 export function createPatientApi(fetcher: typeof fetch = fetch, unauthenticated: () => void = () => {}) {
-  async function request<T>(path: string, schema: z.ZodType<T>, method = "GET", body?: unknown): Promise<T> {
-    try {
-      const headers: Record<string, string> = {};
-      if (method !== "GET") {
-        const csrf = await fetcher("/api/v1/auth/csrf", { credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(10000) });
-        if (!csrf.ok) throw new PatientApiError(csrf.status);
-        const token = z.object({ headerName: z.literal("X-CSRF-TOKEN"), token: z.string().min(1).max(512) }).safeParse(await csrf.json());
-        if (!token.success) throw new PatientApiError(502);
-        headers[token.data.headerName] = token.data.token;
-        headers["Content-Type"] = "application/json";
-      }
-      const response = await fetcher(`/api/v1/patients${path}`, { method, headers, credentials: "same-origin", cache: "no-store",
-        redirect: "error", signal: AbortSignal.timeout(10000), ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-      if (!response.ok) throw new PatientApiError(response.status);
-      const result = schema.safeParse(await response.json());
-      if (!result.success) throw new PatientApiError(502);
-      return result.data;
-    } catch (error) {
-      const failure = error instanceof PatientApiError ? error : new PatientApiError(503);
-      if (failure.status === 401) unauthenticated();
-      throw failure;
-    }
-  }
+  const transport = createSessionRequest(fetcher, unauthenticated, status => new PatientApiError(status));
+  const request = <T>(path: string, schema: z.ZodType<T>, method = "GET", body?: unknown) => transport(`/api/v1/patients${path}`, schema, method, body);
   function id(value: string) {
     if (!z.uuid().safeParse(value).success) throw new PatientApiError(404);
     return value;

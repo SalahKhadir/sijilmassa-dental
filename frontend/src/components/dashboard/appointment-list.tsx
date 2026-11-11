@@ -23,7 +23,7 @@ export function AppointmentList({
           </p>
         </div>
         <Button asChild variant="ghost" className="px-2">
-          <Link href="/rendez-vous">
+          <Link href="/demo/rendez-vous">
             Voir l’agenda <ArrowUpRight aria-hidden="true" />
           </Link>
         </Button>
@@ -56,7 +56,7 @@ export function AppointmentList({
                   </div>
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/rendez-vous/${appointment.id}`}
+                      href={`/demo/rendez-vous/${appointment.id}`}
                       className="rounded-sm text-sm font-semibold text-primary hover:underline"
                     >
                       {patient?.name ?? "Patient introuvable"}

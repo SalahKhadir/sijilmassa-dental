@@ -16,12 +16,33 @@ public class SecurityAuditEvent {
 
     @Column(name = "target_patient_id") private UUID targetPatientId;
 
+    @Column(name = "target_appointment_id") private UUID targetAppointmentId;
+    @Column(name = "target_consultation_id") private UUID targetConsultationId;
+    @Column(name = "target_prescription_id") private UUID targetPrescriptionId;
+
     protected SecurityAuditEvent() { }
+
+    static SecurityAuditEvent prescription(AuditEventType type, UUID actor, UUID prescription, Instant now) {
+        SecurityAuditEvent event = new SecurityAuditEvent(type, actor, null, now);
+        event.targetPrescriptionId = prescription;
+        return event;
+    }
+
+    static SecurityAuditEvent consultation(AuditEventType type, UUID actor, UUID consultation, Instant now) {
+        SecurityAuditEvent event = new SecurityAuditEvent(type, actor, null, now);
+        event.targetConsultationId = consultation;
+        return event;
+    }
 
     SecurityAuditEvent(AuditEventType type, UUID actor, UUID subject, Instant now) {
         this(type, actor, subject, null, now);
     }
 
+    static SecurityAuditEvent appointment(AuditEventType type, UUID actor, UUID appointment, Instant now) {
+        SecurityAuditEvent event = new SecurityAuditEvent(type, actor, null, now);
+        event.targetAppointmentId = appointment;
+        return event;
+    }
     SecurityAuditEvent(AuditEventType type, UUID actor, UUID subject, UUID targetPatient, Instant now) {
         targetPatientId = targetPatient;
         id = UUID.randomUUID();

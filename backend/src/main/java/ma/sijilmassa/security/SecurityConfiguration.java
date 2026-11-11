@@ -51,6 +51,17 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.HEAD, "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/prescriptions", ApiPaths.V1 + "/prescriptions/*", ApiPaths.V1 + "/prescriptions/*/pdf").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/prescriptions").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.PUT, ApiPaths.V1 + "/prescriptions/*", ApiPaths.V1 + "/prescriptions/*/archival", ApiPaths.V1 + "/prescriptions/*/finalization").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/consultations", ApiPaths.V1 + "/consultations/*",
+                                ApiPaths.V1 + "/consultations/*/treatments/removed").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/consultations",
+                                ApiPaths.V1 + "/consultations/*/treatments").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.PUT, ApiPaths.V1 + "/consultations/*",
+                                ApiPaths.V1 + "/consultations/*/treatments/*",
+                                ApiPaths.V1 + "/consultations/*/treatments/*/removal",
+                                ApiPaths.V1 + "/consultations/*/finalization").hasRole("DENTIST")
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/auth/logout").authenticated()
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/patients/with-medical-record").hasRole("DENTIST")
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/patients/*/medical-record").hasRole("DENTIST")
@@ -58,6 +69,9 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/patients", ApiPaths.V1 + "/patients/*").hasAnyRole("DENTIST", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/patients").hasAnyRole("DENTIST", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PUT, ApiPaths.V1 + "/patients/*").hasAnyRole("DENTIST", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/appointments", ApiPaths.V1 + "/appointments/*").hasAnyRole("DENTIST", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/appointments").hasAnyRole("DENTIST", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.PUT, ApiPaths.V1 + "/appointments/*", ApiPaths.V1 + "/appointments/*/status").hasAnyRole("DENTIST", "RECEPTIONIST")
                         .anyRequest().denyAll())
                 .securityContext(context -> context.securityContextRepository(contexts).requireExplicitSave(true))
                 .httpBasic(AbstractHttpConfigurer::disable)

@@ -1,25 +1,4 @@
-import type { Metadata } from "next";
-import { ConsultationFormPage } from "@/components/consultations/consultation-form-page";
-export const metadata: Metadata = { title: "Nouvelle consultation" };
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{
-    patientId?: string | string[];
-    appointmentId?: string | string[];
-  }>;
-}) {
-  const query = await searchParams;
-  return (
-    <ConsultationFormPage
-      patientId={
-        typeof query.patientId === "string" ? query.patientId : undefined
-      }
-      appointmentId={
-        typeof query.appointmentId === "string"
-          ? query.appointmentId
-          : undefined
-      }
-    />
-  );
+import { PersistentClinicalFormPage } from "@/components/consultations/persistent/forms";
+export default async function Page({ searchParams }: { searchParams: Promise<{ patientId?: string; appointmentId?: string }> }) {
+  const q = await searchParams; return <PersistentClinicalFormPage patientId={typeof q.patientId === "string" ? q.patientId : undefined} appointmentId={typeof q.appointmentId === "string" ? q.appointmentId : undefined} />;
 }

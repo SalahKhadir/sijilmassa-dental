@@ -50,7 +50,7 @@ export function ConsultationDirectory({
       >
         <Button asChild>
           <Link
-            href={`/consultations/nouveau${patient ? `?patientId=${patient.id}` : ""}`}
+            href={`/demo/consultations/nouveau${patient ? `?patientId=${patient.id}` : ""}`}
           >
             <Plus aria-hidden="true" />
             Nouvelle consultation
@@ -69,7 +69,7 @@ export function ConsultationDirectory({
             Retour à la vue clinique
           </Link>{" "}
           ·{" "}
-          <Link className="text-primary underline" href="/consultations">
+          <Link className="text-primary underline" href="/demo/consultations">
             Tous les patients
           </Link>
         </p>

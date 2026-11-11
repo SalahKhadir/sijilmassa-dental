@@ -40,6 +40,6 @@ export function useUnsavedChanges(dirty: boolean) {
 }
 export function PersistentNotice() {
   return <p className="rounded-lg border border-secondary/30 bg-secondary-tint p-4 text-sm leading-6">
-    Patients enregistrés dans la base du cabinet. Les rendez-vous, consultations, ordonnances, factures et assurances de démonstration restent séparés.
+    Patients enregistrés dans la base du cabinet. Les patients et rendez-vous enregistrés restent séparés des consultations, ordonnances, factures et assurances de démonstration.
   </p>;
 }

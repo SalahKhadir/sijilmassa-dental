@@ -29,7 +29,7 @@ export function PatientAppointments({ patientId }: { patientId: string }) {
           </p>
         </div>
         <Button asChild variant="outline">
-          <Link href={`/rendez-vous/nouveau?patientId=${patientId}`}>
+          <Link href={`/demo/rendez-vous/nouveau?patientId=${patientId}`}>
             <CalendarPlus aria-hidden="true" />
             Prendre rendez-vous
           </Link>

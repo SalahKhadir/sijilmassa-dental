@@ -51,7 +51,7 @@ class PostgresFoundationTest {
         assertThat(jdbc.queryForObject("select version()", String.class)).contains("PostgreSQL 17");
         assertThat(jdbc.queryForObject("show timezone", String.class)).isEqualTo("UTC");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
-        assertThat(flyway.info().applied()).extracting(info -> info.getVersion().getVersion()).contains("1", "2", "3", "900");
+        assertThat(flyway.info().applied()).extracting(info -> info.getVersion().getVersion()).contains("1", "2", "3", "4", "5", "6", "7", "8", "900");
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(entityManagerFactory.isOpen()).isTrue();
         assertThat(environment.getProperty("spring.jpa.hibernate.ddl-auto")).isEqualTo("validate");
