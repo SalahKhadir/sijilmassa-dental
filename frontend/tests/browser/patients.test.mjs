@@ -357,7 +357,7 @@ test("responsive layouts, keyboard, reduced motion, treatment examples and exist
       ["/demo/rendez-vous", "Rendez-vous"],
       ["/demo/consultations", "Consultations"],
       ["/facturation", "Facturation"],
-      ["/documents", "Documents"],
+      ["/demo/documents", "Documents"],
       ["/parametres", "Paramètres"],
     ]) {
       await page.goto(`${baseURL}${path}`);

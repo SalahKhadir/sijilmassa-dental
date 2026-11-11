@@ -36,7 +36,7 @@ export function PrescriptionMissing({
       <CardContent className="space-y-4 pt-6">
         <h1 className="text-xl font-semibold">{message}</h1>
         <Button asChild variant="outline">
-          <Link href="/documents">Retour aux documents</Link>
+          <Link href="/demo/documents">Retour aux documents</Link>
         </Button>
       </CardContent>
     </Card>

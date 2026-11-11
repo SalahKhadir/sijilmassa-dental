@@ -34,7 +34,7 @@ export function PrescriptionList({
           >
             <div className="min-w-0 space-y-2">
               <Link
-                href={`/documents/ordonnances/${record.id}`}
+                href={`/demo/documents/ordonnances/${record.id}`}
                 className="rounded-sm text-base font-semibold text-primary hover:underline"
               >
                 Ordonnance du {formatPatientDate(record.issuedDate)}
@@ -55,7 +55,7 @@ export function PrescriptionList({
             <div className="flex flex-wrap items-center gap-3">
               <PrescriptionStatus status={record.status} />
               <Button asChild variant="outline">
-                <Link href={`/documents/ordonnances/${record.id}#pdf`}>
+                <Link href={`/demo/documents/ordonnances/${record.id}#pdf`}>
                   Aperçu et téléchargement
                   <span className="sr-only"> · {record.id}</span>
                 </Link>

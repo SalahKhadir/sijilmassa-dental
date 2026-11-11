@@ -56,7 +56,7 @@ export function InsuranceDraftEditPage({ id }: { id: string }) {
           Ce brouillon de feuille de soins est introuvable.
         </p>
         <Link
-          href="/documents"
+          href="/demo/documents"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="size-3.5" />

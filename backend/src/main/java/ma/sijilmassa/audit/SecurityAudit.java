@@ -16,6 +16,14 @@ public class SecurityAudit {
         this.clock = clock;
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordCharge(AuditEventType type, UUID actor, UUID charge) {
+        events.save(SecurityAuditEvent.financial(type, actor, charge, null, clock.instant()));
+    }
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordPayment(AuditEventType type, UUID actor, UUID charge, UUID payment) {
+        events.save(SecurityAuditEvent.financial(type, actor, charge, payment, clock.instant()));
+    }
     @Transactional
     public void record(AuditEventType type, UUID actor, UUID subject) {
         events.save(new SecurityAuditEvent(type, actor, subject, clock.instant()));

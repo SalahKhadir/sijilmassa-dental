@@ -78,7 +78,7 @@ export function PrescriptionDetails({ id }: { id: string }) {
           <PrescriptionStatus status={record.status} />
           {draft && (
             <Button asChild>
-              <Link href={`/documents/ordonnances/${id}/modifier`}>
+              <Link href={`/demo/documents/ordonnances/${id}/modifier`}>
                 Modifier le brouillon
               </Link>
             </Button>
@@ -108,7 +108,7 @@ export function PrescriptionDetails({ id }: { id: string }) {
           </Button>
         )}
         <Button asChild variant="ghost">
-          <Link href="/documents">Retour aux documents</Link>
+          <Link href="/demo/documents">Retour aux documents</Link>
         </Button>
       </div>
       <Card>

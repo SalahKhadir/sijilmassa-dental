@@ -8,7 +8,7 @@ after(harness.stop);
 test("FAR requires explicit symbols and approval, preserves origin, downloads, prints, saves and revokes stale previews", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${harness.baseURL}/documents/assurances/draft-ins-demo-003`);
+    await page.goto(`${harness.baseURL}/demo/documents/assurances/draft-ins-demo-003`);
     const chart = page.getByRole("region", { name: "Schéma dentaire", exact: true });
     const pdf = page.getByRole("region", { name: "PDF FAR", exact: true });
     const preview = pdf.getByRole("button", { name: "Prévisualiser la feuille FAR", exact: true });
@@ -59,7 +59,7 @@ test("FAR requires explicit symbols and approval, preserves origin, downloads, p
     await page.screenshot({path:"/tmp/far-review/browser-far.png",fullPage:true});
     await page.getByRole("button",{name:"Enregistrer en brouillon",exact:true}).click();
     await page.waitForURL("**/demo/patients/patient-demo-003");
-    await page.locator('a[href="/documents/assurances/draft-ins-demo-003"]').click();
+    await page.locator('a[href="/demo/documents/assurances/draft-ins-demo-003"]').click();
     await chart.waitFor(); assert(await approval.isChecked());
     assert.equal(await page.getByLabel("Symbole FAR de la dent 36",{exact:true}).inputValue(),"CERCLE");
     assert.equal(await page.locator("#far-inpe").inputValue(),"123456789");
@@ -67,7 +67,7 @@ test("FAR requires explicit symbols and approval, preserves origin, downloads, p
     assert.deepEqual(errors,[]);
     assert.deepEqual(external.filter(url=>!url.startsWith("blob:")),[]);
     assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),[]);
-    await page.goto(`${harness.baseURL}/documents/assurances/nouvelle?patientId=patient-demo-003`);
+    await page.goto(`${harness.baseURL}/demo/documents/assurances/nouvelle?patientId=patient-demo-003`);
     await page.locator("#far-context").waitFor();
     for (const field of ["#far-purpose","#far-care-type","#far-context"])
       assert.equal(await page.locator(field).inputValue(),"");

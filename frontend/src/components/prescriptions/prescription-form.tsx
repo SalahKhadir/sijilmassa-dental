@@ -77,7 +77,7 @@ export function PrescriptionForm({
       const record = prescription
         ? await updateDraft(prescription.id, input)
         : await create(input);
-      router.push(`/documents/ordonnances/${record.id}`);
+      router.push(`/demo/documents/ordonnances/${record.id}`);
     } catch (error) {
       if (error instanceof PrescriptionError && error.field) {
         setError(error.field, { message: error.message });
@@ -294,8 +294,8 @@ export function PrescriptionForm({
           <Link
             href={
               prescription
-                ? `/documents/ordonnances/${prescription.id}`
-                : "/documents"
+                ? `/demo/documents/ordonnances/${prescription.id}`
+                : "/demo/documents"
             }
           >
             Annuler la saisie

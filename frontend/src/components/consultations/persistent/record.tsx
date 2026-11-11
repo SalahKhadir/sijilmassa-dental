@@ -46,6 +46,8 @@ function Record({ id, patientId }: { id: string; patientId: string }) {
     <nav className="flex flex-wrap gap-4" aria-label="Navigation du compte rendu"><Link className="text-primary underline" href={`/patients/${patientId}/clinique`}>Historique clinique du patient</Link>
       <Link className="text-primary underline" href={`/patients/${patientId}/dossier`}>Questionnaire et antécédents</Link>
       {record.content.appointmentId && <Link className="text-primary underline" href={`/rendez-vous/${record.content.appointmentId}`}>Voir le rendez-vous lié</Link>}
+      <Link className="text-primary underline" href={`/documents?patientId=${patientId}&consultationId=${id}`}>Ordonnances de cette consultation</Link>
+      {patient.status === "active" && <Link className="text-primary underline" href={`/documents/ordonnances/nouvelle?patientId=${patientId}&consultationId=${id}`}>Créer une ordonnance</Link>}
     </nav>
     <Card className="space-y-5 p-5"><h2 className="font-semibold">Compte rendu clinique</h2>
       <dl className="space-y-5">{([ ["chiefComplaint", "Motif de consultation"], ["clinicalObservations", "Observations cliniques"], ["assessment", "Évaluation clinique"], ["treatmentPlan", "Plan de traitement"], ["notes", "Notes complémentaires"] ] as const).map(([field, label]) => <div key={field} className="min-w-0"><dt className="text-sm font-semibold">{label}</dt><dd className="mt-2 break-words whitespace-pre-wrap">{record.content[field] || "Non renseigné"}</dd></div>)}</dl>

@@ -32,7 +32,7 @@ export function PrescriptionFormPage({
       <>
         <PrescriptionMissing message="Cette ordonnance finalisée est en lecture seule." />
         <Button asChild>
-          <Link href={`/documents/ordonnances/${id}`}>Voir l’ordonnance</Link>
+          <Link href={`/demo/documents/ordonnances/${id}`}>Voir l’ordonnance</Link>
         </Button>
       </>
     );

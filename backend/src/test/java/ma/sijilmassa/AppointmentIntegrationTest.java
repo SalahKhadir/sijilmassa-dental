@@ -44,7 +44,7 @@ class AppointmentIntegrationTest {
     Browser dentist,reception;
     JsonNode patient;
     @BeforeEach void setup() throws Exception {
-        jdbc.execute("TRUNCATE prescription_document, prescription_line, prescription, clinical_treatment, clinical_consultation, appointment, security_audit_event, patient_history_condition, patient_allergy_category, patient_medical_record, patient, application_user");
+        jdbc.execute("TRUNCATE treatment_payment, treatment_charge, prescription_document, prescription_line, prescription, clinical_treatment, clinical_consultation, appointment, security_audit_event, patient_history_condition, patient_allergy_category, patient_medical_record, patient, application_user");
         clock.advance(120);
         bootstrap.initialize("appointment.dentist",PASSWORD,"appointment.reception",PASSWORD);
         dentist=new Browser("appointment.dentist");reception=new Browser("appointment.reception");

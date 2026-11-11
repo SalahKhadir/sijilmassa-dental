@@ -8,7 +8,7 @@ after(harness.stop);
 test("CNSS live draft previews two original pages, downloads, prints, invalidates and blocks overflow", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${harness.baseURL}/documents/assurances/draft-ins-demo-001`);
+    await page.goto(`${harness.baseURL}/demo/documents/assurances/draft-ins-demo-001`);
     const section = page.getByRole("region", { name: "PDF CNSS" });
     await section.getByRole("button", { name: "Prévisualiser", exact: true }).click();
     const link = section.getByRole("link", { name: "Télécharger le PDF" });
@@ -59,7 +59,7 @@ test("CNSS live draft previews two original pages, downloads, prints, invalidate
     assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),[]);
     assert.deepEqual(errors,[]);
     assert.deepEqual(external.filter(u=>!u.startsWith("blob:")),[]);
-    await page.goto(`${harness.baseURL}/documents/assurances/draft-ins-demo-002`);
+    await page.goto(`${harness.baseURL}/demo/documents/assurances/draft-ins-demo-002`);
     await page.getByRole("heading",{name:/Feuille de soins dentaires/}).waitFor();
     assert.equal(await page.getByRole("region",{name:"PDF CNSS"}).count(),0);
   } finally { await value.close(); }
@@ -68,7 +68,7 @@ test("CNSS live draft previews two original pages, downloads, prints, invalidate
 test("dentist confirms, removes, clears and saves chart marks; changes revoke the PDF preview", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${harness.baseURL}/documents/assurances/draft-ins-demo-001`);
+    await page.goto(`${harness.baseURL}/demo/documents/assurances/draft-ins-demo-001`);
     const chart = page.getByRole("region", { name: "Schéma dentaire", exact: true });
     const pdf = page.getByRole("region", { name: "PDF CNSS" });
     const tooth = number => chart.getByRole("checkbox", { name: `Confirmer la dent FDI ${number}`, exact: true });
@@ -91,14 +91,14 @@ test("dentist confirms, removes, clears and saves chart marks; changes revoke th
     await page.screenshot({path:"/tmp/cnss-chart/browser-selection.png",fullPage:true});
     await page.getByRole("button",{name:"Enregistrer en brouillon",exact:true}).click();
     await page.waitForURL("**/demo/patients/patient-demo-001");
-    await page.locator('a[href="/documents/assurances/draft-ins-demo-001"]').click();
+    await page.locator('a[href="/demo/documents/assurances/draft-ins-demo-001"]').click();
     await chart.waitFor();
     for (const number of [16,11,51,61,71,81]) assert(await tooth(number).isChecked());
     assert.equal(await chart.locator("rect[data-tooth]").count(),6);
     assert.equal(await page.getByPlaceholder("Description de l'acte...").first().inputValue(),"Obturation composite 3 faces");
     assert(await page.locator("#draft-patient").isDisabled());
     // New drafts allow a beneficiary change; confirmed marks must not carry over.
-    await page.goto(`${harness.baseURL}/documents/assurances/nouvelle?patientId=patient-demo-001`);
+    await page.goto(`${harness.baseURL}/demo/documents/assurances/nouvelle?patientId=patient-demo-001`);
     await chart.waitFor();
     await tooth(16).check();
     await page.locator("#draft-patient").selectOption("patient-demo-002");

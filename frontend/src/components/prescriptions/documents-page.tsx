@@ -50,13 +50,13 @@ export function DocumentsPage({ patientId = "" }: { patientId?: string }) {
       >
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline">
-            <Link href="/documents/ordonnance-vierge">
+            <Link href="/demo/documents/ordonnance-vierge">
               Imprimer une ordonnance vierge
             </Link>
           </Button>
           <Button asChild>
             <Link
-              href={`/documents/ordonnances/nouvelle${patient ? `?patientId=${patient.id}` : ""}`}
+              href={`/demo/documents/ordonnances/nouvelle${patient ? `?patientId=${patient.id}` : ""}`}
             >
               Nouvelle ordonnance
             </Link>
@@ -67,7 +67,7 @@ export function DocumentsPage({ patientId = "" }: { patientId?: string }) {
       {patient && (
         <p className="text-sm">
           Ordonnances de {patient.name} ·{" "}
-          <Link className="text-primary underline" href="/documents">
+          <Link className="text-primary underline" href="/demo/documents">
             Tous les patients
           </Link>
         </p>

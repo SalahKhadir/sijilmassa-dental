@@ -9,7 +9,7 @@ after(harness.stop);
 test("CNOPS requires explicit INPE and CIM handling, previews, downloads, prints, invalidates and saves chart selections", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${harness.baseURL}/documents/assurances/draft-ins-demo-002`);
+    await page.goto(`${harness.baseURL}/demo/documents/assurances/draft-ins-demo-002`);
     const pdf = page.getByRole("region", { name: "PDF CNOPS" });
     const chart = page.getByRole("region", { name: "Schéma dentaire", exact: true });
     const preview = pdf.getByRole("button", { name: "Prévisualiser la feuille CNOPS", exact: true });
@@ -53,7 +53,7 @@ test("CNOPS requires explicit INPE and CIM handling, previews, downloads, prints
     await page.screenshot({ path: "/tmp/cnops-review/browser-cnops.png", fullPage: true });
     await page.getByRole("button", { name: "Enregistrer en brouillon", exact: true }).click();
     await page.waitForURL("**/demo/patients/patient-demo-002");
-    await page.locator('a[href="/documents/assurances/draft-ins-demo-002"]').click();
+    await page.locator('a[href="/demo/documents/assurances/draft-ins-demo-002"]').click();
     await chart.waitFor();
     assert(await chart.getByRole("checkbox", { name: "Confirmer la dent FDI 24", exact: true }).isChecked());
     assert.equal(await page.locator("#cnops-inpe").inputValue(), "123456789");

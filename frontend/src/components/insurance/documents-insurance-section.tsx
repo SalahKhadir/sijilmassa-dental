@@ -68,7 +68,7 @@ export function DocumentsInsuranceSection({
         </div>
         <Button asChild className="h-9 text-xs">
           <Link
-            href={`/documents/assurances/nouvelle${patientId ? `?patientId=${patientId}` : ""}`}
+            href={`/demo/documents/assurances/nouvelle${patientId ? `?patientId=${patientId}` : ""}`}
           >
             <Plus className="mr-1.5 size-4" />
             Nouvelle feuille de soins
@@ -196,7 +196,7 @@ export function DocumentsInsuranceSection({
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <Button asChild variant="ghost" className="h-8 text-xs">
-                            <Link href={`/documents/assurances/${draft.id}`}>
+                            <Link href={`/demo/documents/assurances/${draft.id}`}>
                               <ExternalLink className="mr-1 size-3.5" />
                               Ouvrir
                             </Link>

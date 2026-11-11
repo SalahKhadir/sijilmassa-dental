@@ -389,10 +389,10 @@ class ConsultationServiceTest {
         c = service.finalizeConsultation(c.patientId(), c.id(), c.version());
         assertThat(jdbc.queryForList("SELECT event_type FROM security_audit_event WHERE target_consultation_id=? ORDER BY occurred_at,id", String.class, c.id()))
                 .containsExactly("CONSULTATION_CREATED", "CONSULTATION_DRAFT_UPDATED", "CONSULTATION_TREATMENT_CHANGED", "CONSULTATION_TREATMENT_CHANGED", "CONSULTATION_TREATMENT_CHANGED", "CONSULTATION_TREATMENT_CHANGED", "CONSULTATION_FINALIZED");
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM security_audit_event WHERE target_consultation_id=? AND actor_user_id=? AND occurred_at IS NOT NULL AND subject_user_id IS NULL AND target_patient_id IS NULL AND target_appointment_id IS NULL", Integer.class, c.id(), dentist)).isEqualTo(7);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM security_audit_event WHERE target_consultation_id=? AND actor_user_id=? AND occurred_at IS NOT NULL AND subject_user_id IS NULL AND target_patient_id IS NULL AND target_appointment_id IS NULL AND target_charge_id IS NULL AND target_payment_id IS NULL", Integer.class, c.id(), dentist)).isEqualTo(7);
         assertThat(jdbc.queryForObject("SELECT string_agg(row_to_json(e)::text,'') FROM security_audit_event e WHERE target_consultation_id=?", String.class, c.id())).doesNotContain(CANARY, "Soin synthétique", "Motif synthétique");
         assertThat(jdbc.queryForList("SELECT column_name FROM information_schema.columns WHERE table_name='security_audit_event'", String.class))
-                .containsExactlyInAnyOrder("id", "occurred_at", "event_type", "actor_user_id", "subject_user_id", "target_patient_id", "target_appointment_id", "target_consultation_id", "target_prescription_id");
+                .containsExactlyInAnyOrder("id", "occurred_at", "event_type", "actor_user_id", "subject_user_id", "target_patient_id", "target_appointment_id", "target_consultation_id", "target_prescription_id", "target_charge_id", "target_payment_id");
     }
 
     @Test void everyMutationRollsBackIfAuditInsertionFails() {

@@ -67,7 +67,7 @@ async function printRequest(page) {
 test("blank official PDF previews downloads and requests printing without creating a record", async () => {
   const { value, page, errors, external } = await harness.context();
   try {
-    await page.goto(`${baseURL}/documents`);
+    await page.goto(`${baseURL}/demo/documents`);
     await heading(page, "Documents");
     await page
       .getByRole("status")
@@ -265,7 +265,7 @@ test("documents filters mobile layout keyboard and invalid links are explicit", 
     reducedMotion: "reduce",
   });
   try {
-    await page.goto(`${baseURL}/documents`);
+    await page.goto(`${baseURL}/demo/documents`);
     await heading(page, "Documents");
     await page
       .getByRole("status")
@@ -336,25 +336,25 @@ test("documents filters mobile layout keyboard and invalid links are explicit", 
       ),
     );
     for (const [route, title] of [
-      ["/documents/ordonnances/missing", "Cette ordonnance est introuvable."],
+      ["/demo/documents/ordonnances/missing", "Cette ordonnance est introuvable."],
       [
-        "/documents/ordonnances/missing/modifier",
+        "/demo/documents/ordonnances/missing/modifier",
         "Cette ordonnance est introuvable.",
       ],
       [
-        "/documents/ordonnances/prescription-demo-002/modifier",
+        "/demo/documents/ordonnances/prescription-demo-002/modifier",
         "Cette ordonnance finalisée est en lecture seule.",
       ],
       [
-        "/documents/ordonnances/nouvelle?patientId=missing",
+        "/demo/documents/ordonnances/nouvelle?patientId=missing",
         "Ce patient est introuvable.",
       ],
       [
-        "/documents/ordonnances/nouvelle?patientId=patient-demo-001&consultationId=consultation-demo-002",
+        "/demo/documents/ordonnances/nouvelle?patientId=patient-demo-001&consultationId=consultation-demo-002",
         "Le lien de consultation est invalide pour ce patient.",
       ],
       [
-        "/documents/ordonnances/nouvelle?consultationId=missing",
+        "/demo/documents/ordonnances/nouvelle?consultationId=missing",
         "Le lien de consultation est invalide pour ce patient.",
       ],
     ]) {

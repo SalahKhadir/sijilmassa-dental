@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
 import { PdfPreview } from "./pdf-preview";
-export function BlankPrescriptionPage() {
+export function BlankPrescriptionPage({ backHref = "/documents" }: { backHref?: string }) {
   return (
     <>
       <PageHeading
@@ -11,7 +11,7 @@ export function BlankPrescriptionPage() {
         description="Imprimez le modèle officiel pour une saisie manuscrite."
       >
         <Button asChild variant="outline">
-          <Link href="/documents">Retour aux documents</Link>
+          <Link href={backHref}>Retour aux documents</Link>
         </Button>
       </PageHeading>
       <p className="text-sm leading-6 text-muted-foreground">

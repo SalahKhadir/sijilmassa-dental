@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PrescriptionFormPage } from "@/components/prescriptions/prescription-form-page";
+import { PersistentPrescriptionFormPage } from "@/components/prescriptions/persistent/forms";
 export const metadata: Metadata = { title: "Nouvelle ordonnance" };
 export default async function Page({
   searchParams,
@@ -11,7 +11,7 @@ export default async function Page({
 }) {
   const query = await searchParams;
   return (
-    <PrescriptionFormPage
+    <PersistentPrescriptionFormPage
       patientId={
         typeof query.patientId === "string" ? query.patientId : undefined
       }

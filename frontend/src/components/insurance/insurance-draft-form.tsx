@@ -600,7 +600,7 @@ export function InsuranceDraftForm({
             href={
               selectedPatientId
                 ? `/demo/patients/${selectedPatientId}`
-                : "/documents"
+                : "/demo/documents"
             }
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline mb-1"
           >

@@ -34,7 +34,12 @@ export async function proxyAuthentication(request: Request, path: string,
     : new RegExp(`^consultations/${uuid}/treatments$`).test(path) ? ["POST"]
     : new RegExp(`^consultations/${uuid}/treatments/removed$`).test(path) ? ["GET"]
     : new RegExp(`^consultations/${uuid}/(?:finalization|treatments/${uuid}(?:/removal)?)$`).test(path) ? ["PUT"] : null;
-  const resourceRoute = patientRoute ?? appointmentRoute ?? clinicalRoute;
+  const prescriptionRoute = path === "prescriptions" ? ["GET", "POST"]
+    : new RegExp(`^prescriptions/${uuid}$`).test(path) ? ["GET", "PUT"]
+    : new RegExp(`^prescriptions/${uuid}/(?:archival|finalization)$`).test(path) ? ["PUT"]
+    : new RegExp(`^prescriptions/${uuid}/pdf$`).test(path) ? ["GET"] : null;
+  const pdfRoute = Boolean(prescriptionRoute && path.endsWith("/pdf"));
+  const resourceRoute = patientRoute ?? appointmentRoute ?? clinicalRoute ?? prescriptionRoute;
   const methods = resourceRoute ?? (paths.has(path) ? [paths.get(path)!] : null);
   if (!methods) return proxyProblem(404);
   const method = request.method;
@@ -70,34 +75,59 @@ export async function proxyAuthentication(request: Request, path: string,
         const { done, value } = await reader.read();
         if (done) break;
         size += value.length;
-        if (size > (resourceRoute ? 65536 : 4096)) { await reader.cancel(); return proxyProblem(413); }
+        if (size > (prescriptionRoute ? 262144 : resourceRoute ? 65536 : 4096)) { await reader.cancel(); return proxyProblem(413); }
         chunks.push(value);
       }
       body = new Uint8Array(size);
       let offset = 0;
       for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.length; }
     }
-    const upstream = await (options.fetcher ?? fetch)(`${origin}/api/v1/${path}${clinicalRoute || (resourceRoute && method === "GET") ? new URL(request.url).search : ""}`, {
-      method, headers, body, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(8000),
+    const upstream = await (options.fetcher ?? fetch)(`${origin}/api/v1/${path}${prescriptionRoute || clinicalRoute || (resourceRoute && method === "GET") ? new URL(request.url).search : ""}`, {
+      method, headers, body, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(prescriptionRoute && path.endsWith("/finalization") ? 25000 : 8000),
     });
     if (upstream.status >= 300 && upstream.status < 400) return proxyProblem(502);
     const contentType = upstream.headers.get("content-type") ?? "";
-    if (upstream.status !== 204 && !/^application\/(?:problem\+)?json(?:;|$)/i.test(contentType)) return proxyProblem(502);
+    const pdf = pdfRoute && upstream.status === 200;
+    if (!pdf && upstream.status !== 204 && !/^application\/(?:problem\+)?json(?:;|$)/i.test(contentType)) return proxyProblem(502);
     const responseHeaders = new Headers(cacheHeaders);
     if (contentType) responseHeaders.set("Content-Type", contentType);
     for (const name of ["X-Request-ID", "Retry-After"]) {
       const value = upstream.headers.get(name);
       if (value) responseHeaders.set(name, value);
     }
-    if (clinicalRoute && upstream.headers.has("Location")) {
+    if ((clinicalRoute || prescriptionRoute) && upstream.headers.has("Location")) {
       const location = upstream.headers.get("Location")!;
-      if (!new RegExp(`^/api/v1/consultations/${uuid}\\?patientId=${uuid}$`).test(location)) return proxyProblem(502);
+      if (!new RegExp(`^/api/v1/${prescriptionRoute ? "prescriptions" : "consultations"}/${uuid}\\?patientId=${uuid}$`).test(location)) return proxyProblem(502);
       responseHeaders.set("Location", location);
     }
     // Do not combine Set-Cookie (Expires contains commas). Spring uses host-only Path=/ cookies.
     for (const cookie of upstream.headers.getSetCookie()) {
       if (/;\s*domain=/i.test(cookie)) return proxyProblem(502);
       responseHeaders.append("Set-Cookie", cookie);
+    }
+    if (pdf) {
+      const length = upstream.headers.get("Content-Length"), disposition = new URL(request.url).searchParams.get("disposition") ?? "inline";
+      const id = path.split("/")[1];
+      if (!/^application\/pdf(?:;|$)/i.test(contentType) || !length || !/^[1-9][0-9]*$/.test(length)
+        || Number(length) > 2097152 || !["inline", "attachment"].includes(disposition) || !upstream.body
+        || upstream.headers.get("Content-Disposition") !== `${disposition}; filename="ordonnance-${id.toLowerCase()}.pdf"`) return proxyProblem(502);
+      responseHeaders.set("Content-Type", "application/pdf");
+      responseHeaders.set("Content-Length", length);
+      // Next may remove Content-Length when writing a streamed Route Handler response.
+      responseHeaders.set("X-Prescription-PDF-Bytes", length);
+      responseHeaders.set("Content-Disposition", `${disposition}; filename="ordonnance-${id.toLowerCase()}.pdf"`);
+      responseHeaders.set("X-Content-Type-Options", "nosniff");
+      let size = 0;
+      // Stream with a byte bound; late corruption aborts the stream instead of delivering a partial success.
+      const stream = upstream.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, controller) {
+          size += chunk.byteLength;
+          if (size > Number(length)) throw new Error("Invalid PDF size");
+          controller.enqueue(chunk);
+        },
+        flush() { if (size !== Number(length)) throw new Error("Invalid PDF size"); },
+      }));
+      return new Response(stream, { status: 200, headers: responseHeaders });
     }
     const responseBody = upstream.status === 204 ? null : await upstream.arrayBuffer();
     return new Response(responseBody, { status: upstream.status, headers: responseHeaders });

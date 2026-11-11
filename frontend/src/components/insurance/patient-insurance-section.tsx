@@ -128,7 +128,7 @@ export function PatientInsuranceSection({ patientId }: { patientId: string }) {
             )}
             <Button asChild variant="secondary" className="h-8 px-3 text-xs">
               <Link
-                href={`/documents/assurances/nouvelle?patientId=${patient.id}`}
+                href={`/demo/documents/assurances/nouvelle?patientId=${patient.id}`}
               >
                 <Plus className="mr-1.5 size-4" />
                 Nouvelle feuille de soins
@@ -322,7 +322,7 @@ export function PatientInsuranceSection({ patientId }: { patientId: string }) {
                             <div className="flex items-center justify-end gap-1">
                               <Button asChild variant="ghost" className="h-8 w-8 p-0">
                                 <Link
-                                  href={`/documents/assurances/${draft.id}`}
+                                  href={`/demo/documents/assurances/${draft.id}`}
                                   title="Consulter ou modifier"
                                 >
                                   <ExternalLink className="size-3.5" />

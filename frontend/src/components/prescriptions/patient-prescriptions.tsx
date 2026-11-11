@@ -34,7 +34,7 @@ export function PatientPrescriptions({
         <CardTitle>Ordonnances · Espace dentiste</CardTitle>
         <Button asChild variant="secondary">
           <Link
-            href={`/documents/ordonnances/nouvelle?patientId=${patientId}${consultationId ? `&consultationId=${consultationId}` : ""}`}
+            href={`/demo/documents/ordonnances/nouvelle?patientId=${patientId}${consultationId ? `&consultationId=${consultationId}` : ""}`}
           >
             {consultationId ? "Créer une ordonnance" : "Nouvelle ordonnance"}
           </Link>

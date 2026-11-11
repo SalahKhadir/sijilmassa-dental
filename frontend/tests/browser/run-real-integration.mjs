@@ -47,7 +47,7 @@ try {
   const classpath = [path.join(backend, "target/test-classes"), path.join(backend, "target/classes"), (await readFile(classpathFile, "utf8")).trim()].join(path.delimiter);
   backendLog = await open(path.join(directory, "backend.log"), "wx", 0o600);
   const java = process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, "bin/java") : "java";
-  backendProcess = start(java, ["-cp", classpath, "ma.sijilmassa.BrowserIntegrationEnvironment", fixtureDirectory], {
+  backendProcess = start(java, ["-cp", classpath, "ma.sijilmassa.BrowserIntegrationEnvironment", fixtureDirectory, ...(process.env.PRESCRIPTION_E2E_MODE ? [process.env.PRESCRIPTION_E2E_MODE] : [])], {
     cwd: backend, stdio: ["pipe", backendLog.fd, backendLog.fd],
   });
   const runtime = await waitFor(async () => JSON.parse(await readFile(path.join(fixtureDirectory, "runtime.json"), "utf8")), backendProcess);
@@ -74,7 +74,7 @@ try {
     probeState = await probe.storageState();
   } finally { await probe.dispose(); }
   const browserTests = (await readdir(path.join(frontend, "tests/browser"))).filter(name => name.endsWith(".test.mjs")
-    && (!process.env.BROWSER_TEST_FILE || name === process.env.BROWSER_TEST_FILE)).sort();
+    && (!process.env.BROWSER_TEST_FILE || process.env.BROWSER_TEST_FILE.split(",").includes(name))).sort();
   assert(browserTests.length > 0, "No matching browser test file");
   await run(process.execPath, ["--import", "tsx", "--test", "--experimental-test-isolation=none", ...browserTests.map(name => `tests/browser/${name}`)], { env: { ...process.env,
     AUTH_TEST_FIXTURE: path.join(fixtureDirectory, "users.json"), PATIENTS_TEST_BASE_URL: baseURL,
@@ -101,7 +101,19 @@ try {
     assert.equal(createdConsultation.status(), 201); const clinicalRecord = await createdConsultation.json();
     await page.goto(`${baseURL}/consultations/${clinicalRecord.id}?patientId=${clinicalPatient.id}`);
     await page.getByText("SYNTHETIC-CLINICAL-OUTAGE-CANARY", { exact: true }).waitFor();
+    const prescriptionResponse = await context.request.post(`${baseURL}/api/v1/prescriptions`, { headers, data: { patientId: clinicalPatient.id, content: {
+      consultationId: clinicalRecord.id, issuedDate: "2026-11-11", medications: [], generalInstructions: "SYNTHETIC-PRESCRIPTION-OUTAGE-CANARY",
+    } } });
+    assert.equal(prescriptionResponse.status(), 201); const prescriptionRecord = await prescriptionResponse.json();
+    const prescriptionPage = await context.newPage();
+    await prescriptionPage.goto(`${baseURL}/documents/ordonnances/${prescriptionRecord.id}?patientId=${clinicalPatient.id}`);
+    await prescriptionPage.getByText("SYNTHETIC-PRESCRIPTION-OUTAGE-CANARY", { exact: true }).waitFor();
     backendProcess.stdin.end(); await once(backendProcess, "exit");
+    const prescriptionFailure = await context.request.get(`${baseURL}/api/v1/prescriptions/${prescriptionRecord.id}?patientId=${clinicalPatient.id}`);
+    assert.equal(prescriptionFailure.status(), 503); assert.match(prescriptionFailure.headers()["cache-control"], /no-store/);
+    await prescriptionPage.getByRole("button", { name: "Actualiser l’ordonnance", exact: true }).click();
+    await prescriptionPage.getByText(/Le service des ordonnances est indisponible|Session non vérifiée/).first().waitFor();
+    assert.equal(await prescriptionPage.getByText("SYNTHETIC-PRESCRIPTION-OUTAGE-CANARY", { exact: true }).count(), 0);
     const failure = await context.request.get(`${baseURL}/api/v1/patients`);
     assert.equal(failure.status(), 503); assert.match(failure.headers()["cache-control"], /no-store/);
     assert(!(await failure.text()).includes(runtime.backendOrigin));
@@ -117,10 +129,10 @@ try {
     await page.goto(`${baseURL}/rendez-vous`); await page.getByRole("heading", { name: "Session non vérifiée", exact: true }).waitFor();
     assert(!page.url().endsWith("/login"));
     const serviceLogs = (await readFile(path.join(directory, "backend.log"), "utf8")) + (await readFile(path.join(directory, "next.log"), "utf8"));
-    for (const secret of [fixture.dentist.password, fixture.receptionist.password, "Profession fictive 83B", "Autre utilisateur fictif", "Diabète", "SYNTHETIC-CLINICAL-OUTAGE-CANARY"]) {
+    for (const secret of [fixture.dentist.password, fixture.receptionist.password, "Profession fictive 83B", "Autre utilisateur fictif", "Diabète", "SYNTHETIC-CLINICAL-OUTAGE-CANARY", "Instructions synthétiques privées 853B", "SYNTHETIC-PRESCRIPTION-OUTAGE-CANARY"]) {
       assert(!serviceLogs.includes(secret), "Patient payload or credential found in service logs");
     }
-    console.log("Real backend shutdown verified: safe uncached patient/appointment 503, explicit unavailable UI without logout/fallback, empty browser storage and no payload/credentials in service logs.");
+    console.log("Real backend shutdown verified: safe uncached patient/appointment/clinical/prescription 503, explicit unavailable UI without logout/fallback, empty browser storage and no payload/credentials in service logs.");
     await context.close();
   } finally { await browser.close(); }
 } catch (error) {
