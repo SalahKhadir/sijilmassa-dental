@@ -1,13 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createPatientApi, PatientApiError } from "@/lib/patients/api/client";
+import { requireLogin } from "@/lib/api/session-request";
 import { Button } from "@/components/ui/button";
 
 export function usePatientApi() {
-  const [api] = useState(() => createPatientApi(fetch, () => {
-    document.documentElement.dataset.authBlocked = "true";
-    window.location.replace("/login");
-  }));
+  const [api] = useState(() => createPatientApi(fetch, requireLogin));
   return api;
 }
 export function PatientFailure({ error, retry }: { error: unknown; retry?: () => void }) {
@@ -19,7 +17,9 @@ export function PatientFailure({ error, retry }: { error: unknown; retry?: () =>
 export function useUnsavedChanges(dirty: boolean) {
   useEffect(() => {
     if (!dirty) return;
-    const unload = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    const unload = (event: BeforeUnloadEvent) => {
+      if (document.documentElement.dataset.authBlocked !== "true") event.preventDefault();
+    };
     const click = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (target && !window.confirm("Quitter cette page et abandonner les modifications non enregistrées ?")) {
@@ -40,6 +40,6 @@ export function useUnsavedChanges(dirty: boolean) {
 }
 export function PersistentNotice() {
   return <p className="rounded-lg border border-secondary/30 bg-secondary-tint p-4 text-sm leading-6">
-    Patients enregistrés dans la base du cabinet. Les patients, rendez-vous, consultations et ordonnances enregistrés restent séparés des factures et assurances de démonstration.
+    Patients enregistrés dans la base du cabinet. Les dossiers enregistrés et les données de démonstration sont séparés.
   </p>;
 }

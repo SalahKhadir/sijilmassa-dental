@@ -115,7 +115,7 @@ export function DashboardOverview() {
           {financial.state.status === "error" ? (
             <BillingErrorState retry={financial.retry} />
           ) : (
-            <DashboardFinances summary={amounts} />
+            <DashboardFinances summary={amounts} demo />
           )}
           <Card className="border-secondary/20 bg-secondary-tint">
             <CardContent className="pt-5 sm:pt-6">

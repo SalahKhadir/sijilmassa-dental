@@ -40,7 +40,7 @@ export function PatientFinancialHistory({
         </CardTitle>
         <Button asChild variant="secondary">
           <Link
-            href={`/facturation/nouvelle?patientId=${patientId}${consultationId ? `&consultationId=${consultationId}` : ""}`}
+            href={`/demo/facturation/nouvelle?patientId=${patientId}${consultationId ? `&consultationId=${consultationId}` : ""}`}
           >
             {consultationId ? "Créer une facture" : "Nouvelle facture"}
           </Link>
@@ -70,7 +70,7 @@ export function PatientFinancialHistory({
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <Link
                       className="text-sm font-semibold text-primary hover:underline"
-                      href={`/facturation/${invoice.id}`}
+                      href={`/demo/facturation/${invoice.id}`}
                     >
                       {invoice.invoiceNumber ||
                         `Brouillon ${invoice.id.slice(-3)}`}

@@ -11,6 +11,8 @@ import { PatientIdentitySummary } from "../patient-identity-summary";
 import { PatientClinicalSections } from "../patient-clinical-sections";
 import { PatientStatus } from "../patient-status";
 import { PatientFailure, PersistentNotice, usePatientApi } from "./shared";
+import { DossierDownload } from "./dossier-download";
+import { historyHref } from "@/components/insurance/persistent/shared";
 import { PersistentPatientForm } from "./form";
 
 export function NewPersistentPatient() {
@@ -52,7 +54,9 @@ function AdministrativeRecord({ id, clinical, edit }: { id: string; clinical: bo
     <PersistentNotice /><PatientStatus status={patient.status} />
     {patient.status === "inactive" && <p role="status" className="rounded-lg border bg-surface p-4">Patient inactif. Le dossier médical reste consultable ; sa modification exige une restauration.</p>}
     <nav aria-label="Sections du dossier" className="flex flex-wrap gap-4 border-b pb-3"><Link className="text-primary underline" href={`/patients/${id}`}>Informations personnelles</Link>
-      {user?.role === "DENTIST" && <><Link className="text-primary underline" href={`/patients/${id}/dossier`}>Questionnaire et antécédents</Link><Link className="text-primary underline" href={`/patients/${id}/clinique`}>Historique clinique</Link><Link className="text-primary underline" href={`/documents?patientId=${id}`}>Ordonnances du patient</Link></>}</nav>
+      <Link className="text-primary underline" href={`/patients/${id}/finances`}>Finances du patient</Link>
+      <Link className="text-primary underline" href={`/patients/${id}/factures`}>Factures du patient</Link>
+      {user?.role === "DENTIST" && <><Link className="text-primary underline" href={`/patients/${id}/dossier`}>Questionnaire et antécédents</Link><Link className="text-primary underline" href={`/patients/${id}/clinique`}>Historique clinique</Link><Link className="text-primary underline" href={`/documents?patientId=${id}`}>Ordonnances du patient</Link><Link prefetch={false} className="text-primary underline" href={historyHref(id)}>Documents d’assurance</Link></>}</nav>
     {clinical ? <MedicalSection key={revision} patient={patient} edit={edit} reloadPatient={reload} /> : edit ?
       <PersistentPatientForm key={revision} patient={patient} mode="administrative" reload={reload} /> : <>
         <Card><CardContent className="pt-6"><PatientIdentitySummary identity={{ ...patient.identity, dateOfBirth: patient.identity.dateOfBirth ?? "" }} /></CardContent></Card>
@@ -77,6 +81,7 @@ function MedicalSection({ patient, edit, reloadPatient }: { patient: Administrat
   if (!state.medical) return <PatientFailure error={state.error} retry={reload} />;
   if (edit && patient.status === "inactive") return <p>Restaurez le patient depuis sa fiche administrative avant de modifier le dossier de santé.</p>;
   return edit ? <PersistentPatientForm key={revision} patient={patient} medical={state.medical} mode="medical" reload={reloadPatient} /> : <>
+    <DossierDownload patientId={patient.id} />
     <PatientClinicalSections patient={state.medical.record} />
     <Button asChild disabled={patient.status === "inactive"}><Link href={`/patients/${patient.id}/dossier/modifier`}>Modifier le dossier de santé</Link></Button>
   </>;

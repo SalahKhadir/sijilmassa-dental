@@ -54,7 +54,7 @@ export function InvoiceList({
                 <tr key={invoice.id}>
                   <td className="px-3 py-4">
                     <Link
-                      href={`/facturation/${invoice.id}`}
+                      href={`/demo/facturation/${invoice.id}`}
                       className="font-semibold text-primary hover:underline"
                     >
                       {invoice.invoiceNumber ||
@@ -99,7 +99,7 @@ export function InvoiceList({
             <li key={invoice.id} className="space-y-4 rounded-lg border p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Link
-                  href={`/facturation/${invoice.id}`}
+                  href={`/demo/facturation/${invoice.id}`}
                   className="font-semibold text-primary hover:underline"
                 >
                   {invoice.invoiceNumber || `Brouillon ${invoice.id.slice(-3)}`}

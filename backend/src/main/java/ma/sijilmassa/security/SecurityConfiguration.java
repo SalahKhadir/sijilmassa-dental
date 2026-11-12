@@ -62,9 +62,24 @@ public class SecurityConfiguration {
                                 ApiPaths.V1 + "/consultations/*/treatments/*",
                                 ApiPaths.V1 + "/consultations/*/treatments/*/removal",
                                 ApiPaths.V1 + "/consultations/*/finalization").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.FINANCIAL + "/consultations/*/pricing").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.FINANCIAL + "/charges").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.FINANCIAL + "/charges/*/payments").hasAnyRole("DENTIST", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.FINANCIAL + "/charges/*", ApiPaths.FINANCIAL + "/charges/*/payments",
+                                ApiPaths.FINANCIAL + "/patients/*/summary", ApiPaths.FINANCIAL + "/patients/*/verso").hasAnyRole("DENTIST", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.INVOICES, ApiPaths.INVOICES + "/*/issue").hasAnyRole("DENTIST", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.PUT, ApiPaths.INVOICES + "/*").hasAnyRole("DENTIST", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.INVOICES + "/*", ApiPaths.INVOICES + "/*/pdf", ApiPaths.V1 + "/patients/*/invoices",
+                                ApiPaths.V1 + "/patients/*/invoice-eligible-charges").hasAnyRole("DENTIST", "RECEPTIONIST")
+                        .requestMatchers(HttpMethod.POST, ApiPaths.INSURANCE_DOCUMENTS,
+                                ApiPaths.INSURANCE_DOCUMENTS + "/*/finalize").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.PUT, ApiPaths.INSURANCE_DOCUMENTS + "/*").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.INSURANCE_DOCUMENTS + "/*", ApiPaths.INSURANCE_DOCUMENTS + "/*/pdf",
+                                ApiPaths.V1 + "/patients/*/insurance-documents").hasRole("DENTIST")
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/auth/logout").authenticated()
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/patients/with-medical-record").hasRole("DENTIST")
-                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/patients/*/medical-record").hasRole("DENTIST")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/patients/*/medical-record",
+                                ApiPaths.V1 + "/patients/*/dossier.pdf").hasRole("DENTIST")
                         .requestMatchers(HttpMethod.PUT, ApiPaths.V1 + "/patients/*/medical-record").hasRole("DENTIST")
                         .requestMatchers(HttpMethod.GET, ApiPaths.V1 + "/patients", ApiPaths.V1 + "/patients/*").hasAnyRole("DENTIST", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.POST, ApiPaths.V1 + "/patients").hasAnyRole("DENTIST", "RECEPTIONIST")

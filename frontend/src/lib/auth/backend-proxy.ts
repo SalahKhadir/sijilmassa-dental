@@ -1,3 +1,5 @@
+import { MAX_INSURANCE_PDF_BYTES } from "../api/pdf-download";
+
 /** Node-only transport, imported by Route Handlers and the server session reader. */
 const paths = new Map([
   ["auth/csrf", "GET"], ["auth/me", "GET"], ["auth/login", "POST"], ["auth/logout", "POST"],
@@ -23,7 +25,9 @@ export function proxyProblem(status: number): Response {
 export async function proxyAuthentication(request: Request, path: string,
   options: { fetcher?: typeof fetch; origin?: string } = {}): Promise<Response> {
   const uuid = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
-  const patientRoute = path === "patients" ? ["GET", "POST"]
+  const dossierPdf = new RegExp(`^patients/${uuid}/dossier\\.pdf$`).test(path);
+  const patientRoute = dossierPdf ? ["GET"]
+    : path === "patients" ? ["GET", "POST"]
     : path === "patients/with-medical-record" ? ["POST"]
     : new RegExp(`^patients/${uuid}(?:/medical-record)?$`).test(path) ? ["GET", "PUT"] : null;
   const appointmentRoute = path === "appointments" ? ["GET", "POST"]
@@ -38,8 +42,23 @@ export async function proxyAuthentication(request: Request, path: string,
     : new RegExp(`^prescriptions/${uuid}$`).test(path) ? ["GET", "PUT"]
     : new RegExp(`^prescriptions/${uuid}/(?:archival|finalization)$`).test(path) ? ["PUT"]
     : new RegExp(`^prescriptions/${uuid}/pdf$`).test(path) ? ["GET"] : null;
-  const pdfRoute = Boolean(prescriptionRoute && path.endsWith("/pdf"));
-  const resourceRoute = patientRoute ?? appointmentRoute ?? clinicalRoute ?? prescriptionRoute;
+  const financialRoute = path === "financial/charges" ? ["POST"]
+    : new RegExp(`^financial/charges/${uuid}$`).test(path) ? ["GET"]
+    : new RegExp(`^financial/charges/${uuid}/payments$`).test(path) ? ["GET", "POST"]
+    : new RegExp(`^financial/consultations/${uuid}/pricing$`).test(path) ? ["GET"]
+    : new RegExp(`^financial/patients/${uuid}/(?:summary|verso)$`).test(path) ? ["GET"] : null;
+  const invoicePdf = new RegExp(`^invoices/${uuid}/pdf$`).test(path);
+  const invoiceRoute = invoicePdf ? ["GET"] : path === "invoices" ? ["POST"]
+    : new RegExp(`^invoices/${uuid}$`).test(path) ? ["GET", "PUT"]
+    : new RegExp(`^invoices/${uuid}/issue$`).test(path) ? ["POST"]
+    : new RegExp(`^patients/${uuid}/(?:invoices|invoice-eligible-charges)$`).test(path) ? ["GET"] : null;
+  const insurancePdf = new RegExp(`^insurance-documents/${uuid}/pdf$`).test(path);
+  const insuranceRoute = insurancePdf ? ["GET"] : path === "insurance-documents" ? ["POST"]
+    : new RegExp(`^insurance-documents/${uuid}$`).test(path) ? ["GET", "PUT"]
+    : new RegExp(`^insurance-documents/${uuid}/finalize$`).test(path) ? ["POST"]
+    : new RegExp(`^patients/${uuid}/insurance-documents$`).test(path) ? ["GET"] : null;
+  const pdfRoute = dossierPdf || invoicePdf || insurancePdf || Boolean(prescriptionRoute && path.endsWith("/pdf"));
+  const resourceRoute = patientRoute ?? appointmentRoute ?? clinicalRoute ?? prescriptionRoute ?? financialRoute ?? invoiceRoute ?? insuranceRoute;
   const methods = resourceRoute ?? (paths.has(path) ? [paths.get(path)!] : null);
   if (!methods) return proxyProblem(404);
   const method = request.method;
@@ -75,15 +94,15 @@ export async function proxyAuthentication(request: Request, path: string,
         const { done, value } = await reader.read();
         if (done) break;
         size += value.length;
-        if (size > (prescriptionRoute ? 262144 : resourceRoute ? 65536 : 4096)) { await reader.cancel(); return proxyProblem(413); }
+        if (size > (prescriptionRoute ? 262144 : insuranceRoute ? 131072 : invoiceRoute ? 16384 : resourceRoute && !financialRoute ? 65536 : 4096)) { await reader.cancel(); return proxyProblem(413); }
         chunks.push(value);
       }
       body = new Uint8Array(size);
       let offset = 0;
       for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.length; }
     }
-    const upstream = await (options.fetcher ?? fetch)(`${origin}/api/v1/${path}${prescriptionRoute || clinicalRoute || (resourceRoute && method === "GET") ? new URL(request.url).search : ""}`, {
-      method, headers, body, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(prescriptionRoute && path.endsWith("/finalization") ? 25000 : 8000),
+    const upstream = await (options.fetcher ?? fetch)(`${origin}/api/v1/${path}${prescriptionRoute || clinicalRoute || financialRoute || invoiceRoute || insuranceRoute || (resourceRoute && method === "GET") ? new URL(request.url).search : ""}`, {
+      method, headers, body, cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(dossierPdf || invoicePdf || insurancePdf || (prescriptionRoute && path.endsWith("/finalization")) ? 25000 : 8000),
     });
     if (upstream.status >= 300 && upstream.status < 400) return proxyProblem(502);
     const contentType = upstream.headers.get("content-type") ?? "";
@@ -95,9 +114,13 @@ export async function proxyAuthentication(request: Request, path: string,
       const value = upstream.headers.get(name);
       if (value) responseHeaders.set(name, value);
     }
-    if ((clinicalRoute || prescriptionRoute) && upstream.headers.has("Location")) {
+    if ((clinicalRoute || prescriptionRoute || financialRoute || invoiceRoute || insuranceRoute) && upstream.headers.has("Location")) {
       const location = upstream.headers.get("Location")!;
-      if (!new RegExp(`^/api/v1/${prescriptionRoute ? "prescriptions" : "consultations"}/${uuid}\\?patientId=${uuid}$`).test(location)) return proxyProblem(502);
+      const collection = insuranceRoute ? "insurance-documents" : invoiceRoute ? "invoices" : financialRoute ? "financial/charges" : prescriptionRoute ? "prescriptions" : "consultations";
+      if (!new RegExp(`^/api/v1/${collection}/${uuid}\\?patientId=${uuid}$`).test(location)) return proxyProblem(502);
+      if (financialRoute && (path !== "financial/charges" || upstream.status !== 201)) return proxyProblem(502);
+      if (insuranceRoute && (path !== "insurance-documents" || upstream.status !== 201)) return proxyProblem(502);
+      if (invoiceRoute && (path !== "invoices" || upstream.status !== 201)) return proxyProblem(502);
       responseHeaders.set("Location", location);
     }
     // Do not combine Set-Cookie (Expires contains commas). Spring uses host-only Path=/ cookies.
@@ -106,16 +129,22 @@ export async function proxyAuthentication(request: Request, path: string,
       responseHeaders.append("Set-Cookie", cookie);
     }
     if (pdf) {
-      const length = upstream.headers.get("Content-Length"), disposition = new URL(request.url).searchParams.get("disposition") ?? "inline";
+      const length = upstream.headers.get("Content-Length");
+      const disposition = dossierPdf || invoicePdf || insurancePdf ? "attachment" : new URL(request.url).searchParams.get("disposition") ?? "inline";
+      const filenamePrefix = insurancePdf ? "formulaire-assurance" : dossierPdf ? "dossier" : "ordonnance";
       const id = path.split("/")[1];
+      const dispositionHeader = upstream.headers.get("Content-Disposition") ?? "";
+      const validName = invoicePdf
+        ? /^attachment; filename="facture-[0-9]{4}-[0-9]{3,19}\.pdf"$/.test(dispositionHeader)
+        : dispositionHeader === `${disposition}; filename="${filenamePrefix}-${id.toLowerCase()}.pdf"`;
       if (!/^application\/pdf(?:;|$)/i.test(contentType) || !length || !/^[1-9][0-9]*$/.test(length)
-        || Number(length) > 2097152 || !["inline", "attachment"].includes(disposition) || !upstream.body
-        || upstream.headers.get("Content-Disposition") !== `${disposition}; filename="ordonnance-${id.toLowerCase()}.pdf"`) return proxyProblem(502);
+        || Number(length) > (insurancePdf ? MAX_INSURANCE_PDF_BYTES : 2097152) || !["inline", "attachment"].includes(disposition) || !upstream.body
+        || !validName) return proxyProblem(502);
       responseHeaders.set("Content-Type", "application/pdf");
       responseHeaders.set("Content-Length", length);
       // Next may remove Content-Length when writing a streamed Route Handler response.
-      responseHeaders.set("X-Prescription-PDF-Bytes", length);
-      responseHeaders.set("Content-Disposition", `${disposition}; filename="ordonnance-${id.toLowerCase()}.pdf"`);
+      responseHeaders.set(insurancePdf ? "X-Insurance-PDF-Bytes" : invoicePdf ? "X-Invoice-PDF-Bytes" : dossierPdf ? "X-Dossier-PDF-Bytes" : "X-Prescription-PDF-Bytes", length);
+      responseHeaders.set("Content-Disposition", dispositionHeader);
       responseHeaders.set("X-Content-Type-Options", "nosniff");
       let size = 0;
       // Stream with a byte bound; late corruption aborts the stream instead of delivering a partial success.
@@ -127,6 +156,13 @@ export async function proxyAuthentication(request: Request, path: string,
         },
         flush() { if (size !== Number(length)) throw new Error("Invalid PDF size"); },
       }));
+      if (invoicePdf || insurancePdf) {
+        try {
+          const bytes = await new Response(stream).arrayBuffer();
+          if (new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") return proxyProblem(502);
+          return new Response(bytes, { status: 200, headers: responseHeaders });
+        } catch { return proxyProblem(502); }
+      }
       return new Response(stream, { status: 200, headers: responseHeaders });
     }
     const responseBody = upstream.status === 204 ? null : await upstream.arrayBuffer();

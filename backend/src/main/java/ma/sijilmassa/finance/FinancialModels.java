@@ -12,6 +12,11 @@ public final class FinancialModels {
     public static final long MAX_MINOR = 9_007_199_254_740_991L;
     public enum PaymentMethod { ESPECES, CARTE, VIREMENT, CHEQUE, AUTRE }
     public enum Settlement { DUE, PARTIAL, SETTLED }
+    public record TreatmentPrice(UUID treatmentId, UUID chargeId, Long priceMinor) { }
+    public record ConsultationPricing(UUID patientId, UUID consultationId, long consultationVersion, List<TreatmentPrice> items) {
+        public ConsultationPricing { items = List.copyOf(items); }
+        @Override public String toString() { return "Consultation pricing [withheld]"; }
+    }
     public record PaymentInput(Long amountMinor, Instant paidAt, PaymentMethod method, UUID operationId) {
         @Override public String toString() { return "Financial payment command [withheld]"; }
     }
@@ -22,6 +27,10 @@ public final class FinancialModels {
     /** BigInteger totals prevent overflow when many individually safe charges are summed. */
     public record Totals(String currency, BigInteger chargesMinor, BigInteger receivedMinor, BigInteger outstandingMinor) {
         @Override public String toString() { return "Patient financial totals [withheld]"; }
+    }
+    public record DossierLedger(List<Row> rows, Totals totals) {
+        public DossierLedger { rows = List.copyOf(rows); }
+        @Override public String toString() { return "Dossier ledger [withheld]"; }
     }
     public record Cursor(LocalDate date, UUID chargeId) { }
     public record Summary(List<Row> items, Cursor nextCursor, Totals totals) {

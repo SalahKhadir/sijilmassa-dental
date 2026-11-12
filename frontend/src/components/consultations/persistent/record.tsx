@@ -14,6 +14,11 @@ import { useClinicalApi, useClinicalAction } from "./use-clinical-forms";
 import { ClinicalMutationFeedback } from "./mutation-feedback";
 import { ClinicalConfirmation } from "../clinical-confirmation";
 import { ConsultationStatus } from "../consultation-status";
+import { TreatmentPrice } from "@/components/financial/treatment-price";
+import { useFinancialApi } from "@/components/financial/session";
+import { useFinancialLoad } from "@/components/financial/load";
+import { FinancialApiError } from "@/lib/financial/client";
+import { historyHref, newHref } from "@/components/insurance/persistent/shared";
 import { TreatmentEditor, clinicalHref } from "./forms";
 
 const notices: Record<string, string> = { created: "Consultation créée.", draft: "Brouillon enregistré." };
@@ -24,16 +29,31 @@ function Record({ id, patientId }: { id: string; patientId: string }) {
   const { api } = useClinicalApi(), patients = usePatientApi();
   const query = useSearchParams();
   const [panel, setPanel] = useState<{ treatment?: PersistentTreatment }>();
+  const { api: financialApi, role } = useFinancialApi();
+  const [pricingRevision, setPricingRevision] = useState(0);
+  const [pricingNotice, setPricingNotice] = useState("");
   const [notice, setNotice] = useState(notices[query.get("notice") ?? ""] ?? "");
   const load = useCallback(async () => {
     const [record, patient] = await Promise.all([api.get(patientId, id), patients.get(patientId)]);
     return { record, patient };
   }, [api, patients, id, patientId]);
   const state = useClinicalLoad(`${patientId}:${id}`, load);
+  const pricingRecord = state.data?.record;
+  const loadPricing = useCallback(() => {
+    void pricingRevision;
+    return pricingRecord ? financialApi.consultationPricing(pricingRecord) : Promise.resolve(undefined);
+  }, [financialApi, pricingRecord, pricingRevision]);
+  const pricing = useFinancialLoad(loadPricing, role === "DENTIST" && Boolean(pricingRecord?.treatments.length));
   if (state.error) return <ClinicalFailure error={state.error} retry={state.reload} />;
   if (!state.data) return <ClinicalLoading />;
   const { record, patient } = state.data;
   const editable = record.status === "BROUILLON" && patient.status === "active";
+  function refreshPricing(error?: FinancialApiError) {
+    setPricingNotice(error ? (error.status >= 500 || error.status === 408
+      ? "Attribution du prix non confirmée. Vérifiez le prix relu avant de réessayer." : error.message) : "");
+    if (error?.status === 409 && error.code !== "DUPLICATE_CHARGE") state.reload();
+    else setPricingRevision(value => value + 1);
+  }
   function saved(record: PersistentConsultation, message: string) { void record; setPanel(undefined); setNotice(message); state.reload(); }
   return <>
     <PageHeading eyebrow={patient.reference} title={`Consultation du ${formatPatientDate(record.content.consultationDate)}`} description={`${patient.identity.firstName} ${patient.identity.lastName}`}>
@@ -45,8 +65,11 @@ function Record({ id, patientId }: { id: string; patientId: string }) {
     {record.status === "TERMINEE" && <p role="status">Consultation finalisée · Compte rendu et soins en lecture seule.</p>}
     <nav className="flex flex-wrap gap-4" aria-label="Navigation du compte rendu"><Link className="text-primary underline" href={`/patients/${patientId}/clinique`}>Historique clinique du patient</Link>
       <Link className="text-primary underline" href={`/patients/${patientId}/dossier`}>Questionnaire et antécédents</Link>
+      <Link className="text-primary underline" href={`/patients/${patientId}/finances`}>Finances du patient</Link>
       {record.content.appointmentId && <Link className="text-primary underline" href={`/rendez-vous/${record.content.appointmentId}`}>Voir le rendez-vous lié</Link>}
       <Link className="text-primary underline" href={`/documents?patientId=${patientId}&consultationId=${id}`}>Ordonnances de cette consultation</Link>
+      <Link prefetch={false} className="text-primary underline" href={historyHref(patientId)}>Documents d’assurance</Link>
+      {patient.status === "active" && <Link prefetch={false} className="text-primary underline" href={newHref(patientId, id)}>Créer un document d’assurance</Link>}
       {patient.status === "active" && <Link className="text-primary underline" href={`/documents/ordonnances/nouvelle?patientId=${patientId}&consultationId=${id}`}>Créer une ordonnance</Link>}
     </nav>
     <Card className="space-y-5 p-5"><h2 className="font-semibold">Compte rendu clinique</h2>
@@ -55,12 +78,24 @@ function Record({ id, patientId }: { id: string; patientId: string }) {
     </Card>
     <section className="space-y-4" aria-label="Soins actifs"><h2 className="text-lg font-semibold">Soins enregistrés</h2>
       {!record.treatments.length && <p>Aucun soin actif enregistré.</p>}
-      {record.treatments.map(treatment => <Card key={treatment.id} className="space-y-3 p-5"><h3 className="font-semibold">Soin du {formatPatientDate(treatment.content.treatmentDate)}</h3>
+      {pricingNotice && <p role="alert">{pricingNotice}</p>}
+      {record.treatments.length > 0 && (pricing?.error ? <div className="space-y-2">
+        <p role="alert">{pricing.error instanceof FinancialApiError && pricing.error.code === "VERSION_CONFLICT"
+          ? "La consultation a changé pendant la lecture des prix. Actualisez le dossier pour vérifier la tarification."
+          : "La tarification des soins ne peut pas être vérifiée."}</p>
+        <Button variant="outline" onClick={() => { setPricingNotice(""); state.reload(); }}>Actualiser le dossier et les prix</Button>
+      </div> : !pricing?.data ? <p role="status">Vérification de la tarification…</p> : null)}
+      {record.treatments.map(treatment => {
+        const price = pricing?.data?.get(treatment.id.toLowerCase());
+        return <Card key={treatment.id} className="space-y-3 p-5"><h3 className="font-semibold">Soin du {formatPatientDate(treatment.content.treatmentDate)}</h3>
         <p className="break-words whitespace-pre-wrap">{treatment.content.description}</p><p>Référence dentaire : {treatment.content.toothReference || "Non renseignée"}</p>
         {treatment.content.notes && <p className="break-words whitespace-pre-wrap">{treatment.content.notes}</p>}
+        {price && <TreatmentPrice api={financialApi} record={record} treatment={treatment} editable={editable && !panel}
+          pricing={price} onRefresh={refreshPricing} />}
         {editable && !panel && <div className="flex flex-wrap gap-3"><Button variant="outline" onClick={() => setPanel({ treatment })}>Modifier ce soin</Button>
-          <ClinicalAction key={`${record.version}:${treatment.id}`} consultation={record} kind="remove" treatmentId={treatment.id} onSaved={record => saved(record, "Soin retiré.")} /></div>}
-      </Card>)}
+          {price?.state !== "PRICED" && <ClinicalAction key={`${record.version}:${treatment.id}`} consultation={record} kind="remove" treatmentId={treatment.id} onSaved={record => saved(record, "Soin retiré.")} />}</div>}
+        </Card>;
+      })}
       {editable && !panel && <Button disabled={record.treatments.length >= 50} onClick={() => setPanel({})}>Ajouter un soin</Button>}
     </section>
     {panel && editable && <TreatmentEditor key={`${id}:${panel.treatment?.id ?? "new"}`} consultation={record} treatment={panel.treatment} patient={patient}

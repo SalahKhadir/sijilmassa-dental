@@ -88,7 +88,7 @@ export function InvoiceForm({
       const record = invoice
         ? await updateDraft(invoice.id, input)
         : await create(input);
-      router.push(`/facturation/${record.id}`);
+      router.push(`/demo/facturation/${record.id}`);
     } catch (error) {
       if (
         error instanceof BillingError &&
@@ -265,7 +265,7 @@ export function InvoiceForm({
                   <li key={record.id}>
                     <Link
                       className="text-primary underline"
-                      href={`/facturation/${record.id}`}
+                      href={`/demo/facturation/${record.id}`}
                     >
                       {record.invoiceNumber ||
                         `Brouillon ${record.id.slice(-3)}`}
@@ -288,7 +288,7 @@ export function InvoiceForm({
       )}
       <div className="flex flex-wrap justify-between gap-3">
         <Button asChild variant="outline">
-          <Link href={invoice ? `/facturation/${invoice.id}` : "/facturation"}>
+          <Link href={invoice ? `/demo/facturation/${invoice.id}` : "/demo/facturation"}>
             Annuler la saisie
           </Link>
         </Button>

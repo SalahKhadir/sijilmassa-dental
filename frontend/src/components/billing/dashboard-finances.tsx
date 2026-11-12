@@ -3,8 +3,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { financialSummary } from "@/lib/billing/calculations";
 import { formatMinor } from "@/lib/billing/money";
 export function DashboardFinances({
-  summary,
+  summary, demo = false,
 }: {
+  demo?: boolean;
   summary: ReturnType<typeof financialSummary> | null;
 }) {
   return (
@@ -38,7 +39,7 @@ export function DashboardFinances({
         </p>
         <Link
           className="inline-flex min-h-10 items-center text-sm font-semibold text-primary hover:underline"
-          href="/facturation"
+          href={demo ? "/demo/facturation" : "/facturation"}
         >
           Ouvrir la facturation
         </Link>

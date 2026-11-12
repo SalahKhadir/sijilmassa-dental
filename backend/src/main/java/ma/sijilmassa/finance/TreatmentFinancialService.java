@@ -3,6 +3,7 @@ package ma.sijilmassa.finance;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 import jakarta.persistence.EntityManager;
@@ -76,6 +77,28 @@ public class TreatmentFinancialService {
             em.flush(); return new Receipt(payment, row(patientId, chargeId));
         });
     }
+    @PreAuthorize(RolePolicies.CLINICAL)
+    public ConsultationPricing consultationPricing(UUID patientId, UUID consultationId) {
+        actor(true, false);
+        id(patientId);
+        id(consultationId);
+        long version = ledger.consultationVersion(patientId, consultationId).orElseThrow(() -> failure(NOT_FOUND));
+        var items = ledger.treatmentPrices(patientId, consultationId);
+        // Match the clinical limit. Reject legacy overflow instead of returning an incomplete snapshot.
+        if (items.size() > 50) throw failure(STORAGE_FAILURE);
+        return new ConsultationPricing(patientId, consultationId, version, items);
+    }
+    private static final int MAX_DOSSIER_CHARGES = 250;
+
+    @PreAuthorize(RolePolicies.CLINICAL)
+    public Optional<DossierLedger> dossierLedger(UUID patientId) {
+        actor(true, false);
+        patient(patientId);
+        var rows = ledger.firstRows(patientId, MAX_DOSSIER_CHARGES + 1);
+        if (rows.size() > MAX_DOSSIER_CHARGES) return Optional.empty();
+        return Optional.of(new DossierLedger(rows, ledger.totals(patientId)));
+    }
+
     public Row getCharge(UUID patientId, UUID chargeId) { actor(false, false); patient(patientId); id(chargeId); return row(patientId, chargeId); }
     public Summary summary(UUID patientId, Cursor after) {
         actor(false, false); patient(patientId);

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { requireLogin } from "@/lib/api/session-request";
 import { createAuthenticationService } from "@/lib/auth/authentication-service";
 import type { LoginCredentials } from "@/lib/auth/login-schema";
 import type { Identity, SessionResult } from "@/lib/auth/types";
@@ -101,7 +102,7 @@ export function AuthProvider({ initial, children }: { initial: SessionResult; ch
         apply({ status: "unauthenticated" });
         channel.current?.postMessage("session-changed");
         // Full navigation discards the App Router cache and all prototype providers.
-        window.location.replace("/login");
+        requireLogin();
       } else {
         setState({ ...result, message: "Déconnexion non confirmée. Vérifiez la connexion au serveur avant de réessayer." });
       }

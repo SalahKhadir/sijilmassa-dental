@@ -24,6 +24,16 @@ public class SecurityAudit {
     public void recordPayment(AuditEventType type, UUID actor, UUID charge, UUID payment) {
         events.save(SecurityAuditEvent.financial(type, actor, charge, payment, clock.instant()));
     }
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordInvoice(AuditEventType type, UUID actor, UUID invoice) {
+        events.saveAndFlush(SecurityAuditEvent.invoice(type, actor, invoice, clock.instant()));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordInsuranceDocument(AuditEventType type, UUID actor, UUID patient, UUID document) {
+        events.saveAndFlush(SecurityAuditEvent.insurance(type, actor, patient, document, clock.instant()));
+    }
+
     @Transactional
     public void record(AuditEventType type, UUID actor, UUID subject) {
         events.save(new SecurityAuditEvent(type, actor, subject, clock.instant()));

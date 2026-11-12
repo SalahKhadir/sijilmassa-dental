@@ -56,7 +56,7 @@ export function BillingDirectory({ patientId = "" }: { patientId?: string }) {
       >
         <Button asChild>
           <Link
-            href={`/facturation/nouvelle${patientId ? `?patientId=${patientId}` : ""}`}
+            href={`/demo/facturation/nouvelle${patientId ? `?patientId=${patientId}` : ""}`}
           >
             Nouvelle facture
           </Link>
@@ -73,7 +73,7 @@ export function BillingDirectory({ patientId = "" }: { patientId?: string }) {
       {patientId && (
         <p className="text-sm text-muted-foreground">
           Factures du patient sélectionné ·{" "}
-          <Link className="text-primary underline" href="/facturation">
+          <Link className="text-primary underline" href="/demo/facturation">
             Tous les patients
           </Link>
         </p>

@@ -1,18 +1,17 @@
-import type { Metadata } from "next";
-import { InsuranceDraftForm } from "@/components/insurance/insurance-draft-form";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { NewInsuranceDocument } from "@/components/insurance/persistent/create";
+import { insuranceId } from "@/lib/insurance/api/schemas";
 
-export const metadata: Metadata = {
-  title: "Nouvelle feuille de soins dentaires",
-};
+export const metadata = { title: "Nouveau document d’assurance" };
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ patientId?: string | string[] }>;
+export default async function Page({ searchParams }: {
+  searchParams: Promise<{ patientId?: string | string[]; consultationId?: string | string[] }>;
 }) {
-  const query = await searchParams;
-  const patientId =
-    typeof query.patientId === "string" ? query.patientId : undefined;
-
-  return <InsuranceDraftForm presetPatientId={patientId} />;
+  const { patientId, consultationId } = await searchParams;
+  if (patientId === undefined) return <p>Ouvrez la fiche d’un patient pour créer un document d’assurance. <Link className="text-primary underline" href="/patients">Voir les patients</Link></p>;
+  const patient = insuranceId.safeParse(patientId);
+  const consultation = insuranceId.optional().safeParse(consultationId);
+  if (!patient.success || !consultation.success) notFound();
+  return <NewInsuranceDocument patientId={patient.data.toLowerCase()} preset={consultation.data?.toLowerCase()} />;
 }

@@ -1,0 +1,15 @@
+[
+  { "minor": "0", "words": "zéro dirham" },
+  { "minor": "1", "words": "zéro dirham et un centime" },
+  { "minor": "101", "words": "un dirham et un centime" },
+  { "minor": "2100", "words": "vingt et un dirhams" },
+  { "minor": "7100", "words": "soixante et onze dirhams" },
+  { "minor": "10050", "words": "cent dirhams et cinquante centimes" },
+  { "minor": "120000", "words": "mille deux cents dirhams" },
+  { "minor": "8000000", "words": "quatre-vingt mille dirhams" },
+  { "minor": "20000000000", "words": "deux cents millions de dirhams" },
+  { "minor": "100000000000000", "words": "mille milliards de dirhams" },
+  { "minor": "100000000000000000", "words": "un million de milliards de dirhams" },
+  { "minor": "2251799813685247750", "words": "vingt-deux millions cinq cent dix-sept mille neuf cent quatre-vingt-dix-huit milliards cent trente-six millions huit cent cinquante-deux mille quatre cent soixante-dix-sept dirhams et cinquante centimes" },
+  { "minor": "2251799813685247699", "words": "vingt-deux millions cinq cent dix-sept mille neuf cent quatre-vingt-dix-huit milliards cent trente-six millions huit cent cinquante-deux mille quatre cent soixante-seize dirhams et quatre-vingt-dix-neuf centimes" }
+]

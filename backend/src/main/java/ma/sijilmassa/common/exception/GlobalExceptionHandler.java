@@ -6,6 +6,11 @@ import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 import ma.sijilmassa.common.api.ApiProblems;
 import ma.sijilmassa.common.api.RequestIdFilter;
+import ma.sijilmassa.finance.FinancialFailure;
+import ma.sijilmassa.insurance.InsuranceFailure;
+import ma.sijilmassa.insurance.InsurancePdfFailure;
+import ma.sijilmassa.invoice.InvoiceFailure;
+import ma.sijilmassa.invoice.InvoicePdfFailure;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -56,6 +61,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ProblemDetail> handleAppointment(ma.sijilmassa.appointment.AppointmentFailure failure, HttpServletRequest request) {
         return safe(failure.status(), request);
     }
+    @ExceptionHandler(ma.sijilmassa.patient.dossier.DossierFailure.class)
+    public ResponseEntity<ProblemDetail> handleDossier(ma.sijilmassa.patient.dossier.DossierFailure failure, HttpServletRequest request) {
+        var problem = problems.create(failure.status(), request);
+        problem.setProperty("code", failure.reason().name());
+        return ResponseEntity.status(failure.status()).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
+    }
+
+    @ExceptionHandler(InvoicePdfFailure.class)
+    public ResponseEntity<ProblemDetail> handleInvoicePdf(InvoicePdfFailure failure, HttpServletRequest request) {
+        var problem = problems.create(failure.status(), request);
+        problem.setProperty("code", failure.code().name());
+        return ResponseEntity.status(failure.status()).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
+    }
+
     @ExceptionHandler(ma.sijilmassa.patient.PatientFailure.class)
     public ResponseEntity<ProblemDetail> handlePatient(ma.sijilmassa.patient.PatientFailure failure, HttpServletRequest request) {
         return safe(failure.status(), request);
@@ -69,6 +88,52 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case ARCHIVED_PATIENT, INVALID_STATE, CONCURRENCY_CONFLICT, DUPLICATE_APPOINTMENT -> 409;
         };
         return safe(status, request);
+    }
+
+    @ExceptionHandler(FinancialFailure.class)
+    public ResponseEntity<ProblemDetail> handleFinancial(FinancialFailure failure, HttpServletRequest request) {
+        int status = switch (failure.reason()) {
+            case INVALID_INPUT -> 400;
+            case NOT_FOUND -> 404;
+            case ARCHIVED_PATIENT, INELIGIBLE_TREATMENT, CONSULTATION_FINALIZED, DUPLICATE_CHARGE,
+                    VERSION_CONFLICT, OVERPAYMENT, OPERATION_CONFLICT -> 409;
+            case STORAGE_FAILURE -> 500;
+        };
+        var problem = problems.create(status, request);
+        if (status == 409) problem.setProperty("code", failure.reason().name());
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
+    }
+
+    @ExceptionHandler(InvoiceFailure.class)
+    public ResponseEntity<ProblemDetail> handleInvoice(InvoiceFailure failure, HttpServletRequest request) {
+        int status = switch (failure.reason()) {
+            case INVALID_INPUT, INVALID_SELECTION, INVALID_VERSION -> 400;
+            case NOT_FOUND, CHARGE_NOT_FOUND -> 404;
+            case ARCHIVED_PATIENT, CHARGE_RESERVED, VERSION_CONFLICT, INVOICE_ISSUED, EMPTY_DRAFT -> 409;
+        };
+        var problem = problems.create(status, request);
+        if (status == 409) problem.setProperty("code", failure.reason().name());
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
+    }
+
+    @ExceptionHandler(InsurancePdfFailure.class)
+    public ResponseEntity<ProblemDetail> handleInsurancePdf(InsurancePdfFailure failure, HttpServletRequest request) {
+        var problem = problems.create(failure.status(), request);
+        problem.setProperty("code", failure.code().name());
+        return ResponseEntity.status(failure.status()).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
+    }
+
+    @ExceptionHandler(InsuranceFailure.class)
+    public ResponseEntity<ProblemDetail> handleInsurance(InsuranceFailure failure, HttpServletRequest request) {
+        int status = switch (failure.reason()) {
+            case INVALID_INPUT, UNSUPPORTED_TEMPLATE, INVALID_TREATMENT, INVALID_CHARGE -> 400;
+            case NOT_FOUND -> 404;
+            case INVALID_CONSULTATION, ARCHIVED_PATIENT, VERSION_CONFLICT, READ_ONLY, INCOMPLETE_DOCUMENT -> 409;
+            case STORAGE_FAILURE -> 500;
+        };
+        var problem = problems.create(status, request);
+        problem.setProperty("code", failure.reason().name());
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
     }
 
     @ExceptionHandler(ma.sijilmassa.prescription.PrescriptionFailure.class)

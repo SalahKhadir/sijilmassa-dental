@@ -32,7 +32,7 @@ export function InvoiceFormPage({
       <>
         <InvoiceMissing message="Cette facture est en lecture seule." />
         <Button asChild>
-          <Link href={`/facturation/${id}`}>Voir la facture</Link>
+          <Link href={`/demo/facturation/${id}`}>Voir la facture</Link>
         </Button>
       </>
     );

@@ -38,6 +38,9 @@ export function createSessionRequest(fetcher: typeof fetch, unauthenticated: () 
   };
 }
 export function requireLogin() {
-  document.documentElement.dataset.authBlocked = "true";
+  const state = document.documentElement.dataset;
+  if (state.authRedirecting === "true") return;
+  state.authRedirecting = "true";
+  state.authBlocked = "true";
   window.location.replace("/login");
 }

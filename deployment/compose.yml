@@ -1,0 +1,136 @@
+name: ${CLINIC_PROJECT:?Define CLINIC_PROJECT}
+x-runtime: &runtime
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  db:
+    <<: *runtime
+    image: localhost/sijilmassa-postgres:${CLINIC_RELEASE:?Define CLINIC_RELEASE}
+    build:
+      context: ..
+      dockerfile: deployment/infra.Dockerfile
+      target: database
+    env_file:
+      - path: ${CLINIC_DB_PASSWORD_FILE:?Provide the private DB_PASSWORD env file}
+        format: raw
+      - path: ${CLINIC_PG_ADMIN_FILE:?Provide the private POSTGRES_PASSWORD env file}
+        format: raw
+    environment:
+      POSTGRES_DB: sijilmassa
+      POSTGRES_USER: postgres
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      DB_USERNAME: clinic_app
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "sijilmassa"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  backend:
+    <<: *runtime
+    image: localhost/sijilmassa-backend:${CLINIC_RELEASE:?Define CLINIC_RELEASE}
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: backend
+    env_file:
+      - path: ${CLINIC_DB_PASSWORD_FILE:?Provide the private DB_PASSWORD env file}
+        format: raw
+    environment:
+      CLINIC_RELEASE: ${CLINIC_RELEASE:?Define CLINIC_RELEASE}
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_ADDRESS: 0.0.0.0
+      DB_URL: jdbc:postgresql://db:5432/sijilmassa
+      DB_USERNAME: clinic_app
+      PRESCRIPTION_RENDERING_ENABLED: "true"
+      PRESCRIPTION_RENDERING_NODE_EXECUTABLE: /usr/local/bin/node
+      PRESCRIPTION_RENDERING_WORKER_DIRECTORY: /app/.prescription-renderer
+      PRESCRIPTION_RENDERING_MODULES_DIRECTORY: /app/node_modules
+      PRESCRIPTION_PRACTITIONER_FILE: /run/clinic/practitioner.json
+      PRESCRIPTION_PRACTITIONER_SHA256: ${CLINIC_PRACTITIONER_SHA256:-}
+    volumes:
+      - "${CLINIC_PRIVATE_CONFIG_DIR:?Provide the private configuration directory}:/run/clinic:ro,z"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [api, data]
+    stop_grace_period: 35s
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/actuator/health').then(async r=>{if(!r.ok||(await r.json()).status!=='UP')process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 25s
+
+  frontend:
+    <<: *runtime
+    image: localhost/sijilmassa-frontend:${CLINIC_RELEASE:?Define CLINIC_RELEASE}
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: frontend
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8080
+      CLINIC_RELEASE: ${CLINIC_RELEASE:?Define CLINIC_RELEASE}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [web, api]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/auth/me').then(r=>{if(r.status!==401)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+
+  https:
+    <<: *runtime
+    image: localhost/sijilmassa-https:${CLINIC_RELEASE:?Define CLINIC_RELEASE}
+    build:
+      context: ..
+      dockerfile: deployment/infra.Dockerfile
+      target: gateway
+    environment:
+      CLINIC_LAN_IP: ${CLINIC_LAN_IP:?Define the dentist PC private IPv4 address}
+    ports:
+      - "${CLINIC_LAN_IP:?Define CLINIC_LAN_IP}:${CLINIC_HTTPS_PORT:-443}:443/tcp"
+    volumes:
+      - tls-data:/data
+      - tls-config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    networks: [entry, web]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2016/login"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+networks:
+  entry: {}
+  web:
+    internal: true
+  api:
+    internal: true
+  data:
+    internal: true
+
+volumes:
+  db-data:
+  tls-data:
+  tls-config:

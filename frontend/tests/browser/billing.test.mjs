@@ -194,7 +194,7 @@ test("billing directory filters pagination responsive keyboard errors and unpaid
     reducedMotion: "reduce",
   });
   try {
-    await page.goto(`${harness.baseURL}/facturation`);
+    await page.goto(`${harness.baseURL}/demo/facturation`);
     await page
       .getByRole("status")
       .filter({ hasText: "13 factures affichées" })
@@ -262,7 +262,7 @@ test("billing directory filters pagination responsive keyboard errors and unpaid
       ),
     );
     await screenshot(page, "editor-mobile");
-    await page.goto(`${harness.baseURL}/facturation/invoice-demo-002`);
+    await page.goto(`${harness.baseURL}/demo/facturation/invoice-demo-002`);
     await heading(page, "Facture 2026-001");
     await button(page, "Annuler la facture").click();
     assert(
@@ -281,17 +281,17 @@ test("billing directory filters pagination responsive keyboard errors and unpaid
     assert.equal(await button(page, "Vérifier le règlement").count(), 0);
     await heading(page, "Facture 2026-001");
     for (const [route, title] of [
-      ["/facturation/missing", "Cette facture est introuvable."],
+      ["/demo/facturation/missing", "Cette facture est introuvable."],
       [
-        "/facturation/invoice-demo-002/modifier",
+        "/demo/facturation/invoice-demo-002/modifier",
         "Cette facture est en lecture seule.",
       ],
       [
-        "/facturation/nouvelle?patientId=missing",
+        "/demo/facturation/nouvelle?patientId=missing",
         "Ce patient est introuvable.",
       ],
       [
-        "/facturation/nouvelle?patientId=patient-demo-001&consultationId=consultation-demo-002",
+        "/demo/facturation/nouvelle?patientId=patient-demo-001&consultationId=consultation-demo-002",
         "Le lien de consultation est invalide pour ce patient.",
       ],
     ]) {

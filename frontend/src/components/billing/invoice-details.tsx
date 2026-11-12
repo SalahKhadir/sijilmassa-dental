@@ -82,7 +82,7 @@ export function InvoiceDetails({ id }: { id: string }) {
           <InvoiceStatus status={invoiceStatus(invoice, payments)} />
           {draft && (
             <Button asChild>
-              <Link href={`/facturation/${id}/modifier`}>
+              <Link href={`/demo/facturation/${id}/modifier`}>
                 Modifier le brouillon
               </Link>
             </Button>
@@ -103,7 +103,7 @@ export function InvoiceDetails({ id }: { id: string }) {
           <Link href={`/demo/patients/${patient.id}`}>Voir le dossier patient</Link>
         </Button>
         <Button asChild variant="ghost">
-          <Link href="/facturation">Retour à la facturation</Link>
+          <Link href="/demo/facturation">Retour à la facturation</Link>
         </Button>
       </div>
       <Card>

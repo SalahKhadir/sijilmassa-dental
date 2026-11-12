@@ -1,0 +1,9 @@
+[Unit]
+Description=Sijilmassa Dental encrypted PostgreSQL backup
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/sijilmassa-clinic/backup.env
+ExecStart=/usr/bin/bash -c 'exec "$${CLINIC_DEPLOYMENT_DIR:?Set CLINIC_DEPLOYMENT_DIR}/scheduled-backup.sh"'
+UMask=0077
+TimeoutStartSec=2h

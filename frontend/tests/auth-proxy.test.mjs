@@ -46,7 +46,7 @@ test("cross-origin mutations and oversized bodies are rejected locally", async (
 test("central presentation policies are restrictive for mixed clinical modules", () => {
   assert.equal(dashboardFor("RECEPTIONIST"), "/rendez-vous");
   assert.equal(dashboardFor("DENTIST"), "/");
-  for (const path of ["/", "/demo/patients", "/patients/demo/dossier", "/consultations", "/documents", "/facturation", "/parametres"]) {
+  for (const path of ["/", "/demo/patients", "/patients/demo/dossier", "/consultations", "/documents", "/demo/facturation", "/parametres"]) {
     assert.equal(canAccessPath("RECEPTIONIST", path), false); assert.equal(canAccessPath("DENTIST", path), true);
   }
   assert.equal(canAccessPath("RECEPTIONIST", "/rendez-vous/demo/modifier"), true);

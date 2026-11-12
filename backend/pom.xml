@@ -78,6 +78,42 @@
         </dependency>
     </dependencies>
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/../docs/references/pdf-templates</directory>
+                <includes><include>dossier-patient.pdf</include></includes>
+                <targetPath>dossier</targetPath>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/../frontend/public/fonts</directory>
+                <includes>
+                    <include>LiberationSans-Regular.ttf</include>
+                    <include>LiberationSans-LICENSE.txt</include>
+                </includes>
+                <targetPath>dossier</targetPath>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/../docs/references/pdf-templates</directory>
+                <includes><include>facture_background.png</include></includes>
+                <targetPath>invoice</targetPath>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/../frontend/public/fonts</directory>
+                <includes><include>LiberationSans-Bold.ttf</include></includes>
+                <targetPath>invoice</targetPath>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/../docs/references/pdf-templates</directory>
+                <includes>
+                    <include>feuille_dentaire_CNSS.pdf</include>
+                    <include>feuille_dentaire_CNOPS.pdf</include>
+                </includes>
+                <targetPath>insurance-pdf</targetPath>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

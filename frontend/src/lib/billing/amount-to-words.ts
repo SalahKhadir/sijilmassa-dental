@@ -85,81 +85,64 @@ function under1000(val: number, beforeMille: boolean): string {
   return hStr;
 }
 
-/**
- * Converts a non-negative integer into standard French words.
- */
+// V10 allows 250 lines, each priced up to 9,007,199,254,740,991 centimes.
+export const MAX_INVOICE_TOTAL_MINOR = 250n * 9_007_199_254_740_991n;
+const MILLION = 1_000_000n;
+const SCALES = [
+  { value: 1_000_000_000n, name: "milliard" },
+  { value: MILLION, name: "million" },
+  { value: 1_000n, name: "mille" },
+] as const;
+
+function endsInScaleNoun(value: bigint) {
+  return value >= MILLION && value % MILLION === 0n;
+}
+
+function spellInteger(value: bigint, beforeMille = false): string {
+  for (const scale of SCALES) {
+    if (value < scale.value) continue;
+    const count = value / scale.value;
+    const remainder = value % scale.value;
+    const isMille = scale.name === "mille";
+    const head = isMille && count === 1n
+      ? "mille"
+      : `${spellInteger(count, isMille)}${endsInScaleNoun(count) ? " de " : " "}${scale.name}${!isMille && count > 1n ? "s" : ""}`;
+    return remainder === 0n ? head : `${head} ${spellInteger(remainder, beforeMille)}`;
+  }
+  // Only a group of at most three digits reaches the existing spelling rules.
+  return value === 0n ? "zéro" : under1000(Number(value), beforeMille);
+}
+
+function exactInteger(value: number | bigint): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "number" && Number.isSafeInteger(value)) return BigInt(value);
+  throw new TypeError("Utilisez un entier exact.");
+}
+
 export function integerToFrenchWords(value: number | bigint): string {
-  const n = typeof value === "bigint" ? Number(value) : Math.floor(value);
-  if (n === 0) return "zéro";
-  if (n < 0) return `moins ${integerToFrenchWords(-n)}`;
-
-  function formatChunks(val: number): string {
-    if (val < 1000) return under1000(val, false);
-    if (val < 1_000_000) {
-      const thousands = Math.floor(val / 1000);
-      const remainder = val % 1000;
-      const tStr =
-        thousands === 1 ? "mille" : `${under1000(thousands, true)} mille`;
-      if (remainder > 0) {
-        return `${tStr} ${under1000(remainder, false)}`;
-      }
-      return tStr;
-    }
-    const millions = Math.floor(val / 1_000_000);
-    const remainder = val % 1_000_000;
-    const mStr =
-      millions === 1 ? "un million" : `${formatChunks(millions)} millions`;
-    if (remainder > 0) {
-      return `${mStr} ${formatChunks(remainder)}`;
-    }
-    return mStr;
-  }
-
-  return formatChunks(n);
+  const integer = exactInteger(value);
+  if (integer < 0n) return `moins ${spellInteger(-integer)}`;
+  return spellInteger(integer);
 }
 
-/**
- * Converts an amount in minor units (centimes) into French words with dirhams and centimes.
- * Examples:
- * - 60000 -> "six cents dirhams"
- * - 60050 -> "six cents dirhams et cinquante centimes"
- * - 100 -> "un dirham"
- * - 0 -> "zéro dirham"
- */
-export function amountToFrenchWords(minor: number | bigint): string {
-  const amount = BigInt(minor);
-  if (amount < 0n) throw new Error("Un montant négatif ne peut pas être converti en lettres.");
+/** Accepts exact centimes, including the canonical decimal string from the invoice API. */
+export function amountToFrenchWords(minor: number | bigint | string): string {
+  if (typeof minor === "string" && !/^(?:0|[1-9][0-9]{0,18})$/.test(minor)) {
+    throw new TypeError("Utilisez une chaîne entière de centimes sans signe ni séparateur.");
+  }
+  const amount = typeof minor === "string" ? BigInt(minor) : exactInteger(minor);
+  if (amount < 0n || amount > MAX_INVOICE_TOTAL_MINOR) {
+    throw new RangeError("Le montant est hors des limites d’une facture.");
+  }
+
   const dirhams = amount / 100n;
-  const centimes = Number(amount % 100n);
-
-  let result = "";
-  if (dirhams === 0n && centimes === 0) {
-    return "zéro dirham";
-  }
-
-  if (dirhams === 0n) {
-    result = "zéro dirham";
-  } else if (dirhams === 1n) {
-    result = "un dirham";
-  } else {
-    result = `${integerToFrenchWords(dirhams)} dirhams`;
-  }
-
-  if (centimes > 0) {
-    if (centimes === 1) {
-      result += " et un centime";
-    } else {
-      result += ` et ${integerToFrenchWords(centimes)} centimes`;
-    }
-  }
-
-  return result;
+  const centimes = amount % 100n;
+  const unit = dirhams <= 1n ? " dirham" : endsInScaleNoun(dirhams) ? " de dirhams" : " dirhams";
+  const base = spellInteger(dirhams) + unit;
+  if (centimes === 0n) return base;
+  return `${base} et ${spellInteger(centimes)} ${centimes === 1n ? "centime" : "centimes"}`;
 }
 
-/**
- * Formats the official legal sentence declaring the invoice total.
- * Example: "Arrêtée la présente facture à la somme de six cents dirhams."
- */
-export function invoiceAmountSentence(minor: number | bigint): string {
+export function invoiceAmountSentence(minor: number | bigint | string): string {
   return `Arrêtée la présente facture à la somme de ${amountToFrenchWords(minor)}.`;
 }

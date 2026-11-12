@@ -79,7 +79,7 @@ class AuthenticationIntegrationTest {
 
     @BeforeEach
     void resetSyntheticDatabase() {
-        jdbc.execute("TRUNCATE TABLE treatment_payment, treatment_charge, prescription_document, prescription_line, prescription, security_audit_event, application_user");
+        jdbc.execute("TRUNCATE TABLE insurance_act, insurance_document, invoice_line, invoice, invoice_number_sequence, treatment_payment, treatment_charge, prescription_document, prescription_line, prescription, security_audit_event, application_user");
         clock.advance(120);
         bootstrap.initialize(" Dentist.Demo ", PASSWORD, RECEPTION, PASSWORD);
     }
@@ -101,7 +101,7 @@ class AuthenticationIntegrationTest {
 
     @Test
     void emptyDatabaseBootstrapValidatesAndIsAtomic() {
-        jdbc.execute("TRUNCATE TABLE treatment_payment, treatment_charge, prescription_document, prescription_line, prescription, security_audit_event, application_user");
+        jdbc.execute("TRUNCATE TABLE insurance_act, insurance_document, invoice_line, invoice, invoice_number_sequence, treatment_payment, treatment_charge, prescription_document, prescription_line, prescription, security_audit_event, application_user");
         assertThatThrownBy(() -> bootstrap.initialize("same", PASSWORD, "SAME", PASSWORD))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(users.count()).isZero();
@@ -115,7 +115,7 @@ class AuthenticationIntegrationTest {
 
     @Test
     void concurrentBootstrapAllowsExactlyOneAdministratorAction() throws Exception {
-        jdbc.execute("TRUNCATE TABLE treatment_payment, treatment_charge, prescription_document, prescription_line, prescription, security_audit_event, application_user");
+        jdbc.execute("TRUNCATE TABLE insurance_act, insurance_document, invoice_line, invoice, invoice_number_sequence, treatment_payment, treatment_charge, prescription_document, prescription_line, prescription, security_audit_event, application_user");
         try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
             var first = executor.submit(() -> tryBootstrap("first"));
             var second = executor.submit(() -> tryBootstrap("second"));

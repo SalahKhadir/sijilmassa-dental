@@ -23,7 +23,23 @@ public class SecurityAuditEvent {
     @Column(name = "target_charge_id") private UUID targetChargeId;
     @Column(name = "target_payment_id") private UUID targetPaymentId;
 
+    @Column(name = "target_invoice_id") private UUID targetInvoiceId;
+
+    @Column(name = "target_insurance_document_id") private UUID targetInsuranceDocumentId;
+
     protected SecurityAuditEvent() { }
+
+    static SecurityAuditEvent invoice(AuditEventType type, UUID actor, UUID invoice, Instant now) {
+        SecurityAuditEvent event = new SecurityAuditEvent(type, actor, null, now);
+        event.targetInvoiceId = invoice;
+        return event;
+    }
+
+    static SecurityAuditEvent insurance(AuditEventType type, UUID actor, UUID patient, UUID document, Instant now) {
+        SecurityAuditEvent event = new SecurityAuditEvent(type, actor, null, patient, now);
+        event.targetInsuranceDocumentId = document;
+        return event;
+    }
 
     static SecurityAuditEvent financial(AuditEventType type, UUID actor, UUID charge, UUID payment, Instant now) {
         SecurityAuditEvent event = new SecurityAuditEvent(type, actor, null, now);

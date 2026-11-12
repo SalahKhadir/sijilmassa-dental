@@ -4,12 +4,8 @@ import { useEffect, useState } from "react";
 import { CalendarDays, UsersRound, Clock3 } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "./stat-card";
-import { DashboardFinances } from "@/components/billing/dashboard-finances";
-import { useFinancialData } from "@/components/billing/use-billing-data";
-import { financialSummary } from "@/lib/billing/calculations";
-import { BillingErrorState } from "@/components/billing/billing-states";
 import { clinicDate } from "@/lib/patients/dates";
 import { calendarWindow } from "@/lib/appointments/api/time";
 import { createPatientApi } from "@/lib/patients/api/client";
@@ -30,8 +26,6 @@ export function PersistentDashboardOverview() {
     void load(); window.addEventListener("focus", load);
     return () => { active = false; window.removeEventListener("focus", load); };
   }, [api]);
-  const financial = useFinancialData();
-  const amounts = financial.state.status === "ready" ? financialSummary(financial.state.data.invoices, financial.state.data.payments) : null;
   const upcoming = data ? { ...data, appointments: data.appointments.filter(value => ["EN_ATTENTE", "CONFIRME"].includes(value.status) && Date.parse(value.endAt) > now) } : undefined;
   return <>
     <PageHeading eyebrow="Votre cabinet, en un regard" title="Tableau de bord" description="Patients et rendez-vous enregistrés du cabinet."><Button asChild><Link href="/rendez-vous"><CalendarDays aria-hidden="true" />Ouvrir l’agenda</Link></Button></PageHeading>
@@ -42,7 +36,10 @@ export function PersistentDashboardOverview() {
     {patientError ? <AppointmentFailure error={patientError} /> : null}
     <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]"><Card className="overflow-hidden"><CardHeader className="border-b"><CardTitle>Prochains rendez-vous aujourd’hui</CardTitle></CardHeader>
       {error ? <AppointmentFailure error={error} retry={refresh} /> : !upcoming ? <p role="status" className="p-5">Chargement des rendez-vous…</p> : <RealAgenda data={upcoming} limit={4} />}</Card>
-      <section className="space-y-4 rounded-xl border p-4" aria-label="Finances de démonstration"><h2 className="font-semibold">Finances — Démonstration</h2><p className="text-xs text-muted-foreground">Factures et paiements fictifs en mémoire, sans lien avec les patients ou rendez-vous enregistrés.</p>
-        {financial.state.status === "error" ? <BillingErrorState retry={financial.retry} /> : <DashboardFinances summary={amounts} />}</section></div>
+      <Card>
+        <CardHeader><CardTitle>Facturation</CardTitle></CardHeader>
+        <CardContent><Button asChild variant="outline"><Link href="/facturation">Rechercher les factures d’un patient</Link></Button></CardContent>
+      </Card>
+    </div>
   </>;
 }

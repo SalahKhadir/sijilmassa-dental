@@ -34,6 +34,21 @@ class FinancialRepository {
                 (rs, row) -> new Source((Long) parent.getFirst()[0], (String) parent.getFirst()[1], rs.getObject(1, LocalDate.class), rs.getString(2), instant(rs, "removed_at")), treatment, consultation);
         return values.stream().findFirst();
     }
+    Optional<Long> consultationVersion(UUID patientId, UUID consultationId) {
+        return jdbc.query("""
+                SELECT version FROM clinical_consultation WHERE patient_id=? AND id=?
+                """, (rs, row) -> rs.getLong("version"), patientId, consultationId).stream().findFirst();
+    }
+    List<TreatmentPrice> treatmentPrices(UUID patientId, UUID consultationId) {
+        return jdbc.query("""
+                SELECT t.id AS treatment_id, c.id AS charge_id, c.price_minor
+                FROM clinical_treatment t
+                LEFT JOIN treatment_charge c ON c.treatment_id=t.id AND c.consultation_id=t.consultation_id AND c.patient_id=?
+                WHERE t.consultation_id=? AND t.removed_at IS NULL
+                ORDER BY t.treatment_date, t.id LIMIT 51
+                """, (rs, row) -> new TreatmentPrice(rs.getObject("treatment_id", UUID.class),
+                        rs.getObject("charge_id", UUID.class), rs.getObject("price_minor", Long.class)), patientId, consultationId);
+    }
     boolean charged(UUID treatment) { return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM treatment_charge WHERE treatment_id=?)", Boolean.class, treatment)); }
     void insertCharge(UUID id, UUID patient, UUID consultation, UUID treatment, Source source, long price, Instant at, UUID actor) {
         jdbc.update("""
@@ -69,6 +84,10 @@ class FinancialRepository {
         if (after == null) return jdbc.query(ROW_SQL + " ORDER BY c.treatment_date,c.id LIMIT 50", FinancialRepository::row, patient, patient);
         return jdbc.query(ROW_SQL + " AND (c.treatment_date,c.id)>(?,?) ORDER BY c.treatment_date,c.id LIMIT 50", FinancialRepository::row,
                 patient, patient, after.date(), after.chargeId());
+    }
+    List<Row> firstRows(UUID patient, int limit) {
+        return jdbc.query(ROW_SQL + " ORDER BY c.treatment_date,c.id LIMIT ?", FinancialRepository::row,
+                patient, patient, limit);
     }
     Totals totals(UUID patient) {
         return jdbc.queryForObject("""

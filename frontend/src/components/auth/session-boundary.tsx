@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { requireLogin } from "@/lib/api/session-request";
 import { Button } from "@/components/ui/button";
 import { canAccessPath, dashboardFor, hasPermission, type Permission } from "@/lib/auth/permissions";
 import { useAuth, useOptionalAuth } from "./auth-provider";
@@ -19,7 +20,10 @@ export function SessionBoundary({ children, login = false }: { children: ReactNo
   const pending = checking || checkedPath !== pathname;
   const target = !pending && state.status === "unauthenticated" && !login ? "/login"
     : !pending && state.status === "authenticated" && login ? dashboardFor(state.user.role) : null;
-  useEffect(() => { if (target) window.location.replace(target); }, [target]);
+  useEffect(() => {
+    if (target === "/login") requireLogin();
+    else if (target) window.location.replace(target);
+  }, [target]);
   const error = state.status === "error";
   const allowed = user ? canAccessPath(user.role, pathname) : login;
   const hidden = Boolean(target) || error || (!login && pending);

@@ -62,8 +62,8 @@ try {
   const health = await fetch(`${runtime.backendOrigin}/actuator/health`);
   assert.equal(health.status, 200); assert.deepEqual(await health.json(), { status: "UP" });
   assert.equal((await fetch(`${baseURL}/api/v1/patients`)).status, 401);
-  assert.deepEqual(runtime.migrations, ["1", "2", "3", "4", "5", "6", "7", "8"]); assert.equal(runtime.jpaValidated, true);
-  console.log("Real synthetic PostgreSQL, Spring Boot and Next.js proxy ready; V1–V8, JPA, health and anonymous denial verified.");
+  assert.deepEqual(runtime.migrations, ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]); assert.equal(runtime.jpaValidated, true);
+  console.log("Real synthetic PostgreSQL, Spring Boot and Next.js proxy ready; V1–V12, JPA, health and anonymous denial verified.");
   // Authenticate the outage probe before the journeys; do not add a login to their final burst.
   const fixture = JSON.parse(await readFile(path.join(fixtureDirectory, "users.json"), "utf8"));
   const probe = await request.newContext({ baseURL });
@@ -108,7 +108,24 @@ try {
     const prescriptionPage = await context.newPage();
     await prescriptionPage.goto(`${baseURL}/documents/ordonnances/${prescriptionRecord.id}?patientId=${clinicalPatient.id}`);
     await prescriptionPage.getByText("SYNTHETIC-PRESCRIPTION-OUTAGE-CANARY", { exact: true }).waitFor();
+    const financialPage = await context.newPage();
+    await financialPage.goto(`${baseURL}/patients/${clinicalPatient.id}/finances`);
+    await financialPage.getByText("Aucun soin tarifé sur cette page.", { exact: true }).waitFor();
+    const insuranceResponse = await context.request.post(`${baseURL}/api/v1/insurance-documents`, { headers, data: {
+      patientId: clinicalPatient.id, documentType: "CNSS_DENTAIRE", templateVersion: 1, purpose: "ENTENTE_PREALABLE",
+      draft: { fields: { cnss: { registrationNumber: "SYNTHETIC-INSURANCE-OUTAGE-CANARY" } }, acts: [] },
+    } });
+    assert.equal(insuranceResponse.status(), 201);
+    const insuranceRecord = await insuranceResponse.json();
+    const insurancePage = await context.newPage();
+    await insurancePage.goto(`${baseURL}/documents/assurances/${insuranceRecord.documentId}?patientId=${clinicalPatient.id}`);
+    await insurancePage.getByText("SYNTHETIC-INSURANCE-OUTAGE-CANARY", { exact: true }).waitFor();
     backendProcess.stdin.end(); await once(backendProcess, "exit");
+    const insuranceFailure = await context.request.get(`${baseURL}/api/v1/insurance-documents/${insuranceRecord.documentId}?patientId=${clinicalPatient.id}`);
+    assert.equal(insuranceFailure.status(), 503); assert.match(insuranceFailure.headers()["cache-control"], /no-store/);
+    assert(!(await insuranceFailure.text()).includes(runtime.backendOrigin));
+    await insurancePage.getByRole("button", { name: "Finaliser", exact: true }).click();
+    await insurancePage.getByText(/Le service des documents d’assurance est indisponible|Session non vérifiée/).first().waitFor();
     const prescriptionFailure = await context.request.get(`${baseURL}/api/v1/prescriptions/${prescriptionRecord.id}?patientId=${clinicalPatient.id}`);
     assert.equal(prescriptionFailure.status(), 503); assert.match(prescriptionFailure.headers()["cache-control"], /no-store/);
     await prescriptionPage.getByRole("button", { name: "Actualiser l’ordonnance", exact: true }).click();
@@ -120,6 +137,12 @@ try {
     const appointmentFailure = await context.request.get(`${baseURL}/api/v1/appointments?from=2026-11-10T00:00:00Z&to=2026-11-11T00:00:00Z`);
     assert.equal(appointmentFailure.status(), 503); assert.match(appointmentFailure.headers()["cache-control"], /no-store/);
     assert(!(await appointmentFailure.text()).includes(runtime.backendOrigin));
+    const financialFailure = await context.request.get(`${baseURL}/api/v1/financial/patients/${clinicalPatient.id}/summary`);
+    assert.equal(financialFailure.status(), 503); assert.match(financialFailure.headers()["cache-control"], /no-store/);
+    assert(!(await financialFailure.text()).includes(runtime.backendOrigin));
+    await financialPage.getByRole("button", { name: "Actualiser les finances", exact: true }).click();
+    await financialPage.getByText(/Le service financier ne répond pas|Session non vérifiée/).first().waitFor();
+    assert.equal(await financialPage.getByText("Aucun soin tarifé sur cette page.", { exact: true }).count(), 0);
     const clinicalFailure = await context.request.get(`${baseURL}/api/v1/consultations/${clinicalRecord.id}?patientId=${clinicalPatient.id}`);
     assert.equal(clinicalFailure.status(), 503); assert.match(clinicalFailure.headers()["cache-control"], /no-store/);
     assert(!(await clinicalFailure.text()).includes(runtime.backendOrigin));
@@ -129,10 +152,10 @@ try {
     await page.goto(`${baseURL}/rendez-vous`); await page.getByRole("heading", { name: "Session non vérifiée", exact: true }).waitFor();
     assert(!page.url().endsWith("/login"));
     const serviceLogs = (await readFile(path.join(directory, "backend.log"), "utf8")) + (await readFile(path.join(directory, "next.log"), "utf8"));
-    for (const secret of [fixture.dentist.password, fixture.receptionist.password, "Profession fictive 83B", "Autre utilisateur fictif", "Diabète", "SYNTHETIC-CLINICAL-OUTAGE-CANARY", "Instructions synthétiques privées 853B", "SYNTHETIC-PRESCRIPTION-OUTAGE-CANARY"]) {
+    for (const secret of [fixture.dentist.password, fixture.receptionist.password, "Profession fictive 83B", "Autre utilisateur fictif", "Diabète", "SYNTHETIC-CLINICAL-OUTAGE-CANARY", "Instructions synthétiques privées 853B", "SYNTHETIC-PRESCRIPTION-OUTAGE-CANARY", "SYNTHETIC-INSURANCE-OUTAGE-CANARY"]) {
       assert(!serviceLogs.includes(secret), "Patient payload or credential found in service logs");
     }
-    console.log("Real backend shutdown verified: safe uncached patient/appointment/clinical/prescription 503, explicit unavailable UI without logout/fallback, empty browser storage and no payload/credentials in service logs.");
+    console.log("Real backend shutdown verified: safe uncached patient/appointment/clinical/prescription/financial/insurance 503, explicit unavailable UI without logout/fallback, empty browser storage and no payload/credentials in service logs.");
     await context.close();
   } finally { await browser.close(); }
 } catch (error) {
