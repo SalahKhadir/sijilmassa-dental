@@ -2,6 +2,8 @@
 
 **Pilote sur données fictives préparé. Recette physique en attente.** La version reste **CONDITIONAL RC WITH OPEN RISKS**. Les décisions de sécurité sur libxml2 et Caddy et le triage résiduel de 9.4A.1 restent ouverts. La mise en service et la migration de données réelles restent bloquées. [Revue de sécurité](production-image-security-review.md#suivi-94a1--13-novembre-2026)
 
+Pour exécuter la recette avec le correctif 9.5A.1, suivre le [guide rapide sur site](windows-on-site-quickstart.md) et le [registre du lot livré](windows-pilot-delivery.md). Les mesures Linux ci-dessous gardent leur portée historique.
+
 ## Registre de séance
 
 | Élément | Valeur relevée |
@@ -69,11 +71,12 @@ foreach ($file in $hashes.Keys) {
     docker --context desktop-linux load -i (Join-Path $archives $file)
     if ($LASTEXITCODE -ne 0) { throw "Chargement en échec ($file)" }
 }
-.\deployment\windows\Install-SijilmassaDental.ps1 -ConfigPath $pilot
+.\deployment\windows\Install-SijilmassaDental.ps1 -ConfigPath $pilot -BeforeInstall
+if ($LASTEXITCODE -ne 0) { throw 'Préflight en échec. Arrêter.' }
 .\deployment\windows\Install-SijilmassaDental.ps1 -ConfigPath $pilot -Install -BootstrapAccounts -ExportPublicCa
 ```
 
-La première commande de l’assistant peut signaler la CA et la sauvegarde en attente. Corriger d’abord les autres prérequis. Confirmer le démarrage et l’export sur le poste. Utiliser `-BootstrapAccounts` une seule fois pour les deux comptes fictifs. Lors d’une relance, omettre les options déjà exécutées. Conserver les ID des conteneurs et les noms des volumes du pilote avant les essais de redémarrage.
+Préparer le support et le trousseau de sauvegarde avant le préflight. La vérification de la CA se poursuit après l’export. Confirmer le démarrage et l’export sur le poste. Utiliser `-BootstrapAccounts` une seule fois pour les deux comptes fictifs. Lors d’une relance, omettre les options déjà exécutées. Conserver les ID des conteneurs et les noms des volumes du pilote avant les essais de redémarrage.
 
 6. Relever l’empreinte SHA-256 du certificat public DER exporté au terminal serveur. Comparer le fichier par un canal indépendant, renseigner `caSha256`, puis demander à l’administrateur d’approuver l’import manuel du seul certificat public. Vérifier Edge, chaîne, IPv4 du certificat feuille, dates et absence d’avertissement. Après la connexion Dentiste fictive, ouvrir `/api/v1/auth/me` dans le même profil Edge pour relever uniquement l’UUID `id` du compte fictif. Configurer le profil d’ordonnance ci-dessous avant l’essai PDF.
 7. Activer le lancement de Docker Desktop à la connexion si approuvé. Dans Edge, installer le site en tant qu’application, nommer **Sijilmassa Dental**, puis créer le raccourci via `edge://apps`. Le raccourci Edge ouvre une fenêtre indépendante. Le raccourci opérateur facultatif lance le script avec `-Dialog`. Pour tester la reprise à l’ouverture de session Windows sous le compte Docker, utiliser `-WaitForDocker -NoBrowser -Dialog` dans la tâche interactive de démarrage, après approbation. Vérifier sans élévation et noter l’effet réel du verrouillage, de la déconnexion et de la veille. [Démarrage et raccourcis](windows-11-clinic-installation.md#démarrage-quotidien-et-raccourcis)
@@ -201,3 +204,15 @@ L’ouverture clinique demande une décision distincte après traitement des éc
 | `git diff --check`, `git status` et contrôle des empreintes initiales | **PASS** · seul ce registre de recette a été ajouté. [État final](../frontend/test-results/phase-9.5/status-final.txt) |
 
 Les suites applicatives complètes n’ont pas été relancées. Aucun test Windows, Edge, deux-PC, Task Scheduler, support externe physique ou imprimante n’a été exécuté pendant cette session. Les résultats de la pile Linux n’attribuent aucun PASS à ces lignes.
+
+## Vérifications 9.5A.1 sur Linux
+
+| Vérification | Résultat |
+| --- | --- |
+| PowerShell 7.5.4, `deployment/windows/tests/WindowsPilot.Tests.ps1` | **PASS** · syntaxe, capture stdout/stderr, code retour, délai, UTF-8 et UTF-16LE, cas WSL/Docker simulés, configuration, port et états Compose. |
+| `bash -n` et `deployment/windows/tests/windows-backup-verify.sh` | **PASS** · fichiers avec espaces, archive OpenPGP, checksum, support absent et configuration dupliquée. Montage simulé. |
+| SHA-256, lot `941-review` et archive de build | **PASS** · quatre empreintes d’archive, quatre ID et plateforme après chargement dans Podman. Les 493 fichiers du contexte correspondent au Git de départ. |
+| Compose 5.7.0 et Caddy sur Podman isolé | **PASS** · modèle fusionné et chemins de forme Windows acceptés par le parseur Linux. Configuration Caddy valide. Après démarrage, les quatre services sont sains et les sondes TLS vérifiées retournent 200 et 401. Un arrêt suivi d’un redémarrage conserve les ID et la CA. |
+| Windows PowerShell 5.1, WSL 3.0.5.0, Docker Desktop et recette physique | **NOT TESTED** pour ce correctif. |
+
+Le premier essai du moteur jetable a rencontré un quota sous `/tmp`. La reprise avec un stockage isolé sur le disque du projet a chargé les images. La recette Linux a utilisé le bus de session pour la résolution DNS Podman et a exécuté manuellement les sondes Compose, dont les minuteries Podman ne se déclenchaient pas sur cet hôte. Le montage de l’essai Fedora a reçu un relabel SELinux dans une surcharge locale. Les volumes de test ont été conservés. La restauration, Edge, les ACL NTFS, le pare-feu et les impressions restent à vérifier sur le matériel du pilote.

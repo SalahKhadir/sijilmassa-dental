@@ -10,6 +10,28 @@ Docker Desktop est gratuit pour une petite entreprise qui emploie **moins de 250
 
 Installer ou mettre à jour WSL depuis une session autorisée. Redémarrer si demandé. Installer Docker Desktop, choisir **Use the WSL 2 based engine**, lancer Docker Desktop sous le compte Windows qui exploitera le pilote et attendre le moteur Linux. Vérifier `wsl --version`, `wsl --status`, `wsl --list --verbose` et `docker --context desktop-linux info --format '{{.OSType}}'`. Le contexte doit pointer sur le canal nommé local de Docker Desktop. Pour les sauvegardes, prévoir une distribution utilisateur WSL en version 2, par exemple Ubuntu, avec l’intégration Docker Desktop et un socket local. Utiliser le même compte Windows pour installer, exploiter et planifier le pilote. [Moteur WSL 2](https://docs.docker.com/desktop/features/wsl/)
 
+## Dépannage de la détection WSL
+
+Sur le PC testé à distance, WSL 3.0.5.0 répondait à `wsl --version` dans PowerShell. Le processus enfant de l’installateur a renvoyé le code 1, sans sortie standard capturée. L’ancien script écartait stderr et confondait cet échec avec une version insuffisante. La cause du code 1 reste indéterminée. Le changement 9.5A.1 capture les deux flux, décode UTF-8 et UTF-16LE, limite l’attente et distingue code non nul, version illisible, version ancienne et distribution manquante. Le texte brut de la commande reste hors des diagnostics de l’installateur.
+
+Dans Windows PowerShell 5.1 **64 bits**, comparer la résolution de l’exécutable et les résultats directs.
+
+```powershell
+Get-Command wsl.exe -All | Select-Object -ExpandProperty Source
+wsl.exe --version
+$LASTEXITCODE
+& "$env:SystemRoot\System32\wsl.exe" --version
+$LASTEXITCODE
+wsl.exe --status
+wsl.exe --list --verbose
+```
+
+Utiliser le même compte que l’installateur. Relever l’ordre System32/WindowsApps, la version de PowerShell, le code de retour et la présence de sortie. La résolution par `Get-Command -CommandType Application` ignore les fonctions et alias PowerShell. Le processus enfant reçoit des arguments cités au format Win32. Les tests portables couvrent la lecture des deux flux et les délais. La comparaison System32/WindowsApps et le changement de comportement avec ou sans console restent à essayer sur Windows. [Commandes WSL](https://learn.microsoft.com/en-us/windows/wsl/basic-commands) · [Décodage des diagnostics Microsoft](https://github.com/microsoft/WSL/blob/master/diagnostics/collect-wsl-logs.ps1)
+
+Si seule la console fonctionne, relancer le préflight depuis cette même console avec `-BeforeInstall -WslKeepConsole`. Ce mode conserve la console tout en capturant les flux et en répétant les contrôles. En cas de succès, conserver `-WslKeepConsole` sur la commande d’installation et les scripts `Start`, `Get-SijilmassaDentalStatus` et `Invoke-SijilmassaDentalBackup` exécutés depuis la console. Si la liste redirigée est vide, le script interroge `wslinfo --networking-mode` dans la distribution configurée. Si le contrôle reste en échec, arrêter le pilote, relever les résultats directs et faire diagnostiquer l’écart. [Signalement WSL sur la liste redirigée](https://github.com/microsoft/WSL/issues/41937)
+
+L’exécution du correctif sous Windows reste **NOT TESTED**.
+
 ## Dossiers et configuration
 
 Exemple de disposition à préparer manuellement. Un chemin source avec espaces est permis. Les fichiers PowerShell sont en UTF-8 avec BOM pour Windows PowerShell 5.1. Conserver les scripts Bash en LF.
@@ -37,10 +59,10 @@ Sur le réseau de confiance du cabinet, vérifier le profil Windows **Privé**. 
 
 ## Première installation
 
-Depuis le répertoire `source`, ouvrir Windows PowerShell sous le compte opérateur. Utiliser la politique d’exécution approuvée, avec les scripts vérifiés. L’assistant par défaut valide sans démarrer ni créer de volumes. Avant le premier démarrage, il peut signaler les étapes CA, sauvegarde ou disponibilité encore à terminer. `-Install` demande confirmation avant démarrage et vérifie la configuration, le moteur, les images locales et le réseau. Après confirmation, la validation Caddy se fait dans un conteneur temporaire sans réseau. Le démarrage préserve les volumes existants et refuse un conteneur d’un autre lot. `-BootstrapAccounts` demande une confirmation distincte et ouvre le terminal interactif Spring. L’utiliser uniquement pour le premier jeu de comptes fictifs.
+Depuis le répertoire `source`, ouvrir Windows PowerShell sous le compte opérateur. Utiliser la politique d’exécution approuvée, avec les scripts vérifiés. Lancer `-BeforeInstall` pour vérifier les prérequis sans démarrer la pile ni créer de volume. Le contrôle de la CA devient obligatoire pour le lancement quotidien et le préflight actif. Préparer le support externe et le trousseau avant l’installation. `-Install` demande confirmation avant démarrage et vérifie la configuration, le moteur, les images locales et le réseau. Après confirmation, la validation Caddy se fait dans un conteneur temporaire sans réseau. Le démarrage préserve les volumes existants et refuse un conteneur d’un autre lot. `-BootstrapAccounts` demande une confirmation distincte et ouvre le terminal interactif Spring. L’utiliser uniquement pour le premier jeu de comptes fictifs.
 
 ```powershell
-.\deployment\windows\Install-SijilmassaDental.ps1
+.\deployment\windows\Install-SijilmassaDental.ps1 -BeforeInstall
 .\deployment\windows\Install-SijilmassaDental.ps1 -Install -BootstrapAccounts -ExportPublicCa
 ```
 
@@ -62,7 +84,7 @@ Pour la reprise manuelle côté dentiste, créer un second raccourci opérateur 
 powershell.exe -NoProfile -WindowStyle Hidden -File "C:\SijilmassaDental\source\deployment\windows\Start-SijilmassaDental.ps1" -Dialog
 ```
 
-Le lanceur ouvre le navigateur par défaut lorsque la page et la sonde anonyme du proxy répondent en HTTPS. Pour l’ouverture quotidienne en fenêtre indépendante, utiliser le raccourci Edge. Si la pile est arrêtée, le lanceur vérifie Docker Desktop, puis exécute `up --no-recreate --no-build --pull never --wait`. Les erreurs s’affichent dans une boîte de dialogue avec `-Dialog`. Aucun droit administrateur n’est prévu pour l’ouverture Edge ou le démarrage sous le compte Docker autorisé. Si Docker Desktop est arrêté, l’ouvrir manuellement, attendre le moteur Linux et relancer. En cas d’échec persistant, exécuter `Get-SijilmassaDentalStatus.ps1` depuis une console opérateur.
+Le lanceur vérifie WSL, Docker, les fichiers privés et l’état des services avant d’ouvrir le navigateur par défaut. La page de connexion et la sonde anonyme du proxy doivent répondre en HTTPS. Pour l’ouverture quotidienne en fenêtre indépendante, utiliser le raccourci Edge. Si la pile est arrêtée, le lanceur vérifie Docker Desktop, puis exécute `up --no-recreate --no-build --pull never --wait`. Les erreurs s’affichent dans une boîte de dialogue avec `-Dialog`. Aucun droit administrateur n’est prévu pour l’ouverture Edge ou le démarrage sous le compte Docker autorisé. Si Docker Desktop est arrêté, l’ouvrir manuellement, attendre le moteur Linux et relancer. En cas d’échec persistant, exécuter `Get-SijilmassaDentalStatus.ps1` depuis une console opérateur.
 
 ## Sauvegarde chiffrée et planification
 

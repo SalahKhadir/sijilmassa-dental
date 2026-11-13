@@ -2,7 +2,7 @@
   "syntheticPilot": true,
   "project": "sijilmassa-win-pilot",
   "release": "",
-  "url": "https://192.168.1.20",
+  "url": "",
   "appPasswordFile": "C:/SijilmassaDental/config/db.env",
   "adminPasswordFile": "C:/SijilmassaDental/config/admin.env",
   "practitionerDirectory": "C:/SijilmassaDental/config/practitioner",
@@ -11,5 +11,5 @@
   "caSha256": "",
   "dockerDiskDirectory": "",
   "backupDistribution": "Ubuntu",
-  "backupConfig": "/home/operator/.config/sijilmassa/windows-backup.conf"
+  "backupConfig": ""
 }

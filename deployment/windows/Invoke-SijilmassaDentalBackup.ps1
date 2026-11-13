@@ -1,6 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [string]$ConfigPath = 'C:\SijilmassaDental\config\pilot.json',
+    [switch]$WslKeepConsole,
     [switch]$ValidateOnly
 )
 . (Join-Path $PSScriptRoot 'SijilmassaDental.Common.ps1')
@@ -15,7 +16,7 @@ $exitCode = 1
 try {
     $config = Read-PilotConfig $ConfigPath
     $mode = if ($ValidateOnly) { 'check' } else { 'run' }
-    $result = Invoke-ClinicBackup $config $mode
+    $result = Invoke-ClinicBackup $config $mode -KeepConsole:$WslKeepConsole
     if ($result.Code -ne 0) {
         if ($result.Output -match 'External backup media is unavailable|external backup media is absent|External media is unavailable') {
             throw 'Support externe absent ou non reconnu.'

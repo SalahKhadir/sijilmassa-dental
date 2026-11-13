@@ -2,6 +2,8 @@
 param(
     [string]$ConfigPath = 'C:\SijilmassaDental\config\pilot.json',
     [switch]$Install,
+    [switch]$BeforeInstall,
+    [switch]$WslKeepConsole,
     [switch]$BootstrapAccounts,
     [switch]$ExportPublicCa,
     [ValidateRange(20,300)][int]$WaitSeconds = 150
@@ -17,8 +19,10 @@ function Check([string]$Label, [scriptblock]$Action) {
 
 Write-Host 'Pilote Windows sur données fictives. Mise en service clinique bloquée.'
 if ($env:OS -ne 'Windows_NT') { Write-Error 'Exécutez le préflight sur le PC Windows 11 du dentiste.'; exit 1 }
+if ($BeforeInstall -and $Install) { throw 'Utilisez -BeforeInstall ou -Install dans deux commandes distinctes.' }
 $config = $null
 $dockerReady = $false
+$wslReady = $false
 Check 'Windows, virtualisation et mémoire' {
     $os = Get-CimInstance Win32_OperatingSystem
     $pc = Get-CimInstance Win32_ComputerSystem
@@ -34,14 +38,10 @@ Check 'Windows, virtualisation et mémoire' {
     }
     if ($pc.TotalPhysicalMemory -lt 7500000000) { throw 'Prévoyez au moins 8 Go de RAM installée.' }
 }
-Check 'WSL 2' {
-    $version = Invoke-LocalCommand wsl.exe @('--version')
-    $line = (($version.Output -replace "\x00",'') -split '[\r\n]+' | Select-Object -First 1)
-    if ($version.Code -ne 0 -or $line -notmatch '([0-9]+\.[0-9]+\.[0-9]+)' -or [version]$Matches[1] -lt [version]'2.1.5') {
-        throw 'Installez ou mettez à jour WSL (2.1.5 minimum), puis vérifiez wsl --status.'
-    }
-    $status = Invoke-LocalCommand wsl.exe @('--status')
-    if ($status.Code -ne 0) { throw 'WSL ne répond pas. Vérifiez les fonctionnalités Windows et redémarrez si nécessaire.' }
+Check 'WSL' {
+    $version = Assert-WslRuntime -KeepConsole:$WslKeepConsole
+    Write-Host "    WSL $version"
+    $script:wslReady = $true
 }
 Check 'Docker Desktop et Compose' {
     Assert-LocalDocker
@@ -57,47 +57,44 @@ if ($config) {
         Assert-ClinicNetwork $config
         Write-Host '    Contrôle manuel requis pour la portée de la règle et le refus hors LAN.'
     }
+    if ($wslReady) {
+        Check 'Distribution WSL 2' { Assert-WslDistribution $config.backupDistribution -KeepConsole:$WslKeepConsole }
+    }
     Check 'Emplacement du disque Docker' {
-        $directory = Assert-PrivatePath $config.dockerDiskDirectory Container 'disque Docker Desktop'
-        $disk = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($directory))
-        if ($disk.DriveType -ne 'Fixed' -or $disk.AvailableFreeSpace -lt 20GB) { throw 'Prévoyez un disque fixe hors synchronisation avec 20 Gio libres pour le pilote.' }
-        Write-Host '    Confirmez cet emplacement dans Docker Desktop > Resources et conservez le volume PostgreSQL géré par Docker.'
+        Assert-DockerDisk $config
+        Write-Host '    Comparez cet emplacement avec le réglage Resources de Docker Desktop.'
     }
     if ($dockerReady) {
         Check 'Fichiers privés, images locales et modèle Compose' { Assert-ClinicInputs $config }
-        Check 'Port HTTPS' {
-            $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $config.ClinicUri.Port -ErrorAction SilentlyContinue |
-                Where-Object { $_.LocalAddress -in @('0.0.0.0','::',$config.ClinicUri.Host) })
-            if ($listeners.Count) {
-                $port = Invoke-ClinicCompose $config @('port','https','443')
-                if ($port.Code -ne 0 -or $port.Output.Trim() -ne "$($config.ClinicUri.Host):$($config.ClinicUri.Port)") {
-                    throw 'Port déjà occupé par un autre service ou liaison différente.'
-                }
-            }
-        }
+        Check 'Port HTTPS' { Assert-ClinicPort $config }
+    } else {
+        Check 'Fichiers privés' { Assert-ClinicFiles $config }
     }
     if ($config.caSha256) {
         Check 'Certificat public CA et magasin Windows' {
             Assert-TrustedCa $config
         }
-    } elseif (-not $Install) {
+    } elseif (-not $Install -and -not $BeforeInstall) {
         $failed = $true
         Write-Host 'À FAIRE  Certificat CA à exporter après le premier démarrage, vérifier puis installer.'
     }
-    if (-not $Install) {
+    if ($wslReady -and $dockerReady) {
         Check 'Destination et clé publique de sauvegarde (WSL)' {
-            $result = Invoke-ClinicBackup $config 'check'
-            if ($result.Code -ne 0) { throw 'Vérifiez la distribution WSL, le disque externe et le trousseau public avec le guide.' }
+            $result = Invoke-ClinicBackup $config 'check' -KeepConsole:$WslKeepConsole
+            if ($result.Code -ne 0) { throw 'Vérifiez lʼintégration Docker dans WSL, le disque externe et le trousseau public avec le guide.' }
         }
-        if ($config.caSha256 -and $dockerReady) {
-            Check 'HTTPS actif' {
-                if (-not (Test-ClinicHttps $config)) { throw 'Application arrêtée, CA non reconnue ou adresse du certificat incorrecte.' }
-            }
+    }
+    if (-not $Install -and -not $BeforeInstall -and $config.caSha256 -and $dockerReady) {
+        Check 'HTTPS actif' {
+            $issue = Get-ClinicServiceIssue $config
+            if (-not $issue) { $issue = Get-ClinicHttpsIssue $config }
+            if ($issue) { throw $issue }
         }
     }
 }
 if ($failed) { exit 1 }
 if (($BootstrapAccounts -or $ExportPublicCa) -and -not $Install) { throw 'Ajoutez -Install pour initialiser les comptes ou exporter le certificat public.' }
+if ($BeforeInstall) { Write-Host 'Contrôles avant installation réussis. Prévoyez la vérification HTTPS après démarrage.'; exit 0 }
 if (-not $Install) { Write-Host 'Préflight terminé. Reportez les contrôles manuels sur la fiche de recette.'; exit 0 }
 if ($PSCmdlet.ShouldProcess($config.project, 'Démarrer la pile pilote en conservant les volumes')) {
     try {
@@ -107,10 +104,16 @@ if ($PSCmdlet.ShouldProcess($config.project, 'Démarrer la pile pilote en conser
             'caddy','validate','--adapter','caddyfile','--config','/etc/caddy/Caddyfile')
         if ($validation.Code -ne 0) { throw 'Le Caddyfile livré avec le lot ne valide pas la configuration HTTPS.' }
         Start-ClinicServices $config $WaitSeconds
-        if ($BootstrapAccounts -and $PSCmdlet.ShouldProcess($config.project, 'Créer les deux comptes fictifs dans le terminal')) {
+        if ($BootstrapAccounts) {
+            if (-not $PSCmdlet.ShouldProcess($config.project, 'Créer les deux comptes fictifs dans le terminal')) {
+                throw 'Création des comptes reportée. La pile a démarré.'
+            }
             Invoke-ClinicCompose $config @('run','--rm','--no-deps','--pull','never','backend','--spring.profiles.active=prod,bootstrap') -Interactive
         }
-        if ($ExportPublicCa -and $PSCmdlet.ShouldProcess($config.caFile, 'Exporter le certificat public CA sans écrasement')) {
+        if ($ExportPublicCa) {
+            if (-not $PSCmdlet.ShouldProcess($config.caFile, 'Exporter le certificat public CA sans écrasement')) {
+                throw 'Export de la CA reporté. La pile a démarré.'
+            }
             if (Test-Path -LiteralPath $config.caFile) {
                 throw 'Le fichier CA existe déjà. Comparez-le à la CA du volume avant de poursuivre.'
             }
@@ -128,3 +131,8 @@ if ($PSCmdlet.ShouldProcess($config.project, 'Démarrer la pile pilote en conser
         Write-Host 'Pile pilote démarrée. Terminez la vérification HTTPS et la recette avant usage.'
     } catch { Show-ClinicFailure $_.Exception.Message; exit 1 }
 }
+elseif (-not $WhatIfPreference) {
+    Show-ClinicFailure 'Démarrage annulé.'
+    exit 1
+}
+exit 0
