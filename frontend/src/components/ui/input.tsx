@@ -6,10 +6,7 @@ export function Input({ className, type, ...props }: ComponentProps<"input">) {
     <input
       data-slot="input"
       type={type}
-      className={cn(
-        "min-h-12 w-full min-w-0 rounded-lg border border-input bg-surface px-3.5 py-3 text-base text-foreground transition-colors placeholder:text-muted-foreground hover:border-primary focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-60 aria-invalid:border-danger aria-invalid:outline-danger",
-        className,
-      )}
+      className={cn("form-control read-only:bg-muted", className)}
       {...props}
     />
   );

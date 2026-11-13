@@ -6,6 +6,7 @@ import { useFinancialLoad } from "@/components/financial/load";
 import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ListLoading } from "@/components/ui/read-feedback";
 import type { InsuranceCursor } from "@/lib/insurance/api/schemas";
 import { formatPatientTimestamp } from "@/lib/patients/dates";
 import { consultationHref, detailHref, familyLabels, InsuranceBoundary, InsuranceFailure, newHref, type WorkspaceApi } from "./shared";
@@ -25,7 +26,7 @@ function History({ api, patientId }: { api: WorkspaceApi; patientId: string }) {
   const result = useFinancialLoad(load);
   return <>
     <Link className="text-primary underline" href={`/patients/${patientId}`}>Retour à la fiche du patient</Link>
-    {!result ? <p role="status">Chargement des documents d’assurance…</p>
+    {!result ? <ListLoading>Chargement des documents d’assurance…</ListLoading>
       : result.error ? <InsuranceFailure error={result.error} retry={() => setRevision(value => value + 1)} />
       : result.data && (() => {
         const [patient, page] = result.data;
@@ -35,7 +36,7 @@ function History({ api, patientId }: { api: WorkspaceApi; patientId: string }) {
             {!archived && <Button asChild><Link prefetch={false} href={newHref(patientId)}>Nouveau document</Link></Button>}
           </PageHeading>
           {archived && <p role="status">Patient archivé. Ses documents restent consultables.</p>}
-          {!page.items.length && <p>Aucun document d’assurance pour ce patient.</p>}
+          {!page.items.length && <p className="rounded-xl border bg-surface px-5 py-8 text-sm text-muted-foreground">Aucun document d’assurance pour ce patient.</p>}
           <ul className="space-y-3">{page.items.map(row => {
             const draft = row.lifecycle === "BROUILLON";
             const href = detailHref(patientId, row.documentId);

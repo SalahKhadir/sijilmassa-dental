@@ -1,0 +1,7 @@
+services:
+  backend:
+    volumes: !override
+      - type: bind
+        source: ${CLINIC_PRIVATE_CONFIG_DIR:?Provide the private configuration directory}
+        target: /run/clinic
+        read_only: true

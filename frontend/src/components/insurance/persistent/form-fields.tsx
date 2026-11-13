@@ -26,8 +26,8 @@ export function DraftField({ name, label, kind = "text", options, required, onVa
   const shown = typeof value === "number" && kind === "money"
     ? `${BigInt(value) / 100n},${String(BigInt(value) % 100n).padStart(2, "0")}`
     : typeof value === "string" || typeof value === "number" ? value : "";
-  return <div className="min-w-0 space-y-1">
-    <label className="block text-sm font-medium" htmlFor={id}>{label}{required && <span className="text-muted-foreground"> · requis pour finaliser</span>}</label>
+  return <div className="min-w-0 space-y-2">
+    <label className="block text-sm font-semibold" htmlFor={id}>{label}{required && <span className="font-normal text-muted-foreground"> · requis pour finaliser</span>}</label>
     {options
       ? <Select {...attributes} value={shown} onChange={event => {
         const selected = event.target.value || null;
@@ -40,7 +40,7 @@ export function DraftField({ name, label, kind = "text", options, required, onVa
       : <Input {...attributes} type={kind === "date" ? "date" : "text"}
         inputMode={kind === "count" || kind === "digits" ? "numeric" : kind === "money" || kind === "coefficient" ? "decimal" : undefined}
         value={shown} onChange={event => onChange(event.target.value || null)} />}
-    {fieldState.error && <p id={`${id}-error`} className="text-sm text-foreground" role="alert">{fieldState.error.message}</p>}
+    {fieldState.error && <p id={`${id}-error`} className="text-sm text-danger" role="alert">{fieldState.error.message}</p>}
   </div>;
 }
 
@@ -115,8 +115,8 @@ function DentalFields({ branch }: { branch: "cnss" | "cnops" }) {
       <legend className="mb-2 text-sm font-medium">Dents confirmées (FDI)</legend>
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">{fdiTeeth.map(tooth => {
         const selected = (teeth.field.value ?? []) as string[];
-        return <label key={tooth} className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={selected.includes(tooth)} onChange={event => teeth.field.onChange(
+        return <label key={tooth} className="flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md border text-sm has-checked:border-primary has-checked:bg-primary-tint">
+          <input type="checkbox" className="size-4" checked={selected.includes(tooth)} onChange={event => teeth.field.onChange(
             event.target.checked ? [...selected, tooth] : selected.filter(value => value !== tooth),
           )} />{tooth}
         </label>;

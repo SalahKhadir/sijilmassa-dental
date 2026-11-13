@@ -9,29 +9,20 @@ export function ApplicationShell({ children }: { children: ReactNode }) {
     <div className="min-h-dvh lg:grid lg:grid-cols-[252px_minmax(0,1fr)]">
       <aside
         aria-label="Menu du cabinet"
-        className="sticky top-0 hidden h-dvh flex-col border-r bg-surface px-5 py-7 lg:flex"
+        className="sticky top-0 hidden h-dvh flex-col overflow-y-auto border-r bg-surface px-5 py-6 lg:flex"
       >
         <Brand />
-        <p className="mt-10 mb-4 px-3 text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">
-          Votre espace
+        <div className="mt-8 pb-6"><Navigation /></div>
+        <p className="mt-auto border-t pt-4 text-xs leading-5 text-muted-foreground">
+          <DataScopeLabel compact />
         </p>
-        <Navigation />
-        <div className="mt-auto border-t pt-5">
-          <p className="flex items-center gap-2 text-xs font-medium">
-            <span className="size-1.5 rounded-full bg-accent" />
-            Pensé pour votre cabinet
-          </p>
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            <DataScopeLabel compact />
-          </p>
-        </div>
       </aside>
       <div className="min-w-0">
         <TopBar brand={<Brand />} />
         <main
           id="contenu"
           tabIndex={-1}
-          className="mx-auto max-w-[1600px] space-y-7 px-4 py-7 outline-none sm:px-8 sm:py-8 xl:px-10"
+          className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 focus-visible:-outline-offset-2 sm:space-y-6 sm:px-8 sm:py-7 xl:px-10"
         >
           {children}
         </main>

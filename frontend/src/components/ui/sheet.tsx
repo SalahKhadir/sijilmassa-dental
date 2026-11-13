@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "./button";
 export const Sheet = Dialog.Root;
 export const SheetTrigger = Dialog.Trigger;
 export const SheetTitle = Dialog.Title;
@@ -24,9 +25,10 @@ export function SheetContent({
         {...props}
       >
         {children}
-        <Dialog.Close className="absolute top-5 right-4 rounded-md p-2 text-muted-foreground hover:bg-muted">
-          <X className="size-5" aria-hidden="true" />
-          <span className="sr-only">Fermer le menu</span>
+        <Dialog.Close asChild>
+          <Button variant="ghost" size="icon" className="absolute top-4 right-4" aria-label="Fermer le menu">
+            <X aria-hidden="true" />
+          </Button>
         </Dialog.Close>
       </Dialog.Content>
     </Dialog.Portal>

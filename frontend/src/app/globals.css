@@ -31,8 +31,7 @@
   --accent-foreground: var(--text);
   --destructive: var(--danger);
   --destructive-foreground: var(--surface);
-  /* Stronger than the decorative border for future form controls. */
-  --input: var(--text-muted);
+  --input: color-mix(in srgb, var(--text-muted) 72%, var(--border));
   --ring: var(--primary);
   --sidebar: var(--surface);
   --sidebar-foreground: var(--text);
@@ -104,6 +103,9 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  :is(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--primary);
+  }
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 4px;
@@ -111,6 +113,42 @@
   ::selection {
     background: var(--primary-tint);
     color: var(--primary);
+  }
+}
+
+@layer components {
+  .form-control {
+    @apply min-h-12 w-full min-w-0 rounded-lg border border-input bg-surface px-3 py-2 text-base text-foreground transition-colors placeholder:text-muted-foreground;
+    @apply enabled:hover:border-primary focus-visible:border-primary aria-invalid:border-danger aria-invalid:outline-danger;
+    @apply disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground;
+  }
+
+  .data-table {
+    @apply w-full text-left text-sm;
+  }
+
+  .data-table thead {
+    @apply border-b bg-muted text-muted-foreground;
+  }
+
+  .data-table tbody tr {
+    @apply border-t;
+  }
+
+  .data-table :is(th, td) {
+    @apply px-3 py-2.5 align-middle sm:px-4;
+  }
+
+  [data-slot="button"][aria-busy="true"]::before {
+    @apply animate-spin;
+    content: "";
+    width: 0.875rem;
+    height: 0.875rem;
+    flex: none;
+    border: 2px solid currentColor;
+    border-inline-end-color: transparent;
+    border-radius: 50%;
+    animation-duration: 800ms;
   }
 }
 

@@ -148,3 +148,38 @@ test("persistent patient search and server pagination stay separate from prototy
   await page.getByText("Aucun patient ne correspond à cette recherche.", { exact: true }).waitFor();
  } finally { await value.close(); }
 });
+
+test("patient creation waits for hydration before accepting input", async () => {
+  const { value, page, errors } = await harness.context({ role: "receptionist" });
+  const { promise: scriptsReady, resolve: releaseScripts } = Promise.withResolvers();
+  try {
+    await page.route("**/_next/static/**/*.js", async route => {
+      await scriptsReady;
+      await route.continue();
+    });
+    const path = `${harness.baseURL}/patients/nouveau`;
+    await Promise.all([
+      page.waitForRequest("**/_next/static/**/*.js"),
+      page.goto(path, { waitUntil: "commit" }),
+    ]);
+    const name = page.getByLabel("Nom (obligatoire)", { exact: true });
+    await name.waitFor();
+    assert(await name.isDisabled());
+    assert(await page.getByRole("button", { name: "Continuer", exact: true }).isDisabled());
+
+    releaseScripts();
+    await name.fill("Nom fictif");
+    const navigationWarning = page.waitForEvent("dialog");
+    const click = page.getByRole("link", { name: "Annuler", exact: true }).click();
+    const warning = await navigationWarning;
+    assert.equal(warning.type(), "confirm");
+    await warning.dismiss();
+    await click;
+    assert.equal(page.url(), path);
+    assert.equal(await name.inputValue(), "Nom fictif");
+    assert.deepEqual(errors, []);
+  } finally {
+    releaseScripts();
+    await value.close();
+  }
+});

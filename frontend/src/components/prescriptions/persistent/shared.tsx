@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { ClinicalBoundary } from "@/components/consultations/persistent/shared";
 import { Button } from "@/components/ui/button";
+import { ListLoading, ReadError } from "@/components/ui/read-feedback";
 import { PrescriptionApiError } from "@/lib/prescriptions/api/client";
 import { PatientApiError } from "@/lib/patients/api/client";
 import { ClinicalApiError } from "@/lib/consultations/api/client";
@@ -14,10 +15,9 @@ export function prescriptionHref(record: Pick<PersistentPrescription, "id" | "pa
 export function PrescriptionFailure({ error, retry }: { error: unknown; retry?: () => void }) {
   const message = error instanceof PrescriptionApiError || error instanceof PatientApiError || error instanceof ClinicalApiError
     ? error.message : "Les ordonnances ne peuvent pas être chargées.";
-  return <section className="space-y-3 rounded-xl border bg-surface p-5"><p role="alert">{message}</p>
-    {retry && <Button variant="outline" onClick={retry}>Recharger les données</Button>}</section>;
+  return <ReadError action={retry && <Button variant="outline" onClick={retry}>Recharger les données</Button>}>{message}</ReadError>;
 }
-export function PrescriptionLoading() { return <p role="status" aria-live="polite">Chargement des ordonnances…</p>; }
+export function PrescriptionLoading() { return <ListLoading>Chargement des ordonnances…</ListLoading>; }
 export function PrescriptionNavigation({ patientId, consultationId }: { patientId: string; consultationId?: string | null }) {
   return <nav className="flex flex-wrap gap-4" aria-label="Navigation des ordonnances">
     <Link className="text-primary underline" href={`/patients/${patientId}`}>Fiche patient</Link>

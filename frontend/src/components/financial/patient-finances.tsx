@@ -5,7 +5,8 @@ import { useCallback, useState } from "react";
 import { PageHeading } from "@/components/page-heading";
 import { usePatientApi } from "@/components/patients/persistent/shared";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ScrollableTable } from "@/components/ui/scrollable-table";
+import { ListLoading, ReadError } from "@/components/ui/read-feedback";
 import { formatPatientDate } from "@/lib/patients/dates";
 import { formatMad } from "@/lib/financial/money";
 import type { Charge, ChargeCursor, Summary, Verso } from "@/lib/financial/schemas";
@@ -60,7 +61,7 @@ function Finances({ patientId, api }: { patientId: string; api: ReturnType<typeo
     </p>}
     {patient?.data?.status === "inactive" && <p role="status">Patient archivé. Les finances restent consultables.</p>}
     {patient?.error ? <p role="alert">Impossible de vérifier le statut du patient.</p> : null}
-    {!ledger ? <p role="status">Chargement des finances…</p> : ledger.data ? <>
+    {!ledger ? <ListLoading>Chargement des finances…</ListLoading> : ledger.data ? <>
       <Totals totals={ledger.data.totals} />
       <LedgerTable page={ledger.data} selection={view === "summary" ? {
         current, select: setSelected, locked: Boolean(attempt),
@@ -69,7 +70,7 @@ function Finances({ patientId, api }: { patientId: string; api: ReturnType<typeo
         <Button variant="outline" disabled={!cursor} onClick={() => setCursor(undefined)}>Première page des soins</Button>
         <Button variant="outline" disabled={!ledger.data.nextCursor} onClick={() => setCursor(ledger.data?.nextCursor ?? undefined)}>Soins suivants</Button>
       </div>}
-    </> : <p role="alert">{financialMessage(ledger.error)}</p>}
+    </> : <ReadError>{financialMessage(ledger.error)}</ReadError>}
     {current && (view === "summary" || attempt?.patientId === patientId) && <ChargeCollection key={current} api={api}
       patientId={patientId} chargeId={current} revision={revision} archived={patient?.data?.status !== "active"} onChanged={() => { setSelected(current); refresh(); }} />}
   </>;
@@ -94,10 +95,9 @@ function LedgerTable({ page, selection }: { page: Summary | Verso; selection?: {
 } }) {
   if (!page.items.length) return <p>{page.totals.chargesMinor === "0" ? "Aucun soin tarifé sur cette page." : "Aucun autre soin sur cette page."}</p>;
   const headings = ["Date", "Traitement", "Prix", "Reçu", "Reste"];
-  return <Card className="overflow-x-auto">
-    <table className="w-full text-left text-sm">
+  return <ScrollableTable label={selection ? "Tableau des soldes" : "Tableau du dossier"} className="min-w-[30rem]">
       <caption className="sr-only">{selection ? "Soldes des soins tarifés" : "Verso du dossier patient"}</caption>
-      <thead className="bg-muted/50"><tr>
+      <thead><tr>
         {headings.map((heading, index) => <th scope="col" key={heading} className={`px-3 py-2 ${index > 1 ? "text-right" : ""}`}>{heading}</th>)}
         {selection && <th scope="col" className="px-3 py-2">Détail</th>}
       </tr></thead>
@@ -115,6 +115,5 @@ function LedgerTable({ page, selection }: { page: Summary | Verso; selection?: {
           </td>}
         </tr>;
       })}</tbody>
-    </table>
-  </Card>;
+  </ScrollableTable>;
 }

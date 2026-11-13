@@ -110,7 +110,7 @@ function ClinicalAction({ consultation, kind, treatmentId, onSaved }: { consulta
   const action = useClinicalAction({ consultation, kind, treatmentId, onSaved });
   return <div className="space-y-3"><Button variant={kind === "remove" ? "outline" : "default"} disabled={action.disabled} onClick={() => setOpen(true)}>{kind === "remove" ? "Retirer ce soin" : "Terminer la consultation"}</Button>
     <ClinicalMutationFeedback state={action.state} allowed={action.allowed} />
-    <ClinicalConfirmation open={open} onOpenChange={setOpen} {...action.confirmation} busy={action.state.pending} confirmDisabled={action.disabled} error={action.state.error?.message}
+    <ClinicalConfirmation open={open} onOpenChange={setOpen} {...action.confirmation} destructive={kind === "remove"} busy={action.state.pending} confirmDisabled={action.disabled} error={action.state.error?.message}
       onConfirm={() => void action.submit(true)} />
   </div>;
 }

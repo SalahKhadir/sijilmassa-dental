@@ -4,24 +4,30 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 export const buttonVariants = cva(
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex max-w-full items-center justify-center gap-2 rounded-lg border border-transparent text-center text-sm leading-5 font-semibold transition-colors disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary-hover",
         outline:
-          "border border-border bg-surface text-foreground hover:bg-muted",
+          "border-input bg-surface text-foreground hover:bg-muted",
         ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
         secondary:
           "bg-secondary-tint text-foreground hover:bg-secondary-tint/70",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-[color-mix(in_srgb,var(--destructive)_86%,var(--foreground))]",
+      },
+      size: {
+        default: "min-h-11 px-4 py-2",
+        icon: "size-11 shrink-0 p-0",
       },
     },
-    defaultVariants: { variant: "default" },
+    defaultVariants: { variant: "default", size: "default" },
   },
 );
 export function Button({
   className,
   variant,
+  size,
   asChild = false,
   ...props
 }: React.ComponentProps<"button"> &
@@ -30,7 +36,7 @@ export function Button({
   return (
     <Comp
       data-slot="button"
-      className={cn(buttonVariants({ variant, className }))}
+      className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
   );

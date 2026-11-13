@@ -77,6 +77,7 @@ export function PatientClinicalSections({
   patient,
   treatments,
   factualAnswers = false,
+  demo = true,
 }: {
   patient: Pick<
     Patient,
@@ -84,13 +85,14 @@ export function PatientClinicalSections({
   >;
   treatments?: readonly PatientTreatmentEntry[];
   factualAnswers?: boolean;
+  demo?: boolean;
 }) {
   return (
     <>
       <p className="rounded-lg border border-primary/20 bg-primary-tint p-4 text-sm leading-6 text-primary">
-        Dossier de santé · Prototype destiné au dentiste. Les catégories
-        affichées sont des déclarations fictives. Les autorisations seront
-        contrôlées par le futur backend.
+        {demo
+          ? "Dossier de santé · Prototype destiné au dentiste. Les réponses affichées sont fictives."
+          : "Dossier de santé · Accès réservé au dentiste."}
       </p>
       <Card>
         <CardHeader>

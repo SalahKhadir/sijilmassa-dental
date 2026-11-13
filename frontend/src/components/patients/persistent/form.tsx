@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -15,11 +15,14 @@ import { PatientIdentitySummary } from "../patient-identity-summary";
 import { PatientClinicalSections } from "../patient-clinical-sections";
 import { PatientFailure, usePatientApi, useUnsavedChanges } from "./shared";
 
+const subscribe = () => () => {};
+
 export function PersistentPatientForm({ patient, medical, mode, reload }: {
   patient?: AdministrativePatient; medical?: MedicalRecord; mode: "administrative" | "complete" | "medical"; reload?: () => void;
 }) {
   const api = usePatientApi(); const router = useRouter();
   const busy = useRef(false);
+  const hydrated = useSyncExternalStore(subscribe, () => true, () => false);
   const [error, setError] = useState<unknown>();
   const [saved, setSaved] = useState(false);
   const [step, setStep] = useState(0);
@@ -38,7 +41,7 @@ export function PersistentPatientForm({ patient, medical, mode, reload }: {
     : ["Informations personnelles", "Antécédents médicaux", "Allergies et questionnaire de santé", "Vérification et confirmation"];
   const review = step === steps.length - 1;
   const conflict = error instanceof PatientApiError && error.status === 409;
-  const blocked = isSubmitting || (medicalOnly && patient?.status === "inactive");
+  const blocked = !hydrated || isSubmitting || (medicalOnly && patient?.status === "inactive");
   async function next() {
     const section = steps[step];
     const valid = await form.trigger(section === "Informations personnelles" ? ["identity", "status"] : section === "Antécédents médicaux" ? "medicalHistory" : ["allergies", "healthQuestionnaire"], { shouldFocus: true });
@@ -61,13 +64,17 @@ export function PersistentPatientForm({ patient, medical, mode, reload }: {
   return <FormProvider {...form}><form noValidate className="space-y-6" aria-busy={isSubmitting} onSubmit={event => {
     if (!review) { event.preventDefault(); void next(); } else void handleSubmit(save, () => setStep(0))(event);
   }}>
-    <ol aria-label="Étapes du dossier patient" className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{steps.map((label, index) => <li key={label} aria-current={step === index ? "step" : undefined} className={step === index ? "rounded-lg border border-primary bg-primary-tint p-4 text-sm text-primary" : "rounded-lg border bg-surface p-4 text-sm"}>{index + 1}. {label}</li>)}</ol>
+    <ol aria-label="Étapes du dossier patient" className="grid grid-cols-2 gap-2 xl:grid-cols-4">{steps.map((label, index) => <li
+      key={label}
+      aria-current={step === index ? "step" : undefined}
+      className="rounded-lg border bg-surface p-2.5 text-sm leading-5 aria-[current=step]:border-primary aria-[current=step]:bg-primary-tint aria-[current=step]:font-semibold aria-[current=step]:text-primary sm:p-3"
+    >{index + 1}. {label}</li>)}</ol>
     <Card><CardHeader className="border-b"><h2 ref={heading} tabIndex={-1} className="font-semibold outline-none">{steps[step]}</h2><p className="text-sm text-muted-foreground">Seuls le nom et le prénom sont obligatoires. Une question sans réponse reste non renseignée.</p></CardHeader><CardContent className="pt-6">
       {!review && steps[step] === "Informations personnelles" && <PatientIdentityFields persistent disabled={blocked || saved} today={clinicDate()} />}
       {!review && steps[step] === "Antécédents médicaux" && <MedicalHistoryFields disabled={blocked || saved} />}
       {!review && steps[step] === "Allergies et questionnaire de santé" && <AllergiesAndHealthFields disabled={blocked || saved} />}
       {review && <div className="space-y-6">{!medicalOnly && <><PatientIdentitySummary identity={getValues().identity} /><p>Statut : {getValues().status === "active" ? "Actif" : "Inactif"}</p></>}
-        {!adminOnly && <PatientClinicalSections patient={getValues()} />}<p>La confirmation enregistre les données dans la base du cabinet.</p></div>}
+        {!adminOnly && <PatientClinicalSections patient={getValues()} demo={false} />}<p>La confirmation enregistre les données dans la base du cabinet.</p></div>}
     </CardContent></Card>
     {error ? <PatientFailure error={error} retry={reload ? () => { if (!isDirty || window.confirm("Recharger les données et abandonner les modifications non enregistrées ?")) reload(); } : undefined} /> : null}
     {saved && <p role="status">Modifications enregistrées. <Link className="text-primary underline" href={`/patients/${patient?.id}${medicalOnly ? "/dossier" : ""}`}>Revenir au dossier</Link></p>}

@@ -3,6 +3,7 @@
 import { useAuth } from "@/components/auth/auth-provider";
 import { useSessionBillingApi } from "@/components/financial/session";
 import { Button } from "@/components/ui/button";
+import { ReadError } from "@/components/ui/read-feedback";
 import { createConsultationApi } from "@/lib/consultations/api/client";
 import { createFinancialApi } from "@/lib/financial/client";
 import type { TreatmentPricing } from "@/lib/financial/schemas";
@@ -79,8 +80,5 @@ export function InsuranceBoundary({ children }: { children: (api: WorkspaceApi, 
 
 export function InsuranceFailure({ error, retry, retryLabel = "Réessayer la lecture" }: { error: unknown; retry?: () => void; retryLabel?: string }) {
   const message = error instanceof Error && "status" in error ? error.message : "Les données d’assurance n’ont pas pu être chargées.";
-  return <div className="space-y-2">
-    <p role="alert" className="rounded-md border border-danger/40 bg-surface p-3 text-sm">{message}</p>
-    {retry && <Button type="button" variant="outline" onClick={retry}>{retryLabel}</Button>}
-  </div>;
+  return <ReadError action={retry && <Button type="button" variant="outline" onClick={retry}>{retryLabel}</Button>}>{message}</ReadError>;
 }

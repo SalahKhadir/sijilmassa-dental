@@ -82,7 +82,10 @@ function MedicalSection({ patient, edit, reloadPatient }: { patient: Administrat
   if (edit && patient.status === "inactive") return <p>Restaurez le patient depuis sa fiche administrative avant de modifier le dossier de santé.</p>;
   return edit ? <PersistentPatientForm key={revision} patient={patient} medical={state.medical} mode="medical" reload={reloadPatient} /> : <>
     <DossierDownload patientId={patient.id} />
-    <PatientClinicalSections patient={state.medical.record} />
-    <Button asChild disabled={patient.status === "inactive"}><Link href={`/patients/${patient.id}/dossier/modifier`}>Modifier le dossier de santé</Link></Button>
+    <PatientClinicalSections patient={state.medical.record} demo={false} />
+    {patient.status === "inactive" ? <div className="space-y-2">
+      <Button type="button" disabled aria-describedby="medical-edit-restriction">Modifier le dossier de santé</Button>
+      <p id="medical-edit-restriction" className="text-sm text-muted-foreground">Restaurez le patient depuis sa fiche administrative pour modifier le dossier de santé.</p>
+    </div> : <Button asChild><Link href={`/patients/${patient.id}/dossier/modifier`}>Modifier le dossier de santé</Link></Button>}
   </>;
 }

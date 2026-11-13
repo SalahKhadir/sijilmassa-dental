@@ -9,6 +9,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { DataScopeLabel } from "./data-scope-label";
 import { Navigation } from "./navigation";
 export function MobileNavigation({ brand }: { brand: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -25,10 +26,11 @@ export function MobileNavigation({ brand }: { brand: ReactNode }) {
       <SheetTrigger asChild>
         <Button
           variant="ghost"
-          className="px-2 lg:hidden"
+          size="icon"
+          className="lg:hidden"
           aria-label="Ouvrir le menu de navigation"
         >
-          <Menu />
+          <Menu aria-hidden="true" />
         </Button>
       </SheetTrigger>
       <SheetContent>
@@ -36,10 +38,10 @@ export function MobileNavigation({ brand }: { brand: ReactNode }) {
         <SheetDescription className="sr-only">
           Accéder aux modules de Sijilmassa Dental.
         </SheetDescription>
-        <div className="mt-14 mb-8">{brand}</div>
+        <div className="mt-1 mb-7 pr-12">{brand}</div>
         <Navigation onNavigate={() => setOpen(false)} />
-        <p className="mt-auto pt-8 text-xs text-muted-foreground">
-          Phase 7 · Démonstration
+        <p className="mt-auto pt-6 text-xs text-muted-foreground">
+          <DataScopeLabel compact />
         </p>
       </SheetContent>
     </Sheet>

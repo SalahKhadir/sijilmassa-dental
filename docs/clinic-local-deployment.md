@@ -2,6 +2,8 @@
 
 Cette procédure prépare une installation sur un PC dentiste Linux équipé de Docker Engine et du plugin Docker Compose 2.30 ou supérieur. L’accueil utilise un navigateur sur le réseau privé du cabinet. L’exercice de validation utilise un moteur Podman rootless via l’API compatible Docker, sur des volumes et des comptes jetables. La procédure de recette ci-dessous reste à exécuter sur les deux postes du cabinet.
 
+Pour un PC serveur Windows 11, suivre le [guide du pilote Windows](windows-11-clinic-installation.md). La recette utilise exclusivement des données fictives.
+
 ## Architecture
 
 | Service | Écoute | Accès |

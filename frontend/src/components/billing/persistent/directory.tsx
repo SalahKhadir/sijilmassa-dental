@@ -8,7 +8,8 @@ import { useFinancialLoad } from "@/components/financial/load";
 import { PageHeading } from "@/components/page-heading";
 import { PatientFailure } from "@/components/patients/persistent/shared";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ScrollableTable } from "@/components/ui/scrollable-table";
+import { ListLoading } from "@/components/ui/read-feedback";
 import { formatMad } from "@/lib/financial/money";
 import { invoiceHistoryPath, invoicePath, newInvoicePath } from "@/lib/invoices/paths";
 import type { InvoiceApi } from "@/lib/invoices/client";
@@ -56,12 +57,11 @@ function History({ patientId, api }: { patientId: string; api: InvoiceApi }) {
       >{current?.status === "active" && <Button asChild><Link href={newInvoicePath(patientId)}>Nouvelle facture</Link></Button>}</PageHeading>
     {current?.status === "inactive" && <p role="status">Patient archivé. Les factures restent consultables.</p>}
     {patient.state?.error ? <PatientFailure error={patient.state.error} retry={patient.retry} /> : null}
-    {!history ? <p role="status">Chargement des factures…</p> : history.data ? <>
+    {!history ? <ListLoading>Chargement des factures…</ListLoading> : history.data ? <>
       <div><Button variant="outline" onClick={() => { setCursor(undefined); retry(); }}>Actualiser l’historique</Button></div>
-      {history.data.items.length ? <Card className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+      {history.data.items.length ? <ScrollableTable label="Tableau de l’historique des factures">
           <caption className="sr-only">Historique des factures du patient</caption>
-          <thead className="bg-muted/50"><tr>
+          <thead><tr>
             {["Facture", "Création", "Émission", "État", "Règlement", "Total", "Reçu", "Reste"].map((label, index) =>
               <th className={`p-3 ${index > 4 ? "text-right" : ""}`} scope="col" key={label}>{label}</th>)}
           </tr></thead>
@@ -76,11 +76,10 @@ function History({ patientId, api }: { patientId: string; api: InvoiceApi }) {
               <td className="p-3">{row.lifecycle === "EMISE" ? "Émise" : "Brouillon"}</td>
               <td className="p-3">{settlement ? settlementLabel[settlement] : "—"}</td>
               {[balance.totalMinor, balance.receivedMinor, balance.remainingMinor].map((value, index) =>
-                <td className="p-3 text-right tabular-nums" key={index}>{formatMad(value)}</td>)}
+                <td className="whitespace-nowrap text-right tabular-nums" key={index}>{formatMad(value)}</td>)}
             </tr>;
           })}</tbody>
-        </table>
-      </Card> : <p>{cursor ? "Aucune autre facture sur cette page." : "Aucune facture pour ce patient."}</p>}
+      </ScrollableTable> : <p className="rounded-xl border bg-surface px-5 py-8 text-sm text-muted-foreground">{cursor ? "Aucune autre facture sur cette page." : "Aucune facture pour ce patient."}</p>}
       {(cursor || history.data.nextCursor) && <div className="flex flex-wrap gap-2">
         <Button variant="outline" disabled={!cursor} onClick={() => setCursor(undefined)}>Première page des factures</Button>
         <Button variant="outline" disabled={!history.data.nextCursor} onClick={() => setCursor(history.data?.nextCursor ?? undefined)}>Factures suivantes</Button>

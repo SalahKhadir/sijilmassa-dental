@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "./stat-card";
 import { clinicDate } from "@/lib/patients/dates";
 import { calendarWindow } from "@/lib/appointments/api/time";
+import { formatLocalDate } from "@/lib/appointments/local-time";
 import { createPatientApi } from "@/lib/patients/api/client";
 import { requireLogin } from "@/lib/api/session-request";
 import { AppointmentFailure, useRealCalendar } from "@/components/appointments/persistent/shared";
@@ -28,8 +29,7 @@ export function PersistentDashboardOverview() {
   }, [api]);
   const upcoming = data ? { ...data, appointments: data.appointments.filter(value => ["EN_ATTENTE", "CONFIRME"].includes(value.status) && Date.parse(value.endAt) > now) } : undefined;
   return <>
-    <PageHeading eyebrow="Votre cabinet, en un regard" title="Tableau de bord" description="Patients et rendez-vous enregistrés du cabinet."><Button asChild><Link href="/rendez-vous"><CalendarDays aria-hidden="true" />Ouvrir l’agenda</Link></Button></PageHeading>
-    <p className="text-sm text-muted-foreground">Agenda réel du {today} · Africa/Casablanca · Les compteurs de rendez-vous concernent uniquement cette journée.</p>
+    <PageHeading title="Tableau de bord" description={`Agenda du ${formatLocalDate(today)} · Heure de Casablanca`}><Button asChild><Link href="/rendez-vous"><CalendarDays aria-hidden="true" />Ouvrir l’agenda</Link></Button></PageHeading>
     <section aria-label="Indicateurs réels du cabinet" className="grid gap-4 sm:grid-cols-3"><StatCard title="Patients actifs" value={!patientError && patients !== undefined ? String(patients) : "…"} detail="Total de l’annuaire enregistré" icon={UsersRound} primary />
       <StatCard title="Rendez-vous du jour" value={data ? String(data.appointments.filter(value => ["EN_ATTENTE", "CONFIRME", "TERMINE"].includes(value.status)).length) : "…"} detail="En attente, confirmés et terminés aujourd’hui" icon={CalendarDays} />
       <StatCard title="À confirmer aujourd’hui" value={data ? String(data.appointments.filter(value => value.status === "EN_ATTENTE").length) : "…"} detail="En attente dans la journée affichée" icon={Clock3} /></section>

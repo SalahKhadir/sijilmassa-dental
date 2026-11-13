@@ -1,8 +1,10 @@
 # Recette avant ouverture du cabinet
 
+Le [pilote Windows 11](windows-11-clinic-installation.md) reste réservé aux données fictives. La mise en service reste bloquée par les décisions de sécurité et la recette sur les deux postes.
+
 ## Recette sur les deux postes
 
-Les éléments ci-dessous restent à valider sur les postes du cabinet. Consigner les résultats, l’opérateur et les corrections dans la [fiche de recette imprimable](clinic-on-site-acceptance.md).
+Les éléments ci-dessous restent à valider sur les postes du cabinet. Consigner les résultats, l’opérateur et les corrections dans la [fiche de recette imprimable](clinic-on-site-acceptance.md). Les résultats des essais logiciels 9.3C figurent dans le [rapport de version candidate](release-candidate-verification.md).
 
 - [ ] Réserver l’IPv4 du PC dentiste. Vérifier l’accès HTTPS des deux postes et le refus depuis le Wi-Fi invité ou un réseau extérieur. Vérifier l’absence de publication de PostgreSQL et Spring.
 - [ ] Installer le certificat public vérifié sur les deux postes. Confirmer que le navigateur n’affiche pas d’avertissement. Tester connexion, expiration de session et accès limité du compte accueil.
@@ -17,9 +19,19 @@ Les éléments ci-dessous restent à valider sur les postes du cabinet. Consigne
 
 Voir [l’installation](clinic-local-deployment.md) et le [plan de reprise](database-backup-and-recovery.md).
 
+## Gel logiciel après 9.4A
+
+- [ ] Examiner les alertes résiduelles et consigner la décision avant ouverture. La [revue des images](production-image-security-review.md) identifie les digests, les SBOM et les preuves de restauration.
+- [ ] Préparer le point de contrôle Git et vérifier les images reconstruites selon la [procédure de gel](release-freeze-checklist.md).
+
+## Condition d’ouverture après 9.4A.1
+
+- [ ] Lever le blocage sécurité pour libxml2, les modules Caddy et les avis critiques ou élevés encore sans décision. Voir le [triage et la recette du candidat durci](production-image-security-review.md#suivi-94a1--13-novembre-2026).
+- [ ] Valider le gel Git et les identités des quatre images avant la recette sur site. Les résultats sur le moteur jetable ne valident pas les limites et permissions du moteur qui sera installé au cabinet.
+
 ## Rejouer l’exercice sur données synthétiques
 
-Construire les quatre images avec le même tag sur un moteur réservé à l’essai. Prévoir Python 3, GnuPG, OpenSSL, `systemd-analyze` et `pdftotext` sur la machine d’essai. Le script utilise la boucle locale, un client sur le réseau d’entrée, deux projets Compose et des volumes jetables. Il crée ses propres identifiants et clés, puis retire ses conteneurs et volumes à la fin.
+Construire les quatre images avec le même tag sur un moteur réservé à l’essai. Prévoir Python 3, GnuPG, OpenSSL, `systemd-analyze`, `pdfinfo` et `pdftotext` sur la machine d’essai. Le script utilise la boucle locale, un client sur le réseau d’entrée, deux projets Compose et des volumes jetables. Il crée ses propres identifiants et clés, puis retire ses conteneurs et volumes à la fin.
 
 ```sh
 DOCKER_HOST=unix:///chemin/vers/le-moteur-jetable.sock \

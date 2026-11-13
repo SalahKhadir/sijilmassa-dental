@@ -28,7 +28,7 @@ export function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const { state } = useAuth();
   if (state.status !== "authenticated") return null;
   return (
-    <nav aria-label="Navigation principale" className="space-y-1.5">
+    <nav aria-label="Navigation principale" className="space-y-1">
       {navigation.filter((item) => canAccessPath(state.user.role, item.href)).map((item) => {
         const active =
           item.href === "/"
@@ -42,7 +42,7 @@ export function Navigation({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-12 items-center gap-3 rounded-lg border-l-[3px] px-3 text-sm font-medium",
+              "flex min-h-11 items-center gap-3 rounded-lg border-l-[3px] px-3 text-sm font-medium transition-colors",
               active
                 ? "border-primary bg-primary-tint text-primary"
                 : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",

@@ -3,16 +3,16 @@ import { useEffect, useState } from "react";
 import { createPatientApi, PatientApiError } from "@/lib/patients/api/client";
 import { requireLogin } from "@/lib/api/session-request";
 import { Button } from "@/components/ui/button";
+import { ReadError } from "@/components/ui/read-feedback";
 
 export function usePatientApi() {
   const [api] = useState(() => createPatientApi(fetch, requireLogin));
   return api;
 }
 export function PatientFailure({ error, retry }: { error: unknown; retry?: () => void }) {
-  return <section className="space-y-3 rounded-xl border bg-surface p-5">
-    <p role="alert">{error instanceof PatientApiError ? error.message : "Impossible de charger les données du patient."}</p>
-    {retry && <Button variant="outline" onClick={retry}>Recharger les données</Button>}
-  </section>;
+  return <ReadError action={retry && <Button variant="outline" onClick={retry}>Recharger les données</Button>}>
+    {error instanceof PatientApiError ? error.message : "Impossible de charger les données du patient."}
+  </ReadError>;
 }
 export function useUnsavedChanges(dirty: boolean) {
   useEffect(() => {
@@ -39,7 +39,7 @@ export function useUnsavedChanges(dirty: boolean) {
   }, [dirty]);
 }
 export function PersistentNotice() {
-  return <p className="rounded-lg border border-secondary/30 bg-secondary-tint p-4 text-sm leading-6">
-    Patients enregistrés dans la base du cabinet. Les dossiers enregistrés et les données de démonstration sont séparés.
+  return <p className="rounded-lg border border-secondary/30 bg-secondary-tint px-4 py-2.5 text-sm leading-6">
+    Les dossiers patients sont enregistrés dans la base du cabinet.
   </p>;
 }

@@ -103,3 +103,50 @@ test("appointment API outage and invalid session never display synthetic booking
   assert.equal(await page.evaluate(()=>localStorage.length+sessionStorage.length),0);
  }finally{await value.close();}
 });
+
+test("appointment input waits for hydration and survives declined navigation and reload", async () => {
+  const { value, page, errors } = await harness.context({
+    role: "receptionist",
+    viewport: { width: 390, height: 844 },
+  });
+  const { promise: scriptsReady, resolve: releaseScripts } = Promise.withResolvers();
+  try {
+    await page.route("**/_next/static/**/*.js", async route => {
+      await scriptsReady;
+      await route.continue();
+    });
+    const path = url("/rendez-vous/nouveau?date=2026-11-24");
+    await Promise.all([
+      page.waitForRequest("**/_next/static/**/*.js"),
+      page.goto(path, { waitUntil: "commit" }),
+    ]);
+    const time = page.getByLabel("Heure du cabinet", { exact: true });
+    await time.waitFor();
+    assert(await time.isDisabled());
+    assert(await page.getByRole("button", { name: "Créer le rendez-vous", exact: true }).isDisabled());
+
+    releaseScripts();
+    await time.fill("12:45");
+    const navigationWarning = page.waitForEvent("dialog");
+    const click = page.getByRole("link", { name: "Annuler", exact: true }).click();
+    const warning = await navigationWarning;
+    assert.equal(warning.type(), "confirm");
+    await warning.dismiss();
+    await click;
+    assert.equal(page.url(), path);
+    assert.equal(await time.inputValue(), "12:45");
+
+    const reloadWarning = page.waitForEvent("dialog");
+    const reload = page.evaluate(() => window.location.reload());
+    const beforeUnload = await reloadWarning;
+    assert.equal(beforeUnload.type(), "beforeunload");
+    await beforeUnload.dismiss();
+    await reload;
+    assert.equal(page.url(), path);
+    assert.equal(await time.inputValue(), "12:45");
+    assert.deepEqual(errors, []);
+  } finally {
+    releaseScripts();
+    await value.close();
+  }
+});

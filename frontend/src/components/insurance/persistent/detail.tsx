@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import { useFinancialLoad } from "@/components/financial/load";
 import { PageHeading } from "@/components/page-heading";
+import { DialogPanel } from "@/components/ui/dialog-panel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { InsuranceApiError } from "@/lib/insurance/api/client";
@@ -194,27 +195,23 @@ function Document({ api, initial, action }: { api: WorkspaceApi; initial: Contex
       <Button ref={reviewButton} disabled={busy} onClick={() => void prepare()}>{busy ? "Vérification…" : action === "finaliser" ? "Vérifier avant de finaliser" : "Finaliser"}</Button>
     </div>}
     <Dialog.Root open={Boolean(review)} onOpenChange={open => { if (!open && !busy) setReview(undefined); }}>
-      {review && <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-foreground/40" />
-        <Dialog.Content onCloseAutoFocus={event => {
+      {review && <DialogPanel onCloseAutoFocus={event => {
           if (!reviewButton.current?.disabled) {
             event.preventDefault();
             reviewButton.current?.focus();
           }
-        }} className="fixed top-1/2 left-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 space-y-4 overflow-y-auto rounded-xl border bg-surface p-6 shadow-xl">
+        }} className="max-w-3xl" footer={<>
+          <Dialog.Close asChild><Button variant="outline">Annuler</Button></Dialog.Close>
+          <Button disabled={busy || warnings.length > 0} aria-busy={busy} onClick={finalize}>Confirmer la finalisation</Button>
+        </>}>
           <Dialog.Title className="text-xl font-semibold">Finaliser le document</Dialog.Title>
-          <Dialog.Description>La finalisation fige les données du document. L’envoi à l’organisme, le remboursement, la signature et le cachet restent des démarches distinctes.</Dialog.Description>
-          {warnings.length > 0 && <div role="alert" className="rounded-lg border p-3">
+          <Dialog.Description className="text-sm leading-6 text-muted-foreground">La finalisation fige les données du document. L’envoi à l’organisme, le remboursement, la signature et le cachet restent des démarches distinctes.</Dialog.Description>
+          {warnings.length > 0 && <div role="alert" className="space-y-2 rounded-lg border border-l-4 border-l-warning bg-muted p-3 text-sm">
             <p className="font-semibold">Éléments à compléter avant la finalisation</p>
             <ul className="list-disc space-y-1 pl-5">{warnings.map(warning => <li key={warning}>{warning}</li>)}</ul>
           </div>}
           <DocumentValues {...review} />
-          <div className="flex flex-wrap justify-end gap-2">
-            <Dialog.Close asChild><Button variant="outline">Annuler</Button></Dialog.Close>
-            <Button disabled={busy || warnings.length > 0} onClick={finalize}>Confirmer la finalisation</Button>
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>}
+      </DialogPanel>}
     </Dialog.Root>
   </>;
 }

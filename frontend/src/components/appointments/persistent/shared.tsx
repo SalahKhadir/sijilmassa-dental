@@ -7,11 +7,13 @@ import type { AppointmentPatient } from "@/lib/appointments/types";
 import { requireLogin } from "@/lib/api/session-request";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Button } from "@/components/ui/button";
+import { ReadError } from "@/components/ui/read-feedback";
 
 export function useAppointmentApi() { const [api] = useState(() => createAppointmentApi(fetch, requireLogin)); return api; }
 export function AppointmentFailure({ error, retry }: { error: unknown; retry?: () => void }) {
-  return <section className="space-y-3 rounded-xl border bg-surface p-5"><p role="alert">{error instanceof AppointmentApiError || error instanceof PatientApiError ? error.message : "Impossible de charger les rendez-vous."}</p>
-    {retry && <Button variant="outline" onClick={retry}>Recharger les données</Button>}</section>;
+  return <ReadError action={retry && <Button variant="outline" onClick={retry}>Recharger les données</Button>}>
+    {error instanceof AppointmentApiError || error instanceof PatientApiError ? error.message : "Impossible de charger les rendez-vous."}
+  </ReadError>;
 }
 export type CalendarData = { appointments: PersistentAppointment[]; patients: AppointmentPatient[] };
 export function useRealCalendar(query: CalendarQuery) {

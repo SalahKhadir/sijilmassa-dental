@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -20,12 +20,15 @@ import { useUnsavedChanges } from "@/components/patients/persistent/shared";
 import { AppointmentFailure, appointmentChanged, isConflict, useAppointmentApi } from "./shared";
 import { PatientPicker } from "./patient-picker";
 
+const subscribe = () => () => {};
+
 export function PersistentAppointmentForm({ appointment, patientId, date, view = "day", reload }: { appointment?: PersistentAppointment; patientId?: string; date?: string; view?: "day" | "week"; reload?: () => void }) {
   const api = useAppointmentApi(); const router = useRouter();
   const [patients] = useState(() => createPatientApi(fetch, requireLogin));
   const [patientStatus, setPatientStatus] = useState<string>();
   const [error, setError] = useState<unknown>(); const [saved, setSaved] = useState(false);
   const busy = useRef(false);
+  const hydrated = useSyncExternalStore(subscribe, () => true, () => false);
   const start = appointment ? clinicParts(appointment.startAt) : undefined;
   const form = useForm<AppointmentFormValues>({ resolver: zodResolver(appointmentFormSchema), defaultValues: {
     patientId: appointment?.patientId ?? (patientId && z.uuid().safeParse(patientId).success ? patientId : ""), date: start?.date ?? date ?? clinicDate(),
@@ -38,7 +41,7 @@ export function PersistentAppointmentForm({ appointment, patientId, date, view =
   const onSelect = useCallback((patient: Pick<AdministrativePatient, "id" | "status">) => { setValue("patientId", patient.id, { shouldValidate: true, shouldDirty: true }); setPatientStatus(patient.status); }, [setValue]);
   useUnsavedChanges(isDirty && !saved);
   const conflict = isConflict(error), immutable = appointment?.status === "TERMINE";
-  const disabled = isSubmitting || saved || immutable;
+  const disabled = !hydrated || isSubmitting || saved || immutable;
   async function submit(values: AppointmentFormValues) {
     if (busy.current || immutable || conflict) return;
     busy.current = true; setError(undefined);

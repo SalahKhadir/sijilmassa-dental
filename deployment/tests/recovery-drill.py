@@ -132,6 +132,7 @@ class Client:
         body, headers = self.request("GET", path, 200)
         assert body.startswith(b"%PDF-") and headers["Content-Type"] == "application/pdf"
         assert "no-store" in headers["Cache-Control"]
+        assert ".pdf" in headers.get("Content-Disposition", "")
         return body
 
 
@@ -140,6 +141,11 @@ def ca_for(env, path):
     assert b"BEGIN CERTIFICATE" in pem and b"PRIVATE KEY" not in pem
     path.write_bytes(pem)
     return path
+
+
+def pdf_geometry(pdf):
+    info = run("pdfinfo", "-f", "1", "-l", "2", "-box", "-", data=pdf).stdout
+    return [line for line in info.splitlines() if line.startswith((b"Pages:", b"Page "))]
 
 
 def check_failed_dump(env, backup, destination):
@@ -200,25 +206,33 @@ def fixture(dentist, receptionist):
     patient = receptionist.json("POST", "/api/v1/patients", 201, dict(identity=identity, status="active"), csrf=True)
     pid = patient["id"]
     scope = f"?patientId={pid}"
+    patient_path = f"/api/v1/patients/{pid}"
+    medical_path = patient_path + "/medical-record"
+    dentist.request("GET", medical_path, 200)
+    receptionist.request("GET", medical_path, 403)
+    start = datetime.fromisoformat(day + "T10:00:00").replace(tzinfo=ZoneInfo("Africa/Casablanca"))
+    appointment = receptionist.json("POST", "/api/v1/appointments", 201, dict(patientId=pid,
+        startAt=start.astimezone(timezone.utc).isoformat(),
+        endAt=(start + timedelta(minutes=30)).astimezone(timezone.utc).isoformat(), type="CONSULTATION"), csrf=True)
+    appointment_path = "/api/v1/appointments/" + appointment["id"]
     consultation = dentist.json("POST", "/api/v1/consultations", 201, dict(patientId=pid, content=dict(
-        appointmentId=None, consultationDate=day, chiefComplaint="Contrôle synthétique", clinicalObservations="",
+        appointmentId=appointment["id"], consultationDate=day, chiefComplaint="Contrôle synthétique", clinicalObservations="",
         assessment="", treatmentPlan="", notes="SYNTHETIC-DRILL-PRIVATE")), csrf=True)
     cid = consultation["id"]
     consultation_path = f"/api/v1/consultations/{cid}"
-    clinical = dentist.json("POST", consultation_path + "/treatments" + scope, 200, dict(
-        version=consultation["version"], content=dict(treatmentDate=day, description="Soin synthétique",
-        toothReference="16 / 17", notes="SYNTHETIC-DRILL-PRIVATE")), csrf=True)
-    charge = dentist.json("POST", "/api/v1/financial/charges", 201, dict(patientId=pid, consultationId=cid,
-        treatmentId=clinical["treatments"][0]["id"], expectedConsultationVersion=clinical["version"], priceMinor=12345), csrf=True)
-    charge_path = "/api/v1/financial/charges/" + charge["chargeId"]
-    payment_path = charge_path + "/payments" + scope
-    receptionist.json("POST", payment_path, 200, dict(expectedChargeVersion=0, amountMinor=2345,
-        paidAt=now, method="ESPECES", operationId=str(uuid.uuid4())), csrf=True)
-    draft = receptionist.json("POST", "/api/v1/invoices", 201, dict(patientId=pid, chargeIds=[charge["chargeId"]]), csrf=True)
-    invoice_path = "/api/v1/invoices/" + draft["invoiceId"]
-    invoice = receptionist.json("POST", invoice_path + "/issue" + scope, 200, dict(expectedVersion=0), csrf=True)
-    assert invoice["issuanceSnapshot"]["lines"][0]["toothReference"] == "16 / 17"
-    assert invoice["issuanceSnapshot"]["balanceAtIssue"] == {"totalMinor": "12345", "receivedMinor": "2345", "remainingMinor": "10000"}
+    clinical = consultation
+    charges = []
+    for tooth, price in (("16 / 17", 12345), ("26", 8765)):
+        clinical = dentist.json("POST", consultation_path + "/treatments" + scope, 200, dict(
+            version=clinical["version"], content=dict(treatmentDate=day, description="Soin synthétique " + tooth,
+            toothReference=tooth, notes="SYNTHETIC-DRILL-PRIVATE")), csrf=True)
+        treatment = next(item for item in clinical["treatments"] if item["content"]["toothReference"] == tooth)
+        charges.append(dentist.json("POST", "/api/v1/financial/charges", 201, dict(patientId=pid, consultationId=cid,
+            treatmentId=treatment["id"], expectedConsultationVersion=clinical["version"], priceMinor=price), csrf=True))
+    assert len({charge["chargeId"] for charge in charges}) == 2
+    clinical = dentist.json("PUT", consultation_path + "/finalization" + scope, 200,
+                           dict(version=clinical["version"]), csrf=True)
+    assert clinical["status"] == "TERMINEE"
     rx = dentist.json("POST", "/api/v1/prescriptions", 201, dict(patientId=pid, content=dict(
         consultationId=cid, issuedDate=day, medications=[dict(medicationName="Médicament fictif",
         dosage="1 comprimé", frequency="matin", duration="2 jours", instructions="")],
@@ -226,17 +240,98 @@ def fixture(dentist, receptionist):
     rx_path = "/api/v1/prescriptions/" + rx["id"]
     finalized = dentist.json("PUT", rx_path + "/finalization" + scope, 200,
                              dict(version=rx["version"], patientVersion=patient["version"]), csrf=True)
+
+    charge_paths = ["/api/v1/financial/charges/" + charge["chargeId"] for charge in charges]
+    payment_paths = [path + "/payments" + scope for path in charge_paths]
+    for path, amount in zip(payment_paths, (2345, 765)):
+        payment = dict(expectedChargeVersion=0, amountMinor=amount,
+                       paidAt=now, method="ESPECES", operationId=str(uuid.uuid4()))
+        receipt = receptionist.json("POST", path, 200, payment, csrf=True)
+        replay = receptionist.json("POST", path, 200, payment, csrf=True)
+        assert replay["payment"]["id"] == receipt["payment"]["id"]
+    summary_path = f"/api/v1/financial/patients/{pid}/summary"
+    summary = receptionist.json("GET", summary_path, 200)
+    assert summary["totals"] == dict(currency="MAD", chargesMinor="21110", receivedMinor="3110", outstandingMinor="18000")
+    assert len(summary["items"]) == 2 and "SYNTHETIC-DRILL-PRIVATE" not in json.dumps(summary)
+    dossier_path = patient_path + "/dossier.pdf"
+    dentist.pdf(dossier_path)
+    receptionist.request("GET", dossier_path, 403)
+
+    draft = receptionist.json("POST", "/api/v1/invoices", 201,
+                              dict(patientId=pid, chargeIds=[charge["chargeId"] for charge in charges]), csrf=True)
+    invoice_path = "/api/v1/invoices/" + draft["invoiceId"]
+    invoice = receptionist.json("POST", invoice_path + "/issue" + scope, 200, dict(expectedVersion=0), csrf=True)
+    frozen = invoice["issuanceSnapshot"]
+    assert {line["toothReference"] for line in frozen["lines"]} == {"16 / 17", "26"}
+    assert frozen["balanceAtIssue"] == dict(totalMinor="21110", receivedMinor="3110", remainingMinor="18000")
+    invoice_pdf_path = invoice_path + "/pdf" + scope
+    frozen_pdf = receptionist.pdf(invoice_pdf_path)
+    receptionist.json("POST", payment_paths[0], 200, dict(expectedChargeVersion=1, amountMinor=1000,
+        paidAt=now, method="CARTE", operationId=str(uuid.uuid4())), csrf=True)
+    current_invoice = receptionist.json("GET", invoice_path + scope, 200)
+    assert current_invoice["issuanceSnapshot"] == frozen
+    assert current_invoice["currentFinancialState"]["balance"] == dict(totalMinor="21110", receivedMinor="4110", remainingMinor="17000")
+    assert receptionist.pdf(invoice_pdf_path) == frozen_pdf
+    assert [len(receptionist.json("GET", path, 200)["items"]) for path in payment_paths] == [2, 1]
+    assert len(receptionist.json("GET", patient_path + "/invoices", 200)["items"]) == 1
+
+    insurance_path = "/api/v1/insurance-documents"
+    insurance = dentist.json("POST", insurance_path, 201, dict(patientId=pid, consultationId=cid,
+        documentType="CNSS_DENTAIRE", templateVersion=1, purpose="ENTENTE_PREALABLE", draft=dict(
+            fields=dict(insured=dict(relationship="LUI_MEME"),
+                        cnss=dict(registrationNumber="012345678", practitionerInp="123456789")),
+            acts=[dict(fields=dict(plannedDescription="Soin de contrôle fictif", actCode="D1", quotedFeeMinor=12345))])),
+        csrf=True)
+    insurance_path += "/" + insurance["documentId"]
+    insurance = dentist.json("POST", insurance_path + "/finalize" + scope, 200,
+        dict(expectedVersion=insurance["version"], expectedPatientVersion=patient["version"],
+             expectedConsultationVersion=clinical["version"]), csrf=True)
+    assert insurance["lifecycle"] == "FINALISE" and insurance["snapshot"]["knownCompleteFeeTotalMinor"] == "12345"
+    insurance_pdf_path = insurance_path + "/pdf" + scope
+    dentist.pdf(insurance_pdf_path)
+    receptionist.request("GET", insurance_path + scope, 403)
+    receptionist.request("GET", insurance_pdf_path, 403)
+    receptionist.request("GET", rx_path + "/pdf" + scope + f"&version={finalized['version']}&disposition=attachment", 403)
+
+    archived = receptionist.json("PUT", patient_path, 200,
+                                dict(identity=identity, status="inactive", version=patient["version"]), csrf=True)
+    assert archived["status"] == "inactive"
     paths = [
-        ("reception", f"/api/v1/patients/{pid}"),
+        ("reception", patient_path),
+        ("dentist", medical_path),
+        ("reception", appointment_path),
         ("dentist", consultation_path + scope),
-        ("reception", charge_path + scope),
-        ("reception", payment_path),
+        ("reception", summary_path),
+        *[("reception", path + scope) for path in charge_paths],
+        *[("reception", path) for path in payment_paths],
         ("reception", invoice_path + scope),
         ("dentist", rx_path + scope),
+        ("dentist", insurance_path + scope),
     ]
-    pdfs = [("reception", invoice_path + "/pdf" + scope),
+    pdfs = [("reception", invoice_pdf_path),
             ("dentist", rx_path + "/pdf" + scope + f"&version={finalized['version']}&disposition=attachment"),
-            ("dentist", f"/api/v1/patients/{pid}/dossier.pdf")]
+            ("dentist", dossier_path),
+            ("dentist", insurance_pdf_path)]
+    assert receptionist.pdf(invoice_pdf_path) == frozen_pdf
+    print("OK one linked synthetic visit, exact V9 totals and replay, immutable issued invoice, CNSS and archived reads", flush=True)
+    interval = (f"from={start.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}"
+                f"&to={(start + timedelta(hours=1)).astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}")
+    for label, client, path in (
+        ("patient-search", receptionist, "/api/v1/patients?q=Synth&status=inactive"),
+        ("calendar", receptionist, "/api/v1/appointments?" + interval),
+        ("consultation", dentist, consultation_path + scope),
+        ("financial-history", receptionist, payment_paths[0]),
+        ("invoice-history", receptionist, patient_path + "/invoices"),
+        ("insurance-history", dentist, patient_path + "/insurance-documents"),
+        ("dossier-pdf", dentist, dossier_path),
+        ("insurance-pdf", dentist, insurance_pdf_path),
+    ):
+        started = time.perf_counter()
+        body, _ = client.request("GET", path, 200)
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        if label == "patient-search":
+            assert [item["id"] for item in json.loads(body)["items"]] == [pid]
+        print(f"TIMING {label} {elapsed_ms:.1f} ms {len(body)} bytes", flush=True)
     return paths, pdfs
 
 
@@ -395,6 +490,9 @@ def main():
             enc["BACKUP_DESTINATION"] = str(backup_dir)
             check_preflight(tmp, enc, src_port, (app_file, admin_file))
             compose(src, "up", "--no-build", "--pull", "never", "--wait")
+            accounts = compose(src, "exec", "-T", "--user", "postgres", "db", "psql", "-XqAt",
+                               "-U", "postgres", "-d", "sijilmassa", "-c", "SELECT count(*) FROM application_user").stdout
+            assert accounts.strip() == b"0", "A fresh production database must have no preconfigured accounts"
             bootstrap(original, app_file, d, r)
             ca = ca_for(src, tmp / "root.crt")
             d_client, r_client = Client(src_port, ca), Client(src_port, ca)
@@ -404,7 +502,7 @@ def main():
             dentist_id = d_client.login(d)["id"]
             assert r_client.login(r)["role"] == "RECEPTIONIST"
             check_network(src, original, r_client, ca)
-            print("OK cold start, migrations, trusted HTTPS, secure cookies, CSRF, role and simulated LAN isolation", flush=True)
+            print("OK cold start, no preconfigured accounts, migrations, HTTPS, secure cookies, CSRF and network isolation", flush=True)
 
             profile["dentistUserId"] = dentist_id
             write_profile()
@@ -506,7 +604,10 @@ def main():
             assert actual_pdfs[:2] == expected_pdfs[:2]
             for before, after in zip(expected_pdfs[2:], actual_pdfs[2:]):
                 assert run("pdftotext", "-", "-", data=before).stdout == run("pdftotext", "-", "-", data=after).stdout
-            print("OK fresh isolated restore, Flyway/JPA startup, all records and the three PDFs verified", flush=True)
+                assert pdf_geometry(before) == pdf_geometry(after)
+            assert [clients[role].json("GET", path, 200) for role, path in paths] == expected
+            assert [clients[role].pdf(path) for role, path in pdfs[:2]] == expected_pdfs[:2]
+            print("OK isolated restore, Flyway/JPA, all records and four PDFs verified, source records unchanged", flush=True)
         except Exception:
             # Preserve short diagnostics for these synthetic services before removing them.
             diagnostics = compose(src, "logs", "--no-color", "--tail", "20", check=False).stdout.decode(errors="replace")

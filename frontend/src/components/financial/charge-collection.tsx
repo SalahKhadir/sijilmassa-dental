@@ -79,7 +79,7 @@ function PaymentForm({ charge, submit }: { charge: Charge; submit(body: ReturnTy
   const [confirmation, setConfirmation] = useState<number>();
   const [error, setError] = useState("");
   return <>
-    <form className="flex flex-wrap items-end gap-3" onSubmit={event => {
+    <form aria-describedby={`${id}-history-help`} className="flex flex-wrap items-end gap-3" onSubmit={event => {
       event.preventDefault();
       const value = parseMad(amount);
       if (!validPaymentAmount(value, charge.remainingMinor)) {
@@ -90,16 +90,19 @@ function PaymentForm({ charge, submit }: { charge: Charge; submit(body: ReturnTy
       setError("");
       setConfirmation(value);
     }}>
-      <div className="space-y-1"><label className="text-sm font-medium" htmlFor={`${id}-amount`}>Montant reçu (DH)</label>
+      <p id={`${id}-history-help`} className="basis-full text-sm text-muted-foreground">
+        Après un rechargement ou si le résultat d’un encaissement est incertain, vérifiez l’historique du soin avant de saisir un autre encaissement.
+      </p>
+      <div className="w-full min-w-0 space-y-2 sm:w-auto"><label className="text-sm font-semibold" htmlFor={`${id}-amount`}>Montant reçu (DH)</label>
         <Input id={`${id}-amount`} inputMode="decimal" maxLength={17} value={amount} aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined} onChange={event => { setAmount(event.target.value); setError(""); }} /></div>
-      <div className="space-y-1"><label className="text-sm font-medium" htmlFor={`${id}-method`}>Mode de paiement</label>
+      <div className="w-full min-w-0 space-y-2 sm:w-auto"><label className="text-sm font-semibold" htmlFor={`${id}-method`}>Mode de paiement</label>
         <Select id={`${id}-method`} value={method} onChange={event => setMethod(paymentMethod.parse(event.target.value))}>
           {paymentMethod.options.map(key => <option key={key} value={key}>{methods[key]}</option>)}
         </Select></div>
-      <Button type="submit">Préparer l’encaissement</Button>
+      <Button type="submit" className="min-h-12">Préparer l’encaissement</Button>
     </form>
-    {error && <p role="alert" id={`${id}-error`}>{error}</p>}
+    {error && <p role="alert" id={`${id}-error`} className="text-sm text-danger">{error}</p>}
     <ClinicalConfirmation open={confirmation !== undefined} title="Confirmer l’encaissement ?"
       description={confirmation === undefined ? "" : `${formatMad(confirmation)} · ${methods[method]} · ${charge.treatmentLabel}`}
       confirmLabel="Confirmer l’encaissement" onOpenChange={open => { if (!open) setConfirmation(undefined); }}

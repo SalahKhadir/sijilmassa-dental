@@ -5,7 +5,8 @@ import { useSessionBillingApi } from "@/components/financial/session";
 import { useFinancialLoad } from "@/components/financial/load";
 import { usePatientApi } from "@/components/patients/persistent/shared";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { ScrollableTable } from "@/components/ui/scrollable-table";
+import { ReadError } from "@/components/ui/read-feedback";
 import { createInvoiceApi, invoiceMessage } from "@/lib/invoices/client";
 import { formatMad } from "@/lib/financial/money";
 import { formatPatientDate } from "@/lib/patients/dates";
@@ -29,10 +30,9 @@ export function patientName(patient: Pick<AdministrativePatient, "identity">) {
 }
 
 export function InvoiceFailure({ error, retry }: { error: unknown; retry?: () => void }) {
-  return <div className="space-y-2">
-    <p role="alert">{invoiceMessage(error)}</p>
-    {retry && <Button type="button" variant="outline" onClick={retry}>Réessayer la lecture</Button>}
-  </div>;
+  return <ReadError action={retry && <Button type="button" variant="outline" onClick={retry}>Réessayer la lecture</Button>}>
+    {invoiceMessage(error)}
+  </ReadError>;
 }
 
 export const settlementLabel: Record<NonNullable<InvoiceDetail["currentFinancialState"]["settlement"]>, string> = {
@@ -56,20 +56,18 @@ export function InvoiceAmounts({ balance, issued = false }: { balance: InvoiceBa
 export function InvoiceLines({ lines }: { lines: readonly (DraftCharge & { receivedAtIssueMinor?: number })[] }) {
   if (!lines.length) return <p>Aucun soin sélectionné.</p>;
   const issued = lines[0].receivedAtIssueMinor !== undefined;
-  return <Card className="overflow-x-auto">
-    <table className="w-full text-left text-sm">
+  return <ScrollableTable label="Tableau des soins de la facture">
       <caption className="sr-only">Soins de la facture</caption>
-      <thead className="bg-muted/50"><tr>
+      <thead><tr>
         <th scope="col" className="p-3">Date</th><th scope="col" className="p-3">Traitement</th>
         <th scope="col" className="p-3 text-right">Prix</th>
         {issued && <th scope="col" className="p-3 text-right">Reçu à l’émission</th>}
       </tr></thead>
       <tbody>{lines.map(line => <tr className="border-t" key={line.chargeId}>
         <td className="whitespace-nowrap p-3">{formatPatientDate(line.treatmentDate)}</td>
-        <td className="p-3">{line.treatmentLabel}</td>
-        <td className="p-3 text-right tabular-nums">{formatMad(line.priceMinor)}</td>
-        {issued && <td className="p-3 text-right tabular-nums">{line.receivedAtIssueMinor === undefined ? "—" : formatMad(line.receivedAtIssueMinor)}</td>}
+        <td className="min-w-28 [overflow-wrap:anywhere]">{line.treatmentLabel}</td>
+        <td className="whitespace-nowrap text-right tabular-nums">{formatMad(line.priceMinor)}</td>
+        {issued && <td className="whitespace-nowrap text-right tabular-nums">{line.receivedAtIssueMinor === undefined ? "—" : formatMad(line.receivedAtIssueMinor)}</td>}
       </tr>)}</tbody>
-    </table>
-  </Card>;
+  </ScrollableTable>;
 }

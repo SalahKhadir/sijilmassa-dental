@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { LoginCredentials } from "./login-schema";
 import { authFailure, identitySchema, type AuthFailure, type SessionResult } from "./types";
 
-export const AUTHENTICATION_NOTICE = "Connectez-vous avec le compte créé localement pour le cabinet. Les modules métier utilisent encore des données fictives.";
+export const AUTHENTICATION_NOTICE = "Utilisez l’identifiant de votre compte du cabinet.";
 const csrfSchema = z.object({ headerName: z.literal("X-CSRF-TOKEN"), token: z.string().min(1).max(512) });
 type MutationResult = { status: "ok" } | AuthFailure;
 export interface AuthenticationService {

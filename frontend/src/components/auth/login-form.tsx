@@ -135,7 +135,8 @@ export function LoginForm() {
             aria-controls="password"
             aria-pressed={showPassword}
             onClick={() => setShowPassword((value) => !value)}
-            className="absolute top-1 right-1 min-h-10 w-10 px-0"
+            size="icon"
+            className="absolute top-0.5 right-0.5"
           >
             {showPassword ? (
               <EyeOff aria-hidden="true" />
@@ -153,6 +154,7 @@ export function LoginForm() {
       <Button
         type="submit"
         disabled={!hydrated || isSubmitting}
+        aria-busy={isSubmitting}
         className="login-submit min-h-12 w-full justify-between px-5"
       >
         <span>{isSubmitting ? "Vérification en cours…" : "Se connecter"}</span>

@@ -184,6 +184,44 @@ test("a lost response replays the identical operation across cabinet navigation 
   } finally { await dentist.value.close(); await reception.value.close(); }
 });
 
+test("after a full reload an uncertain committed payment is visible in history without a second write", async () => {
+  const dentist = await harness.context();
+  const reception = await harness.context({ role: "receptionist" });
+  try {
+    const { patient, record } = await fixture(dentist.value, "Rechargement fictif");
+    const charge = await seedCharge(dentist.value, record, 20000);
+    const path = paymentsPath(patient, charge);
+    const { page } = reception;
+    let writes = 0;
+    await page.route(`**${api}/charges/*/payments?*`, async route => {
+      if (route.request().method() !== "POST") return route.continue();
+      if (++writes !== 1) return route.continue();
+      const committed = await route.fetch();
+      assert.equal(committed.status(), 200);
+      await route.abort("connectionreset");
+    });
+    await page.goto(url(financePath(patient)));
+    await selectCharge(page);
+    await preparePayment(page, "72,25");
+    await confirmPayment(page);
+    await button(page, "Renvoyer le même encaissement").waitFor();
+    page.once("dialog", dialog => dialog.accept());
+    await page.reload();
+    await selectCharge(page);
+    await page.getByText(/vérifiez l’historique du soin avant de saisir un autre encaissement/).waitFor();
+    await page.getByRole("region", { name: "Historique des encaissements" })
+      .getByText(formatMad(7225), { exact: true }).waitFor();
+    await waitRemaining(page, 12775);
+    assert.equal(await button(page, "Renvoyer le même encaissement").count(), 0);
+    assert.equal(writes, 1);
+    const history = await expectJson(await reception.value.request.get(url(path)), 200);
+    assert.deepEqual(history.items.map(payment => payment.amountMinor), [7225]);
+    assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
+    assert.equal(await page.evaluate(async () => (await indexedDB.databases()).length), 0);
+    assert.deepEqual(reception.errors, []);
+  } finally { await dentist.value.close(); await reception.value.close(); }
+});
+
 test("a stale payment refreshes the charge and requires reconfirmation, and archived or expired sessions cannot collect", async () => {
   const dentist = await harness.context();
   const reception = await harness.context({ role: "receptionist" });
@@ -228,12 +266,59 @@ test("a stale payment refreshes the charge and requires reconfirmation, and arch
     await text(page, "Patient archivé. Les finances restent consultables.").waitFor();
     assert.equal(await page.getByLabel("Montant reçu (DH)").count(), 0);
     await page.getByRole("table", { name: "Soldes des soins tarifés" }).waitFor();
-    await reception.value.clearCookies();
-    await button(page, "Actualiser les finances").click();
-    await page.waitForURL(url("/login"));
+    await page.getByRole("region", { name: "Historique des encaissements" })
+      .getByText(formatMad(2000), { exact: true }).waitFor();
+    // Keep an incidental focus/visibility check from winning this explicit refresh scenario.
+    // Release the gate afterwards without fabricating a session response.
+    const { promise: sessionGate, resolve: releaseSessionCheck } = Promise.withResolvers();
+    await page.route("**/api/v1/auth/me", async route => {
+      await sessionGate;
+      await route.continue();
+    });
+    try {
+      await reception.value.clearCookies();
+      const [expired] = await Promise.all([
+        page.waitForResponse(response => {
+          const pathname = new URL(response.url()).pathname;
+          return response.request().method() === "GET" &&
+            (pathname.startsWith(api + "/") || pathname === `/api/v1/patients/${patient.id}`);
+        }),
+        button(page, "Actualiser les finances").click(),
+      ]);
+      assert.equal(expired.status(), 401);
+      await page.waitForURL(url("/login"));
+    } finally {
+      releaseSessionCheck();
+    }
     assert.equal(await page.getByRole("table").count(), 0);
     assert.deepEqual(reception.errors, []);
   } finally { await dentist.value.close(); await reception.value.close(); }
+});
+
+test("focus revalidation after session expiry removes the financial workspace without a refresh click", async () => {
+  const reception = await harness.context({ role: "receptionist" });
+  try {
+    const patient = await expectJson(await mutate(reception.value, "/api/v1/patients", "POST", {
+      identity: {
+        firstName: "Patient fictif", lastName: "Session finances", sex: "unanswered", dateOfBirth: null,
+        address: "", gsm: "", landline: "", profession: "", cin: "", medicalCoverage: "",
+      },
+      status: "active",
+    }), 201);
+    const { page } = reception;
+    await page.goto(url(financePath(patient)));
+    await text(page, "Aucun soin tarifé sur cette page.").waitFor();
+    await button(page, "Actualiser les finances").waitFor();
+    const expired = page.waitForResponse(response =>
+      new URL(response.url()).pathname === "/api/v1/auth/me" && response.status() === 401);
+    await reception.value.clearCookies();
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expired;
+    await page.waitForURL(url("/login"));
+    assert.equal(await button(page, "Actualiser les finances").count(), 0);
+    assert.equal(await text(page, "Aucun soin tarifé sur cette page.").count(), 0);
+    assert.deepEqual(reception.errors, []);
+  } finally { await reception.value.close(); }
 });
 
 test("empty and paged treatment ledgers show whole-patient totals and bounded verso pages", async () => {
